@@ -10,23 +10,23 @@ import {
   Button,
 } from '@mui/material';
 
+// The raw data from the uploaded file can have any keys.
 type RawRow = Record<string, any>;
 
+// The final, clean data structure expected by the financial statements component.
 export type MappedRow = {
-  accountName: string;
+  createdby: string;
   glAccount: string;
   accountType: string;
-  accountGroup: string;
+  'Level 1 Desc': string;
+  'Level 2 Desc': string;
+  'Level 3 Desc': string;
   functionalArea: string;
   amountCurrent: number;
   amountPrevious: number;
   exceptionPct: number;
   exceptionAmt: number;
   longText: string;
-  'Level 1 Desc': string;
-  'Level 2 Desc': string;
-  'Level 3 Desc': string;
-  'Mapped amount Q1FY23'?: number;
 };
 
 type Props = {
@@ -36,86 +36,121 @@ type Props = {
 };
 
 const ColumnMapper: React.FC<Props> = ({ columns, rawData, onConfirm }) => {
+  // --- UPDATED: Fields are now configured with aliases from your specific file ---
   const fields: { key: keyof MappedRow; label: string; aliases: string[] }[] = [
-    { key: 'accountName', label: 'Account Name', aliases: ['Account Name', 'Short Text', 'Sample account'] },
-    { key: 'glAccount', label: 'G/L Account', aliases: ['G/L Account', 'G/L Acct'] },
-    { key: 'accountType', label: 'Account Type (BS/P&L)', aliases: ['P&L Statement Acct Type'] },
-    { key: 'accountGroup', label: 'Account Group', aliases: ['Level 1 Desc', 'Account Group'] },
-    { key: 'functionalArea', label: 'Functional Area', aliases: ['Functional Area'] },
-    { key: 'amountCurrent', label: 'Amount (Current)', aliases: ['Mapped amount Q1FY23'] },
-    { key: 'amountPrevious', label: 'Amount (Previous)', aliases: ['Mapped amount Q4FY22'] },
+    { key: 'createdby', label: 'Name', aliases: ['Name', 'Created by'] },
+    { key: 'glAccount', label: 'G/L Account', aliases: ['Account Code', 'G/L Account', 'G/L Acct'] },
+    { key: 'accountType', label: 'Account Type', aliases: ['Nature', 'P&L Statement Acct Type'] },
+    { key: 'Level 1 Desc', label: 'Level 1 Description', aliases: ['Level 1 grouping', 'Level 1 Desc'] },
+    { key: 'Level 2 Desc', label: 'Level 2 Description', aliases: ['Level 2 grouping', 'Level 2 Desc'] },
+    { key: 'Level 3 Desc', label: 'Level 3 Description', aliases: ['Level 3 Desc'] },
+    { key: 'functionalArea', label: 'Functional Area', aliases: ['Target Grouping', 'Functional Area'] },
+    {
+      key: 'amountCurrent',
+      label: 'Amount (Current Year)',
+      // Note: This handles the column with a newline in its name
+      aliases: ['Amount in Lakh\nMarch 31,2024', '31-Mar-24', 'Amount in Lakh March 31,2024'],
+    },
+    {
+      key: 'amountPrevious',
+      label: 'Amount (Previous Year)',
+      aliases: ['Amount in Lakhs\nMarch 31,2023', 'March 31,2023', 'Amount in Lakhs March 31,2023'],
+    },
+    { key: 'longText', label: 'Description / Long Text', aliases: ['G/L Acct Long Text', 'Description'] },
     { key: 'exceptionPct', label: 'Exception %', aliases: ['Exception Percentage 2023'] },
     { key: 'exceptionAmt', label: 'Exception Amount', aliases: ['Exception Amount 2023'] },
-    { key: 'longText', label: 'Description / Long Text', aliases: ['G/L Acct Long Text', 'Description'] },
   ];
 
-  const initialMap = fields.reduce((acc, f) => {
-    const match = f.aliases.find(alias => columns.includes(alias));
-    if (match) acc[f.key] = match;
-    return acc;
-  }, {} as Partial<Record<keyof MappedRow, string>>);
+  // Attempt to auto-map columns based on aliases, ignoring case and whitespace.
+  const getInitialMap = () => {
+    const autoMap: Partial<Record<keyof MappedRow, string>> = {};
+    fields.forEach(field => {
+      // Find an alias that matches a column from the file
+      const foundAlias = field.aliases.find(alias =>
+        columns.some(c => c.trim().toLowerCase() === alias.trim().toLowerCase())
+      );
+      if (foundAlias) {
+        // Get the actual column name from the file (preserving its original case)
+        const matchingColumn = columns.find(c => c.trim().toLowerCase() === foundAlias.trim().toLowerCase());
+        if (matchingColumn) {
+          autoMap[field.key] = matchingColumn;
+        }
+      }
+    });
+    return autoMap;
+  };
 
-  const [map, setMap] = useState(initialMap);
+  const [map, setMap] = useState<Partial<Record<keyof MappedRow, string>>>(getInitialMap);
 
   const handleConfirm = () => {
-    const allMapped = fields.every((f) => typeof map[f.key] === 'string');
-    if (allMapped) {
-      const mappedData: MappedRow[] = rawData.map((row) => ({
-        accountName: row[map.accountName!] ?? '',
-        glAccount: row[map.glAccount!] ?? '',
-        accountType: row[map.accountType!] ?? '',
-        accountGroup: row[map.accountGroup!] ?? '',
-        functionalArea: row[map.functionalArea!] ?? '',
-        amountCurrent: parseFloat(row[map.amountCurrent!] as any) || 0,
-        amountPrevious: parseFloat(row[map.amountPrevious!] as any) || 0,
-        exceptionPct: parseFloat(row[map.exceptionPct!] as any) || 0,
-        exceptionAmt: parseFloat(row[map.exceptionAmt!] as any) || 0,
-        longText: row[map.longText!] ?? '',
-        'Level 1 Desc': row['Level 1 Desc'] ?? '',
-        'Level 2 Desc': row['Level 2 Desc'] ?? '',
-        'Level 3 Desc': row['Level 3 Desc'] ?? '',
-      }));
-      onConfirm(mappedData);
+    const requiredFields: (keyof MappedRow)[] = ['Level 1 Desc', 'Level 2 Desc', 'amountCurrent', 'amountPrevious'];
+    const allRequiredMapped = requiredFields.every(field => !!map[field]);
+
+    if (!allRequiredMapped) {
+      alert('Please ensure you have mapped Level 1, Level 2, and both Amount columns.');
+      return;
     }
+    
+    // Helper to safely parse amounts, removing commas and symbols
+    const cleanAmount = (value: any): number => {
+        if (typeof value !== 'string') return Number(value) || 0;
+        // Removes all non-numeric characters except for a decimal point and a leading minus sign
+        const cleaned = value.replace(/[^0-9.-]/g, '');
+        return parseFloat(cleaned) || 0;
+    };
+
+
+    const mappedData: MappedRow[] = rawData.map((row) => {
+      const getValue = (key: keyof MappedRow, defaultValue: any = '') => {
+        const mappedColumn = map[key];
+        return mappedColumn ? row[mappedColumn] ?? defaultValue : defaultValue;
+      };
+
+      return {
+        createdby: getValue('createdby'),
+        glAccount: getValue('glAccount'),
+        accountType: getValue('accountType'),
+        'Level 1 Desc': getValue('Level 1 Desc'),
+        'Level 2 Desc': getValue('Level 2 Desc'),
+        'Level 3 Desc': getValue('Level 3 Desc'),
+        longText: getValue('longText'),
+        functionalArea: getValue('functionalArea'),
+        amountCurrent: cleanAmount(getValue('amountCurrent', 0)),
+        amountPrevious: cleanAmount(getValue('amountPrevious', 0)),
+        exceptionPct: cleanAmount(getValue('exceptionPct', 0)),
+        exceptionAmt: cleanAmount(getValue('exceptionAmt', 0)),
+      };
+    });
+    onConfirm(mappedData);
   };
 
   return (
-    <Paper sx={{ p: 2, mt: 3 }}>
+    <Paper sx={{ p: 3, mt: 3, maxWidth: 1500, mx: 'auto' }}>
       <Typography variant="h6" gutterBottom>
-        🧩 Map Your Columns for Financial Statements
+        🧩 Map Your Columns
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        We've tried to guess your columns. Please review and correct any mismatches.
       </Typography>
 
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-        {fields.map((f) => {
-          const isMissing = !map[f.key];
-          return (
-            <Box key={f.key} sx={{ flex: '1 1 30%', minWidth: 250 }}>
-              <FormControl fullWidth error={isMissing}>
-                <InputLabel sx={{ color: isMissing ? 'error.main' : undefined }}>
-                  {f.label}
-                </InputLabel>
-                <Select
-  value={map[f.key] ?? ''}
-  onChange={(e) => setMap((prev) => ({ ...prev, [f.key]: e.target.value }))}
-  displayEmpty
-  sx={{
-    mt: 1,
-    '& .MuiSelect-select': {
-      py: 1.2,
-    },
-  }}
->
-
-                  {columns.map((col) => (
-                    <MenuItem key={col} value={col}>
-                      {col}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-          );
-        })}
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 2 }}>
+        {fields.map((field) => (
+          <FormControl key={field.key} fullWidth variant="outlined">
+            <InputLabel>{field.label}</InputLabel>
+            <Select
+              value={map[field.key] ?? ''}
+              onChange={(e) => setMap((prev) => ({ ...prev, [field.key]: e.target.value }))}
+              label={field.label}
+            >
+              <MenuItem value=""><em>None (Skip this field)</em></MenuItem>
+              {columns.map((col) => (
+                <MenuItem key={col} value={col}>
+                  {col}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        ))}
       </Box>
 
       <Typography variant="body2" sx={{ mt: 3 }}>
@@ -138,13 +173,15 @@ const ColumnMapper: React.FC<Props> = ({ columns, rawData, onConfirm }) => {
         </tbody>
       </table>
 
+
       <Button
         variant="contained"
         color="primary"
-        sx={{ mt: 3 }}
+        size="large"
+        sx={{ mt: 3, display: 'block', mx: 'auto' }}
         onClick={handleConfirm}
       >
-        ✅ Confirm Mapping
+        ✅ Confirm Mapping & Generate Statements
       </Button>
     </Paper>
   );

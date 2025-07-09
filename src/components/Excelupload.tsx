@@ -29,7 +29,7 @@ const ExcelUpload: React.FC<Props> = ({ onDataParsed }) => {
   };
 
   return (
-    <div style={{ marginTop: '1rem' }}>
+    <div style={{ marginTop: '1rem', textAlign: 'center',borderRadius: '12px' }}>
       <input
         type="file"
         accept=".xlsx, .xls"
@@ -56,7 +56,7 @@ const ExcelUpload: React.FC<Props> = ({ onDataParsed }) => {
             },
           }}
         >
-          Upload Excel File
+          Upload Trial Balance 
         </Button>
       </label>
     </div>
