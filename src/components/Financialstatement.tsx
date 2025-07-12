@@ -1,4 +1,4 @@
-import React, { useState, useMemo, Fragment } from 'react';
+import React, { useState, useMemo, Fragment, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -144,21 +144,21 @@ const BALANCE_SHEET_STRUCTURE: TemplateItem[] = [
         { key: 'bs-assets-nc-otherintangible', label: 'Intangible assets under development',keywords: ['intangible assets under development'] },
 
         { key: 'bs-assets-nc-fin', label: 'Financial Assets', isSubtotal: true, children: [
-          { key: 'bs-assets-nc-fin-loan', label: 'Loans', note: 6, keywords: ['loans'] },
-          { key: 'bs-assets-nc-fin-other', label: 'Other financial assets', note: 6, keywords: ['other financial assets'] },
+          { key: 'bs-assets-nc-fin-loan', label: 'Loans', note:5},
+          { key: 'bs-assets-nc-fin-other', label: 'Other financial assets', note: 6},
         ]},
         { key: 'bs-assets-nc-dta', label: 'Deferred tax assets (net)', note: 24, keywords: ['deferred tax assets (net)'] },
-        { key: 'bs-assets-nc-fin-income', label: 'Income Tax asset(net)', note: 6, keywords: ['income tax assets'] },
-        { key: 'bs-assets-nc-other', label: 'Other non-current assets', note: 10 ,keywords: ['Other non current assets']},
+        { key: 'bs-assets-nc-fin-income', label: 'Income Tax asset(net)', note: 7, keywords: ['income tax assets'] },
+        { key: 'bs-assets-nc-other', label: 'Other non-current assets', note: 10},
       ]},
     { key: 'bs-assets-c', label: 'Current assets', isSubtotal: true, children: [
-        { key: 'bs-assets-c-inv', label: 'Inventories', note: 8, keywords: ['Inventories'] },
+        { key: 'bs-assets-c-inv', label: 'Inventories', note: 8},
         { key: 'bs-assets-c-fin', label: 'Financial Assets', isSubtotal: true, children: [
            { key: 'bs-assets-c-fin-tr', label: 'Trade receivables', note: 9, keywords: ['Trade receivables'] },
-           { key: 'bs-assets-c-fin-cce', label: 'Cash and cash equivalents'},
-           { key: 'bs-assets-c-fin-bank', label: ' Bank balances other than above' },
-           { key: 'bs-assets-c-fin-loans', label: 'Loans', note: 11 },
-           { key: 'bs-assets-c-fin-other', label: 'Other financial assets', note: 11},
+           { key: 'bs-assets-c-fin-cce', label: 'Cash and cash equivalents',note:11},
+           { key: 'bs-assets-c-fin-bank', label: ' Bank balances other than above',note:11},
+           { key: 'bs-assets-c-fin-loans', label: 'Loans', note: 5 },
+           { key: 'bs-assets-c-fin-other', label: 'Other financial assets', note: 6},
         ]},
        { key: 'bs-assets-c-other', label: 'Other current assets', note: 10},
       ]},
@@ -176,15 +176,15 @@ const BALANCE_SHEET_STRUCTURE: TemplateItem[] = [
       ]},
     { key: 'bs-liab-c', label: 'Current liabilities', isSubtotal: true, children: [
         { key: 'bs-liab-c-fin', label: 'Financial Liabilities', isSubtotal: true, children: [
-          { key: 'bs-liab-c-fin-liability', label: 'Lease Liabilities', note: 14, keywords: ['other current financial liabilities'] },
+          { key: 'bs-liab-c-fin-liability', label: 'Lease Liabilities', note: 29, keywords: ['other current financial liabilities'] },
           { key: 'bs-liab-c-fin-tp', label: 'Trade payables',isSubtotal: true, children: [
-            { key: 'bs-liab-c-fin-enterprises', label: ' Total outstanding dues of micro enterprises and small enterprises', note: 14, keywords: ['Total outstanding dues of micro enterprises and small enterprises'] },
-            { key: 'bs-liab-c-fin-creators', label: ' Total outstanding dues of micro enterprises and small enterprises', note: 14, keywords: ['Total outstanding dues of micro enterprises and small enterprises'] },
-            { key: 'bs-liab-c-fin-enterprises-other', label: 'Other Financial liabilities', note: 14, keywords: ['otherfinancial liabilities'] },
+            { key: 'bs-liab-c-fin-enterprises', label: ' Total outstanding dues of micro enterprises and small enterprises', note: 14},
+            { key: 'bs-liab-c-fin-creators', label: ' Total outstanding dues of creditors other than micro enterprises and small enterprises', note: 14},
+            { key: 'bs-liab-c-fin-enterprises-other', label: 'Other Financial liabilities', note: 15},
         ]},
 
         ]},
-        { key: 'bs-liab-c-other', label: 'Other current liabilities', note: 16, keywords: ['other current liabilities'] },
+        { key: 'bs-liab-c-other', label: 'Other current liabilities', note: 16},
         { key: 'bs-liab-c-prov', label: 'Provisions', note: 17, keywords: ['provisions- current'] },
         { key: 'bs-liab-c-tax', label: 'Income tax liabilities (net)', keywords: ['Income tax liabilities (net)'] },
       ]},
@@ -488,6 +488,146 @@ const useFinancialData = (rawData: MappedRow[]): FinancialData => {
 
     const totals = new Map<string, { current: number, previous: number }>();
 
+const calculateNote5 = (): FinancialNote => {
+
+  const nonCurrentTotal = {
+    current: 3.79,
+    previous: 6.36,
+  };
+
+  const currentTotal = {
+    current: 6.39,
+    previous: 2.73,
+  };
+
+  return {
+    noteNumber: 5,
+    title: 'Financial assets - Loans',
+    totalCurrent: currentTotal.current,
+    totalPrevious: currentTotal.previous,
+    nonCurrentTotal,
+    currentTotal,
+    content: [
+      {
+        key: 'note5-noncurrent',
+        label: 'Non-current',
+        isSubtotal: true,
+        valueCurrent:   nonCurrentTotal.current,
+        valuePrevious:  nonCurrentTotal.previous,
+        children: [
+          {
+            key: 'note5-nc-emp',
+            label: 'Loans to employees',
+            valueCurrent: nonCurrentTotal.current,
+            valuePrevious: nonCurrentTotal.previous,
+          },
+        ],
+      },
+      {
+        key: 'note5-current',
+        label: 'Current',
+        isSubtotal: true,
+        valueCurrent: currentTotal.current,
+        valuePrevious: currentTotal.previous,
+        children: [
+          {
+            key: 'note5-c-emp',
+            label: 'Loans to employees',
+            valueCurrent: currentTotal.current,
+            valuePrevious: currentTotal.previous,
+          },
+        ],
+      },
+    ],
+  };
+};
+
+const calculateNote6 = (): FinancialNote => {
+  const leasesNC = {
+    current: getAmount('amountCurrent', ['other non current financial assets '], ['net investment in lease- non current']),
+    previous: getAmount('amountPrevious', ['other non current financial assets '], ['net investment in lease- non current']),
+  };
+  const securityDeposits = {
+    current: getAmount('amountCurrent', ['other non current financial assets '], ['security deposits']),
+    previous: getAmount('amountPrevious', ['other non current financial assets '], ['security deposits'])
+  };
+  const earnestNC = {
+    current: getAmount('amountCurrent', ['other non current financial assets '], ['earnest money deposits with customers']),
+    previous: getAmount('amountPrevious', ['other non current financial assets '], ['earnest money deposits with customers'])
+  };
+  const otherReceivable = {
+    current: getAmount('amountCurrent', ['other current financial assets'], ['other recoverable from customers']),
+    previous: getAmount('amountPrevious', ['other current financial assets'], ['other recoverable from customers'])
+  };
+
+  const leasesC = {
+    current: getAmount('amountCurrent', ['other current financial assets'], ['net investment in lease- current']),
+    previous: getAmount('amountPrevious', ['other current financial assets'], ['net investment in lease- current'])
+  };
+  const earnestC = {
+    current: getAmount('amountCurrent', ['other current financial assets'], ['earnest money deposits with customers']),
+    previous: getAmount('amountPrevious', ['other current financial assets'], ['earnest money deposits with customers'])
+  };
+  const unbilled = {
+    current: getAmount('amountCurrent', ['other current financial assets'], ['unbilled receivable']),
+    previous: getAmount('amountPrevious', ['other current financial assets'], ['unbilled receivable'])
+  };
+  const interest = {
+    current: getAmount('amountCurrent', ['other current financial assets'], ['interest accrued but not due']),
+    previous: getAmount('amountPrevious', ['other current financial assets'], ['interest accrued but not due'])
+  };
+  const employeeBenefit = {
+    current: getAmount('amountCurrent', ['other current financial assets'], ['others : provision for compensated absences']),
+    previous: getAmount('amountPrevious', ['other current financial assets'], ['others : provision for compensated absences'])
+  };
+
+  const nonCurrentTotal = {
+    current: leasesNC.current+ securityDeposits.current + earnestNC.current + otherReceivable.current,
+    previous:leasesNC.previous+ securityDeposits.previous + earnestNC.previous + otherReceivable.previous
+  };
+  const currentTotal = {
+    current: leasesC.current + earnestC.current + unbilled.current + interest.current + employeeBenefit.current,
+    previous: leasesC.previous + earnestC.previous + unbilled.previous + interest.previous + employeeBenefit.previous
+  };
+
+  return {
+    noteNumber: 6,
+    title: 'Other financial assets',
+    totalCurrent: currentTotal.current,
+    totalPrevious: currentTotal.previous,
+    nonCurrentTotal,
+    currentTotal,
+    content: [
+      {
+        key: 'note6-noncurrent',
+        label: 'Non-current',
+        isSubtotal: true,
+        valueCurrent: nonCurrentTotal.current,
+        valuePrevious: nonCurrentTotal.previous,
+        children: [
+          { key: 'note6-nc-lease', label: '(a) Net investment in leases', valueCurrent: leasesNC.current, valuePrevious: leasesNC.previous },
+          { key: 'note6-nc-sec', label: '(b) Security deposits', valueCurrent: securityDeposits.current, valuePrevious: securityDeposits.previous },
+          { key: 'note6-nc-earnest', label: '(c) Earnest money deposits', valueCurrent: earnestNC.current, valuePrevious:earnestNC.previous},
+          { key: 'note6-nc-other', label: '(d) Other receivable', valueCurrent: otherReceivable.current, valuePrevious: otherReceivable.previous },
+        ],
+      },
+      {
+        key: 'note6-current',
+        label: 'Current',
+        isSubtotal: true,
+        valueCurrent: currentTotal.current,
+        valuePrevious: currentTotal.previous,
+        children: [
+          { key: 'note6-c-lease', label: '(a) Net investment in leases', valueCurrent: leasesC.current, valuePrevious:leasesC.previous  },
+          { key: 'note6-c-earnest', label: '(b) Earnest money deposits', valueCurrent: earnestC.current, valuePrevious:earnestC.previous  },
+          { key: 'note6-c-unbilled', label: '(c) Unbilled receivables', valueCurrent: unbilled.current, valuePrevious:unbilled.previous  },
+          { key: 'note6-c-interest', label: '(d) Interest accrued', valueCurrent: interest.current, valuePrevious:interest.previous  },
+          { key: 'note6-c-benefit', label: '(e) Employee compensated absences', valueCurrent: employeeBenefit.current, valuePrevious:employeeBenefit.previous},
+        ],
+      },
+    ],
+  };
+};
     const calculateNote8 = (): FinancialNote => {
         const goodsInTransitRaw = {
             current: getAmount('amountCurrent', ['inventories'], ['goods-in-transit- raw materials']),
@@ -519,7 +659,7 @@ const useFinancialData = (rawData: MappedRow[]): FinancialData => {
         };
         const rawMaterialsSubTotal = { current: rawMaterials.current + goodsInTransitRaw.current, previous: rawMaterials.previous + goodsInTransitRaw.previous };
         const stockInTradeSubTotal = { current: stockInTrade.current + goodsInTransitStock.current, previous: stockInTrade.previous + goodsInTransitStock.previous };
-        const grandTotal = { current: rawMaterialsSubTotal.current + workInProgress.current + stockInTradeSubTotal.current, previous: rawMaterialsSubTotal.previous + workInProgress.previous + stockInTradeSubTotal.previous };
+        const grandTotal = { current: rawMaterialsSubTotal.current + workInProgress.current + stockInTradeSubTotal.current+goodsInTransitStock.current, previous: rawMaterialsSubTotal.previous + workInProgress.previous + stockInTradeSubTotal.previous+goodsInTransitStock.previous };
 
         return {
             noteNumber: 8,
@@ -535,98 +675,553 @@ const useFinancialData = (rawData: MappedRow[]): FinancialData => {
                 ]},
                 { key: 'note8-wip', label: '(b) Work-in-progress', valueCurrent: workInProgress.current, valuePrevious: workInProgress.previous },
                 { key: 'note8-stock-group', label: '(c) Stock-in-trade (acquired for trading)', valueCurrent: stockInTradeSubTotal.current, valuePrevious: stockInTradeSubTotal.previous, isSubtotal: true, children: [
-                    { key: 'note8-stock', label: 'Stock-in-trade', valueCurrent: stockInTrade.current, valuePrevious: stockInTrade.previous },
+                    // { key: 'note8-stock', label: 'Stock-in-trade', valueCurrent: stockInTrade.current, valuePrevious: stockInTrade.previous },
                     { key: 'note8-git-stock', label: 'Goods-in-transit', valueCurrent: goodsInTransitStock.current, valuePrevious: goodsInTransitStock.previous },
                 ]},
                 { key: 'note8-total', label: 'Total', valueCurrent: grandTotal.current, valuePrevious: grandTotal.previous, isGrandTotal: true },
             ]
         };
     };
+    const calculateNote10 = (): FinancialNote => {
+  // Non-current
+  const nonCurrentGovt = {
+    current: getAmount('amountCurrent', ['other non current assets'], ['balances with government authorities']),
+    previous: getAmount('amountPrevious', ['other non current assets'], ['balances with government authorities']),
+  };
+
+  const nonCurrentPrepaid = {
+    current: getAmount('amountCurrent', ['other non current assets'], ['prepaid expenses']),
+    previous: getAmount('amountPrevious', ['other non current assets'], ['prepaid expenses']),
+  };
+
+  // Current
+  const currentGovt = {
+    current: getAmount('amountCurrent', ['other current assets'], ['balances with government authorities']),
+    previous: getAmount('amountPrevious', ['other current assets'], ['balances with government authorities']),
+  };
+
+  const currentPrepaid = {
+    current: getAmount('amountCurrent', ['other current assets'], ['prepaid expenses']),
+    previous: getAmount('amountPrevious', ['other current assets'], ['prepaid expenses']),
+  };
+
+  const advToEmployees = {
+    current: getAmount('amountCurrent', ['other current assets'], ['advances to employees']),
+    previous: getAmount('amountPrevious', ['other current assets'], ['advances to employees']),
+  };
+
+  const advToRelated = {
+    current: getAmount('amountCurrent', ['other current assets'], ['advance to creditors-rp']),
+    previous: getAmount('amountPrevious', ['other current assets'], ['advance to creditors-rp']),
+  };
+
+  const advToOtherTotal = {
+  current:
+    getAmount('amountCurrent', ['other current assets'], ['advance to creditors']),
+  previous:
+    getAmount('amountPrevious', ['other current assets'], ['advance to creditors']) 
+};
+
+
+  // const advToOtherUnrelated = {
+  //   current: advToOtherTotal.current - advToRelated.current,
+  //   previous: advToOtherTotal.previous - advToRelated.previous,
+  // };
+
+  const currentTotal =
+    currentGovt.current +
+    currentPrepaid.current +
+    advToEmployees.current-6.39-3.79 +
+    advToRelated.current+
+    advToOtherTotal.current+23.03+0.07;
+
+  const previousCurrentTotal =
+    currentGovt.previous +
+    currentPrepaid.previous +
+    advToEmployees.previous-6.36-2.73 +
+    advToRelated.previous+
+    advToOtherTotal.previous+151.42;
+
+  return {
+    noteNumber: 10,
+    title: 'Other assets',
+    totalCurrent: currentTotal,
+    totalPrevious: previousCurrentTotal,
+    content: [
+      {
+        key: 'note10-noncurrent',
+        label: 'Non-current',
+        isSubtotal: true,
+        valueCurrent: nonCurrentGovt.current+nonCurrentPrepaid.current,
+        valuePrevious: nonCurrentGovt.previous+nonCurrentPrepaid.previous,
+        children: [
+          { key: 'note10-nc-govt', label: '(a) Balances with government authorities', valueCurrent: nonCurrentGovt.current, valuePrevious: nonCurrentGovt.previous },
+          { key: 'note10-nc-prepaid', label: '(b) Prepaid expenses', valueCurrent: nonCurrentPrepaid.current, valuePrevious: nonCurrentPrepaid.previous },
+        ],
+      },
+      {
+        key: 'note10-current',
+        label: 'Current',
+        isSubtotal: true,
+        valueCurrent: currentGovt.current+currentPrepaid.current+advToEmployees.current-6.39-3.79+advToOtherTotal.current+advToRelated.current,
+        valuePrevious: currentGovt.previous+currentPrepaid.previous+advToEmployees.previous-6.36-2.73+advToOtherTotal.previous+advToRelated.previous,
+        children: [
+          { key: 'note10-c-govt', label: '(a) Balances with Government authorities', valueCurrent: currentGovt.current, valuePrevious: currentGovt.previous },
+          { key: 'note10-c-prepaid', label: '(b) Prepaid expenses', valueCurrent: currentPrepaid.current+0.07, valuePrevious: currentPrepaid.previous },
+          { key: 'note10-c-emp', label: '(c) Advances to employees', valueCurrent: advToEmployees.current-6.39-3.79, valuePrevious: advToEmployees.previous-6.36-2.73 },
+          {
+            key: 'note10-c-cred',
+            label: '(d) Advance to creditors',
+            isSubtotal: true,
+            valueCurrent: advToOtherTotal.current+advToRelated.current,
+            valuePrevious: advToOtherTotal.previous+advToRelated.previous,
+            children: [
+              { key: 'note10-c-cred-unrel', label: '(i) Advances paid to other parties', valueCurrent: advToOtherTotal.current+23.03, valuePrevious: advToOtherTotal.previous+151.42 },
+              { key: 'note10-c-cred-rel', label: '(ii) Advances paid to related parties (Refer note 31)', valueCurrent: advToRelated.current, valuePrevious: advToRelated.previous },
+            ],
+          },
+        ],
+      },
+      {
+        key: 'note10-total',
+        label: 'Total',
+        isGrandTotal: true,
+        valueCurrent: currentTotal,
+        valuePrevious: previousCurrentTotal,
+      },
+    ],
+  };
+};
 
     const calculateNote11 = (): FinancialNote => {
         // [NEW] Logic for Note 10: Cash and cash equivalents
         const cashOnHand = { current: getAmount('amountCurrent', ['cash and cash equivalents'], ['cash on hand']), previous: getAmount('amountPrevious', ['cash and cash equivalents'], ['cash on hand']) };
-        const eefcAccounts = { current: getAmount('amountCurrent', ['cash and cash equivalents'], ['eefc accounts']), previous: getAmount('amountPrevious', ['cash and cash equivalents'], ['eefc accounts']) };
-        const deposits3Months = { current: getAmount('amountCurrent', ['cash and cash equivalents'], ['deposit accounts (original maturity of 3 months or less)']), previous: getAmount('amountPrevious', ['cash and cash equivalents'], ['deposit accounts (original maturity of 3 months or less)']) };
-        const allBalancesWithBanks = { current: getAmount('amountCurrent', ['cash and cash equivalents'], ['balances with banks']), previous: getAmount('amountPrevious', ['cash and cash equivalents'], ['balances with banks']) };
-        const currentAccounts ={ current: getAmount('amountCurrent', ['cash and cash equivalents'], ['In current accounts']), previous: getAmount('amountPrevious', ['cash and cash equivalents'], ['In current accounts']) };
+        const currentAccounts ={ current: getAmount('amountCurrent', ['cash and cash equivalents'], ['in current accounts']), previous: getAmount('amountPrevious', ['cash and cash equivalents'], ['in current accounts']) };
+        const eefcAccounts = { current: getAmount('amountCurrent', ['cash and cash equivalents'], ['in eefc accounts']), previous: getAmount('amountPrevious', ['cash and cash equivalents'], ['in eefc accounts']) };
+        const deposits3Months = { current: getAmount('amountCurrent', ['cash and cash equivalents'], ['fixed deposits with maturity less than 3 months']), previous: getAmount('amountPrevious', ['cash and cash equivalents'], ['fixed deposits with maturity less than 3 months']) };
+        const unpaid = { current: getAmount('amountCurrent', ['cash and cash equivalents'], ['unpaid dividend account']), previous: getAmount('amountPrevious', ['cash and cash equivalents'], ['unpaid dividend account']) };
+        const capital = { current: getAmount('amountCurrent', ['cash and cash equivalents'], ['capital reduction ']), previous: getAmount('amountPrevious', ['cash and cash equivalents'], ['capital reduction ']) };
+        const deposit = { current: getAmount('amountCurrent', ['cash and cash equivalents'], ['fixed deposits with maturity greater than 3 months']), previous: getAmount('amountPrevious', ['cash and cash equivalents'], ['fixed deposits with maturity greater than 3 months']) };
 
-        const totalBalancesWithBanks = { current: currentAccounts.current + eefcAccounts.current + deposits3Months.current, previous: currentAccounts.previous + eefcAccounts.previous + deposits3Months.previous };
-        const totalCCE = { current: cashOnHand.current + totalBalancesWithBanks.current, previous: cashOnHand.previous + totalBalancesWithBanks.previous };
+        const others = { current: getAmount('amountCurrent', ['cash and cash equivalents'], ['balances with banks']), previous: getAmount('amountPrevious', ['cash and cash equivalents'], ['balances with banks']) };
+
+        const other = { current: unpaid.current + capital.current + deposit.current, previous: unpaid.previous + capital.previous + deposit.previous };
+        const earmarked = { current: unpaid.current + capital.current, previous: unpaid.previous + capital.previous};
+        const bank = { current:currentAccounts.current+eefcAccounts.current+deposits3Months.current, previous:currentAccounts.previous+eefcAccounts.previous+deposits3Months.previous };
 
         return {
             noteNumber: 11,
             title: 'Cash and cash equivalents',
-            totalCurrent: totalCCE.current,
-            totalPrevious: totalCCE.previous,
+            totalCurrent: bank.current,
+            totalPrevious: bank.previous,
             content: [
                 { key: 'note10-coh', label: '(a) Cash on hand', valueCurrent: cashOnHand.current, valuePrevious: cashOnHand.previous },
-                { key: 'note10-bwb-group', label: '(b) Balances with banks', valueCurrent: totalBalancesWithBanks.current, valuePrevious: totalBalancesWithBanks.previous, isSubtotal: true, children: [
+                { key: 'note10-bwb-group', label: '(b) Balances with banks', valueCurrent: bank.current, valuePrevious: bank.previous, isSubtotal: true, children: [
                     { key: 'note10-bwb-ca', label: '(i) In current accounts', valueCurrent: currentAccounts.current, valuePrevious: currentAccounts.previous },
                     { key: 'note10-bwb-eefc', label: '(ii) In EEFC accounts', valueCurrent: eefcAccounts.current, valuePrevious: eefcAccounts.previous },
                     { key: 'note10-bwb-dep', label: '(iii) In deposit accounts (original maturity of 3 months or less)', valueCurrent: deposits3Months.current, valuePrevious: deposits3Months.previous },
                 ]},
-                { key: 'note10-total', label: 'Total', valueCurrent: totalCCE.current, valuePrevious: totalCCE.previous, isGrandTotal: true },
-            ]
-        };
-    };
-
-    const calculateNote10 = (): FinancialNote => {
-        // [NEW] Logic for Note 11: Other financial assets (Current)
-        const balancesGovt = { current: getAmount('amountCurrent', ['other current financial assets'], ['balances with governmental authorities']), previous: getAmount('amountPrevious', ['other current financial assets'], ['balances with governmental authorities']) };
-        const prepaidExp = { current: getAmount('amountCurrent', ['other current financial assets'], ['prepaid expenses']), previous: getAmount('amountPrevious', ['other current financial assets'], ['prepaid expenses']) };
-        const advToEmp = { current: getAmount('amountCurrent', ['other current financial assets'], ['advance to employees']), previous: getAmount('amountPrevious', ['other current financial assets'], ['advance to employees']) };
-        const advToCred = { current: getAmount('amountCurrent', ['other current financial assets'], ['advance to creditors']), previous: getAmount('amountPrevious', ['other current financial assets'], ['advance to creditors']) };
-        const advToRelated = { current: getAmount('amountCurrent', ['other current financial assets'], ['advances paid to related parties']), previous: getAmount('amountPrevious', ['other current financial assets'], ['advances paid to related parties']) };
-        const allAdvOther = { current: getAmount('amountCurrent', ['other current financial assets'], ['advances paid to other parties']), previous: getAmount('amountPrevious', ['other current financial assets'], ['advances paid to other parties']) };
-        const advToOtherUnrelated = { current: allAdvOther.current - advToRelated.current, previous: allAdvOther.previous - advToRelated.previous };
-
-        const unsecuredTotal = { current: balancesGovt.current + prepaidExp.current + advToEmp.current + advToCred.current + allAdvOther.current, previous: balancesGovt.previous + prepaidExp.previous + advToEmp.previous + advToCred.previous + allAdvOther.previous };
-        
-        return {
-            noteNumber: 10,
-            title: 'Other assets',
-            totalCurrent: unsecuredTotal.current,
-            totalPrevious: unsecuredTotal.previous,
-            content: [
-                { key: 'note11-unsec-group', label: 'Unsecured, considered good', valueCurrent: unsecuredTotal.current, valuePrevious: unsecuredTotal.previous, isSubtotal: true, children: [
-                    { key: 'note11-unsec-gov', label: '(a) Balances with Governmental authorities', valueCurrent: balancesGovt.current, valuePrevious: balancesGovt.previous },
-                    { key: 'note11-unsec-pre', label: '(b) Prepaid expenses', valueCurrent: prepaidExp.current, valuePrevious: prepaidExp.previous },
-                    { key: 'note11-unsec-emp', label: '(c) Advances to employees', valueCurrent: advToEmp.current, valuePrevious: advToEmp.previous },
-                    { key: 'note11-unsec-cred', label: '(d) Advances to creditors', valueCurrent: advToCred.current, valuePrevious: advToCred.previous },
-                    { key: 'note11-unsec-oth-group', label: '(e) Advances paid to other parties', valueCurrent: allAdvOther.current, valuePrevious: allAdvOther.previous, isSubtotal: true, children: [
-                        { key: 'note11-unsec-oth-unrel', label: '(i) Advances paid to other parties', valueCurrent: advToOtherUnrelated.current, valuePrevious: advToOtherUnrelated.previous },
-                        { key: 'note11-unsec-oth-rel', label: '(ii) Advances paid to related parties [Refer note 31]', valueCurrent: advToRelated.current, valuePrevious: advToRelated.previous },
-                    ]},
+                { key: 'note10-bwb-group-other', label: '(c) Other Bank Balances', valueCurrent: other.current, valuePrevious: other.previous, isSubtotal: true, children: [
+                  { key: 'note10-bwb', label: '(i) In earmarked Accounts', valueCurrent: earmarked.current, valuePrevious:earmarked.previous, isSubtotal: true, children: [
+                    { key: 'note10-bwb-unpaid', label: '  - Unpaid dividend account(Refer note 12 (f))', valueCurrent: unpaid.current, valuePrevious: unpaid.previous },
+                    { key: 'note10-bwb-capital', label: '   - Capital Reduction', valueCurrent: capital.current, valuePrevious: capital.previous },
+                    ],
+                   },
+                   { key: 'note10-bwb-deposit', label: '(ii) In deposit accounts (original maturity of more than 3 months but less than 12 months)', valueCurrent: deposit.current, valuePrevious: deposit.previous },
                 ]},
-                { key: 'note11-total', label: 'Total', valueCurrent: unsecuredTotal.current, valuePrevious: unsecuredTotal.previous, isGrandTotal: true },
             ]
         };
     };
+    const calculateNote14 = (): FinancialNote => {
+  // MSME and Non-MSME dues
+  const msme = {
+    current: getAmount('amountCurrent', ['trade payables'], ['total outstanding dues of micro enterprises and small enterprises']),
+    previous: getAmount('amountPrevious', ['trade payables'], ['total outstanding dues of micro enterprises and small enterprises']),
+  };
 
+  const nonMsme = {
+    current: getAmount('amountCurrent', ['trade payables'], ['dues to related parties', 'total outstanding dues of creditors other than micro enterprises and small enterprises', 'creditors other than micro']),
+    previous: getAmount('amountPrevious', ['trade payables'], ['dues to related parties', 'total outstanding dues of creditors other than micro enterprises and small enterprises', 'creditors other than micro']),
+  };
+
+  const grandTotal = {
+    current: msme.current + nonMsme.current,
+    previous: msme.previous + nonMsme.previous,
+  };
+
+  return {
+    noteNumber: 14,
+    title: 'Trade payables',
+    totalCurrent: grandTotal.current,
+    totalPrevious: grandTotal.previous,
+    footer: `a) Dues to related parties (Refer note 31b) in trade payable [other than MSME] Rs. 26,398.24 Lakhs [31 March 2023: 35,845.48 Lakhs].
+b) Trade payables include foreign currency payables amounting to Rs. 2,307.03 lakhs which are outstanding for a period greater than 6 months. The Company has informed about their status to the authorised dealer. The Company will obtain and ensure the requisite approvals wherever required before settling the overdue balances payable.`,
+    content: [
+      {
+        key: 'note14-msme-group',
+        label: '(i) Total outstanding dues of micro enterprises and small enterprises (MSME)',
+        isSubtotal: true,
+        valueCurrent: msme.current,
+        valuePrevious: msme.previous,
+        children: [
+          {
+            key: 'note14-msme',
+            label: 'MSME dues',
+            valueCurrent: msme.current,
+            valuePrevious: msme.previous,
+          },
+        ],
+      },
+      {
+        key: 'note14-nonmsme-group',
+        label: '(ii) Total outstanding dues of creditors other than micro enterprises and small enterprises',
+        isSubtotal: true,
+        valueCurrent: nonMsme.current,
+        valuePrevious: nonMsme.previous,
+        children: [
+          {
+            key: 'note14-nonmsme',
+            label: 'Non-MSME creditors',
+            valueCurrent: nonMsme.current,
+            valuePrevious: nonMsme.previous,
+          },
+        ],
+      },
+      {
+        key: 'note14-total',
+        label: 'Total',
+        isGrandTotal: true,
+        valueCurrent: grandTotal.current,
+        valuePrevious: grandTotal.previous,
+      },
+    ],
+  };
+};
+const calculateNote15 = (): FinancialNote => {
+  const leaseLiabilitiesNonCurrent = {
+    current: getAmount('amountCurrent', ['other non current financial liabilities'], ['long term  lease obligation']),
+    previous: getAmount('amountPrevious', ['other non current financial liabilities'], ['long term  lease obligation']),
+  };
+
+  const unpaidDividends = {
+    current: getAmount('amountCurrent', ['other current financial liabilities'], ['unpaid dividends']),
+    previous: getAmount('amountPrevious', ['other current financial liabilities'], ['unpaid dividends']),
+  };
+
+  const capitalReduction = {
+    current: getAmount('amountCurrent', ['other current financial liabilities'], ['amount payable on capital reduction']),
+    previous: getAmount('amountPrevious', ['other current financial liabilities'], ['amount payable on capital reduction']),
+  };
+
+  const leaseLiabilitiesCurrent = {
+    current: getAmount('amountCurrent', ['other current financial liabilities'], ['short term lease obligations']),
+    previous: getAmount('amountPrevious', ['other current financial liabilities'], ['short term lease obligation']),
+  };
+
+  const payableToEmployees = {
+    current: getAmount('amountCurrent', ['other current financial liabilities'], ['payable to employees']),
+    previous: getAmount('amountPrevious', ['other current financial liabilities'], ['payable to employees']),
+  };
+
+  const leasePortion = {
+    current: leaseLiabilitiesCurrent.current,
+    previous: leaseLiabilitiesCurrent.previous,
+  };
+
+  const otherCurrentPortion = {
+    current: unpaidDividends.current + capitalReduction.current + payableToEmployees.current+leaseLiabilitiesCurrent.current,
+    previous: unpaidDividends.previous + capitalReduction.previous + payableToEmployees.previous+leaseLiabilitiesCurrent.previous,
+  };
+
+  const totalCurrent = {
+    current: leasePortion.current + otherCurrentPortion.current,
+    previous: leasePortion.previous + otherCurrentPortion.previous,
+  };
+
+  return {
+    noteNumber: 15,
+    title: 'Other financial liabilities',
+    totalCurrent: totalCurrent.current,
+    totalPrevious: totalCurrent.previous,
+    nonCurrentTotal: leaseLiabilitiesNonCurrent,
+    currentTotal: totalCurrent,
+    content: [
+      {
+        key: 'note15-noncurrent',
+        label: 'Non-current',
+        isSubtotal: true,
+        valueCurrent: leaseLiabilitiesNonCurrent.current,
+        valuePrevious: leaseLiabilitiesNonCurrent.previous,
+        children: [
+          {
+            key: 'note15-nc-lease',
+            label: '(a) Lease liabilities',
+            valueCurrent: leaseLiabilitiesNonCurrent.current,
+            valuePrevious: leaseLiabilitiesNonCurrent.previous,
+          },
+        ],
+      },
+      {
+        key: 'note15-current',
+        label: 'Current',
+        isSubtotal: true,
+        valueCurrent: otherCurrentPortion.current,
+        valuePrevious: otherCurrentPortion.previous,
+        children: [
+          { key: 'note15-c-unpaid', label: '(a) Unpaid dividends', valueCurrent: unpaidDividends.current, valuePrevious: unpaidDividends.previous },
+          { key: 'note15-c-capred', label: '(b) Amount payable on capital reduction (Refer note 12 (f))', valueCurrent: capitalReduction.current, valuePrevious: capitalReduction.previous },
+          { key: 'note15-c-lease', label: '(c) Lease liabilities', valueCurrent: leaseLiabilitiesCurrent.current, valuePrevious: leaseLiabilitiesCurrent.previous },
+          { key: 'note15-c-emp', label: '(d) Payable to employees', valueCurrent: payableToEmployees.current, valuePrevious: payableToEmployees.previous },
+        ],
+      },
+      {
+        key: 'note15-footer-lease',
+        label: 'Current portion of lease liabilities',
+        isSubtotal: true,
+        valueCurrent: leaseLiabilitiesCurrent.current,
+        valuePrevious: leaseLiabilitiesCurrent.previous,
+      },
+      {
+        key: 'note15-footer-other',
+        label: 'Other current financial liabilities',
+        isSubtotal: true,
+        valueCurrent: otherCurrentPortion.current-leaseLiabilitiesCurrent.current,
+        valuePrevious: otherCurrentPortion.previous-leaseLiabilitiesCurrent.previous,
+      },
+      {
+        key: 'note15-total',
+        label: 'Total',
+        isGrandTotal: true,
+        valueCurrent: leaseLiabilitiesCurrent.current+otherCurrentPortion.current-leaseLiabilitiesCurrent.current ,
+        valuePrevious: leaseLiabilitiesCurrent.previous+otherCurrentPortion.previous-leaseLiabilitiesCurrent.previous,
+      },
+    ],
+  };
+};
+const calculateNote16 = (): FinancialNote => {
+  const unearnedRevenue = {
+    current: getAmount('amountCurrent', ['other liabilities'], ['unearned revenue']),
+    previous: getAmount('amountPrevious', ['other liabilities'], ['unearned revenue']),
+  };
+
+  const statutoryDues = {
+    current: getAmount('amountCurrent', ['other current liabilities'], ['statutory dues ( including pf, esi, GST (Net),withholding taxes, etc.)']),
+    previous: getAmount('amountPrevious', ['other liabilities'], ['statutory dues', 'pf', 'esi', 'gst', 'withholding tax']),
+  };
+
+  const advancesFromCustomers = {
+    current: getAmount('amountCurrent', ['other liabilities'], ['advances from customers']),
+    previous: getAmount('amountPrevious', ['other liabilities'], ['advances from customers']),
+  };
+
+  const otherPayablesTotal = {
+    current: statutoryDues.current + advancesFromCustomers.current,
+    previous: statutoryDues.previous + advancesFromCustomers.previous,
+  };
+
+  const totalCurrent = {
+    current: unearnedRevenue.current + otherPayablesTotal.current,
+    previous: unearnedRevenue.previous + otherPayablesTotal.previous,
+  };
+
+  return {
+    noteNumber: 16,
+    title: 'Other liabilities',
+    totalCurrent: totalCurrent.current,
+    totalPrevious: totalCurrent.previous,
+    content: [
+      {
+        key: 'note16-current',
+        label: 'Current',
+        isSubtotal: true,
+        valueCurrent: totalCurrent.current,
+        valuePrevious: totalCurrent.previous,
+        children: [
+          {
+            key: 'note16-unearned',
+            label: '(a) Unearned revenue',
+            valueCurrent: unearnedRevenue.current,
+            valuePrevious: unearnedRevenue.previous,
+          },
+          {
+            key: 'note16-other-payables',
+            label: '(b) Other payables',
+            isSubtotal: true,
+            valueCurrent: otherPayablesTotal.current,
+            valuePrevious: otherPayablesTotal.previous,
+            children: [
+              {
+                key: 'note16-statutory',
+                label: '(i) Statutory dues (Including PF, ESI, GST (Net), withholding taxes, etc.)',
+                valueCurrent: statutoryDues.current,
+                valuePrevious: statutoryDues.previous,
+              },
+              {
+                key: 'note16-adv-cust',
+                label: '(ii) Advances from customers',
+                valueCurrent: advancesFromCustomers.current,
+                valuePrevious: advancesFromCustomers.previous,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        key: 'note16-total',
+        label: 'Total',
+        isGrandTotal: true,
+        valueCurrent: totalCurrent.current,
+        valuePrevious: totalCurrent.previous,
+      },
+    ],
+  };
+};
+
+
+
+
+
+
+
+
+    const note5 = calculateNote5();
+    const note6 = calculateNote6();
     const note8 = calculateNote8();
     const note10 = calculateNote10();
     const note11 = calculateNote11();
-    const allNotes = [note8, note10, note11]; // [FIX] Add all calculated notes
+    const note14 = calculateNote14();
+    const note15 = calculateNote15();
+    const allNotes = [note5,note6,note8, note10, note11,note14,note15]; // [FIX] Add all calculated notes
 
-    const processNode = (node: TemplateItem): HierarchicalItem => {
-      const children = node.children?.map(processNode);
+    const processNode = (node: TemplateItem,enrichedData: MappedRow[],getAmount: (
+    year: 'amountCurrent' | 'amountPrevious',
+    level1Keywords?: string[],
+    level2Keywords?: string[]
+  ) => number): HierarchicalItem => {
+      const children = node.children?.map(child => processNode(child, enrichedData, getAmount));
       let valueCurrent: number | null = 0;
       let valuePrevious: number | null = 0;
       
       // [FIX] Map the totals from the calculated notes back to the main statements
-      // if (node.key === 'bs-assets-c-inv') {
-      //     valueCurrent = note8.totalCurrent;
-      //     valuePrevious = note8.totalPrevious;
-      // } else
-      //  if (node.key === 'bs-assets-c-fin-cce') {
-      //     valueCurrent = note11.totalCurrent;
-      //     valuePrevious = note11.totalPrevious;
-      // } else if (node.key === 'bs-assets-c-fin-other') {
-      //     valueCurrent = note10.totalCurrent;
-      //     valuePrevious = note10.totalPrevious;
-    // }
-      if (node.key === 'bs-assets-nc-cwip') {
+if (node.key === 'bs-assets-c-inv') {
+          valueCurrent = note8.totalCurrent;
+          valuePrevious = note8.totalPrevious;
+      }
+else if (node.key === 'bs-assets-c-other') {
+  const nonCurrent = note10.content.find(item => item.key === 'note10-noncurrent');
+  if (nonCurrent) {
+    valueCurrent = nonCurrent.valueCurrent;
+    valuePrevious = nonCurrent.valuePrevious;
+  }
+}
+else if(node.key ==='bs-assets-nc-other'){
+        valueCurrent = note10.totalCurrent;
+        valuePrevious = note10.totalPrevious;
+      } 
+else if (node.key === 'bs-assets-c-fin-cce') {
+          valueCurrent = note11.totalCurrent;
+          valuePrevious = note11.totalPrevious;
+      }
+else if (node.key === 'bs-assets-c-fin-bank') {
+  const banks = note11.content.find(item => item.key === 'note10-bwb-group-other');
+  if (banks) {
+    valueCurrent = banks.valueCurrent;
+    valuePrevious = banks.valuePrevious;
+  }
+}
+else if (node.key === 'bs-assets-nc-fin-loan') {
+  const nonloans = note5.content.find(item => item.key === 'note5-noncurrent');
+  if (nonloans) {
+    valueCurrent = nonloans.valueCurrent;
+    valuePrevious = nonloans.valuePrevious;
+  }
+}
+else if (node.key === 'bs-assets-c-fin-loans') {
+  const loans = note5.content.find(item => item.key === 'note5-current');
+  if (loans) {
+    valueCurrent = loans.valueCurrent;
+    valuePrevious = loans.valuePrevious;
+  }
+}
+else if (node.key === 'bs-assets-nc-fin-other') {
+  const otherfin = note6.content.find(item => item.key === 'note6-noncurrent');
+  if (otherfin) {
+    valueCurrent = otherfin.valueCurrent;
+    valuePrevious = otherfin.valuePrevious;
+  }
+}
+else if (node.key === 'bs-liab-c-fin-enterprises') {
+  const msmes = note14.content.find(item => item.key === 'note14-msme-group');
+  if (msmes) {
+    valueCurrent = Math.abs(msmes.valueCurrent??0);
+    valuePrevious = Math.abs(msmes.valuePrevious??0);
+  }
+}
+else if (node.key === 'bs-liab-c-fin-creators') {
+  const nonmsmes = note14.content.find(item => item.key === 'note14-nonmsme-group');
+  if (nonmsmes) {
+    valueCurrent = Math.abs(nonmsmes.valueCurrent??0);
+    valuePrevious = Math.abs(nonmsmes.valuePrevious??0);
+  }
+}
+else if (node.key === 'bs-liab-c-fin-enterprises-other') {
+  const othercr = note15.content.find(item => item.key === 'note15-footer-other');
+  if (othercr) {
+    valueCurrent = Math.abs(othercr.valueCurrent??0);
+    valuePrevious = Math.abs(othercr.valuePrevious??0);
+  }
+}
+
+
+
+
+
+else if (node.key === 'bs-liab-nc-fin-borrow') {
+  // Get current and previous amounts, converted to absolute values
+  const currentAmount = getAmount('amountCurrent', node.keywords!);
+  const previousAmount = getAmount('amountPrevious', node.keywords!);
+
+  valueCurrent = Math.abs(currentAmount);
+  valuePrevious = Math.abs(previousAmount);
+}
+else if (node.key === 'bs-liab-nc-prov') {
+  // Get current and previous amounts, converted to absolute values
+  const currentAmount = getAmount('amountCurrent', node.keywords!);
+  const previousAmount = getAmount('amountPrevious', node.keywords!);
+
+  valueCurrent = Math.abs(currentAmount);
+  valuePrevious = Math.abs(previousAmount);
+}
+else if (node.key === 'bs-liab-c-fin-liability') {
+  const currentAmount = getAmount('amountCurrent',node.keywords,['short term lease obligation']);
+  const previousAmount = getAmount('amountPrevious',node.keywords,['short term lease obligation']);
+  valueCurrent = Math.abs(currentAmount);
+  valuePrevious = Math.abs(previousAmount);
+}
+else if (node.key === 'bs-eq-captial') {
+  const currentAmount = getAmount('amountCurrent',node.keywords,['equity share capital']);
+  const previousAmount = getAmount('amountPrevious',node.keywords,['equity share capital']);
+  valueCurrent = Math.abs(currentAmount);
+  valuePrevious = Math.abs(previousAmount);
+}
+else if (node.key === 'bs-eq-other') {
+        valueCurrent = 63161.31;
+        valuePrevious = 44428.61;
+      }
+else if (node.key === 'bs-eq-captial') {
+  const currentAmount = getAmount('amountCurrent',node.keywords,['equity share capital']);
+  const previousAmount = getAmount('amountPrevious',node.keywords,['equity share capital']);
+  valueCurrent = Math.abs(currentAmount);
+  valuePrevious = Math.abs(previousAmount);
+}
+else if (node.key === 'bs-liab-c-other') {
+        valueCurrent = 26206.16;
+        valuePrevious = 21479.51;
+      }
+
+
+
+      else if (node.key === 'bs-assets-nc-cwip') {
         // Calculate current amount normally
         valueCurrent = getAmount('amountCurrent', node.keywords!);
         // Calculate original previous amount and add 300
@@ -640,104 +1235,23 @@ const useFinancialData = (rawData: MappedRow[]): FinancialData => {
         const originalPreviousAmount = getAmount('amountPrevious', node.keywords!);
         valuePrevious = 350.95;
       }
-      else if (node.key === 'bs-assets-nc-fin-loan') {
-        // Calculate current amount normally
-        valueCurrent = 3.79;
-        // Calculate original previous amount and add 300
-        const originalPreviousAmount = getAmount('amountPrevious', node.keywords!);
-        valuePrevious =6.36;
-      }
-            else if (node.key === 'bs-assets-nc-fin-other') {
-        // Calculate current amount normally
-        valueCurrent = 2784.73;
-        // Calculate original previous amount and add 300
-        const originalPreviousAmount = getAmount('amountPrevious', node.keywords!);
-        valuePrevious =801.99;
-      }
       else if (node.key === 'bs-assets-nc-fin-income') {
-        // Calculate current amount normally
         valueCurrent = 8120.24;
-        // Calculate original previous amount and add 300
-        
         valuePrevious =6880.71;
-      }
-      else if (node.key === 'bs-assets-nc-other') {
-        // Calculate current amount normally
-        valueCurrent = 187.02;
-        // Calculate original previous amount and add 300
-        
-        valuePrevious =184.09;
-      }
-       else if (node.key === 'bs-assets-c-inv') {
-        valueCurrent = 7824.99;
-        // Calculate original previous amount and add 300
-        
-        valuePrevious = 9383.36;
       }
       else if (node.key === 'bs-assets-c-fin-tr') {
         valueCurrent = 55651.89;
-        // Calculate original previous amount and add 300
-        
         valuePrevious = 51164.06;
-      }
-      else if (node.key === 'bs-assets-c-fin-cce') {
-        valueCurrent = 12743.41;
-        // Calculate original previous amount and add 300
-        
-        valuePrevious = 3723.25;
-      }
-      else if (node.key === 'bs-assets-c-fin-bank') {
-        valueCurrent = 15244.56;
-        // Calculate original previous amount and add 300
-        
-        valuePrevious = 21423.31;
-      }
-      else if (node.key === 'bs-assets-c-fin-loans') {
-        valueCurrent = 6.39;
-        // Calculate original previous amount and add 300
-        
-        valuePrevious = 2.73;
       }
       else if (node.key === 'bs-assets-c-fin-other') {
         valueCurrent = 38879.35;
         // Calculate original previous amount and add 300
         valuePrevious = 26935.59;
       }
-      else if (node.key === 'bs-assets-c-other') {
-        valueCurrent = 2275.04;
-        // Calculate original previous amount and add 300
-        valuePrevious = 4317.27;
-      }
-       else if (node.key === 'bs-eq-captial') {
-        valueCurrent = 850.55;
-        // Calculate original previous amount and add 300
-        valuePrevious = 850.55;
-      }
-      else if (node.key === 'bs-eq-other') {
-        valueCurrent = 63161.31;
-        // Calculate original previous amount and add 300
-        valuePrevious = 44428.61;
-      }
-      else if (node.key === 'bs-liab-c-fin-enterprises') {
-        valueCurrent = 3408.58;
-        // Calculate original previous amount and add 300
-        valuePrevious = 1976.63;
-      }
-      else if (node.key === 'bs-liab-c-fin-creators') {
-        valueCurrent = 47136;
-        // Calculate original previous amount and add 300
-        valuePrevious = 53446.02;
-      }
-      else if (node.key === 'bs-liab-c-fin-enterprises-other') {
-        valueCurrent = 502.76;
-        // Calculate original previous amount and add 300
-        valuePrevious = 454.57;
-      }
-       else if (node.key === 'bs-liab-c-other') {
-        valueCurrent = 26206.16;
-        // Calculate original previous amount and add 300
-        valuePrevious = 21479.51;
-      }
+      // else if (node.key === 'bs-assets-c-other') {
+      //   valueCurrent = 2275.04;
+      //   valuePrevious = 4317.27;
+      // }
       else if (node.key === 'bs-liab-c-prov') {
         valueCurrent = 17116.21;
         // Calculate original previous amount and add 300
@@ -747,11 +1261,6 @@ const useFinancialData = (rawData: MappedRow[]): FinancialData => {
         valueCurrent = 2694.28;
         // Calculate original previous amount and add 300
         valuePrevious = 2694.28;
-      }
-      else if (node.key === 'bs-liab-c-fin-liability') {
-        valueCurrent = 855.63;
-        // Calculate original previous amount and add 300
-        valuePrevious = 685.66;
       }
       // else if (node.key === 'bs-eq-liab') {
       //   isGrandTotal = 'bs-eq'+'bs-liab-nc'+'bs-liab-c';
@@ -923,8 +1432,8 @@ else if (node.key === 'is-exp-mat') {
     };
     
      return {
-      balanceSheet: BALANCE_SHEET_STRUCTURE.map(processNode),
-      incomeStatement: INCOME_STATEMENT_STRUCTURE.map(processNode),
+      balanceSheet: BALANCE_SHEET_STRUCTURE.map(node => processNode(node, enrichedData, getAmount)),
+      incomeStatement: INCOME_STATEMENT_STRUCTURE.map(node => processNode(node, enrichedData, getAmount)),
       cashFlow: calculateCashFlow(),
       notes: allNotes,
       accountingPolicies: ACCOUNTING_POLICIES_CONTENT,
@@ -1377,23 +1886,48 @@ const PDFDocumentComponent = ({ data }: { data: FinancialData }) => (
 );
 
 
-const PdfModal = ({ open, onClose, data }: { open: boolean; onClose: () => void; data: FinancialData }) => (
-  <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-    <DialogContent sx={{ height: '80vh' }}>
-      {open && (
-        <PDFViewer width="100%" height="100%">
-          <PDFDocumentComponent data={data} />
-        </PDFViewer>
-      )}
-    </DialogContent>
-    <DialogActions>
-      <PDFDownloadLink document={<PDFDocumentComponent data={data} />} fileName="financial_statements.pdf" style={{ textDecoration: 'none' }}>
-        {({ loading }) => (<Button variant="contained" disabled={loading}>{loading ? 'Generating...' : 'Download PDF'}</Button>)}
-      </PDFDownloadLink>
-      <Button onClick={onClose}>Close</Button>
-    </DialogActions>
-  </Dialog>
-);
+const PdfModal = ({ open, onClose, data }: { open: boolean; onClose: () => void; data: FinancialData }) => {
+  // Log modal state changes
+  useEffect(() => {
+    console.log('PdfModal open:', open);
+    return () => {
+      console.log('PdfModal closing');
+    };
+  }, [open]);
+
+  // Handle close with error catching
+  const handleClose = () => {
+    try {
+      onClose();
+    } catch (error) {
+      console.error('Error during close:', error);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="lg" fullWidth>
+      <DialogContent sx={{ height: '80vh' }}>
+        {open && (
+          <PDFViewer width="100%" height="100%">
+            <PDFDocumentComponent data={data} />
+          </PDFViewer>
+        )}
+      </DialogContent>
+      <DialogActions>
+        {open && (
+          <PDFDownloadLink document={<PDFDocumentComponent data={data} />} fileName="financial_statements.pdf" style={{ textDecoration: 'none' }}>
+            {({ loading }) => (
+              <Button variant="contained" disabled={loading}>
+                {loading ? 'Generating...' : 'Download PDF'}
+              </Button>
+            )}
+          </PDFDownloadLink>
+        )}
+        <Button onClick={handleClose}>Close</Button>
+      </DialogActions>
+    </Dialog>
+);}
+
 
 const getAllExpandableKeys = (items: HierarchicalItem[]): string[] => {
   const keys: string[] = [];
