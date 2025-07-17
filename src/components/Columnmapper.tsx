@@ -20,13 +20,9 @@ export type MappedRow = {
   accountType: string;
   'Level 1 Desc': string;
   'Level 2 Desc': string;
-  'Level 3 Desc': string;
   functionalArea: string;
   amountCurrent: number;
   amountPrevious: number;
-  exceptionPct: number;
-  exceptionAmt: number;
-  longText: string;
 };
 
 type Props = {
@@ -38,27 +34,18 @@ type Props = {
 const ColumnMapper: React.FC<Props> = ({ columns, rawData, onConfirm }) => {
   // --- UPDATED: Fields are now configured with aliases from your specific file ---
   const fields: { key: keyof MappedRow; label: string; aliases: string[] }[] = [
-    { key: 'createdby', label: 'Name', aliases: ['Name', 'Created by'] },
     { key: 'glAccount', label: 'G/L Account', aliases: ['Account Code', 'G/L Account', 'G/L Acct'] },
-    { key: 'accountType', label: 'Account Type', aliases: ['Nature', 'P&L Statement Acct Type'] },
+    { key: 'createdby', label: 'GL Description', aliases: ['Name', 'Created by'] },
     { key: 'Level 1 Desc', label: 'Level 1 Description', aliases: ['Level 1 grouping', 'Level 1 Desc'] },
     { key: 'Level 2 Desc', label: 'Level 2 Description', aliases: ['Level 2 grouping', 'Level 2 Desc'] },
-    { key: 'Level 3 Desc', label: 'Level 3 Description', aliases: ['Level 3 Desc'] },
-    { key: 'functionalArea', label: 'Functional Area', aliases: ['Target Grouping', 'Functional Area'] },
-    {
-      key: 'amountCurrent',
-      label: 'Amount (Current Year)',
-      // Note: This handles the column with a newline in its name
-      aliases: ['Amount in Lakh\nMarch 31,2024', '31-Mar-24', 'Amount in Lakh March 31,2024'],
-    },
-    {
-      key: 'amountPrevious',
-      label: 'Amount (Previous Year)',
-      aliases: ['Amount in Lakhs\nMarch 31,2023', 'March 31,2023', 'Amount in Lakhs March 31,2023'],
-    },
-    { key: 'longText', label: 'Description / Long Text', aliases: ['G/L Acct Long Text', 'Description'] },
-    { key: 'exceptionPct', label: 'Exception %', aliases: ['Exception Percentage 2023'] },
-    { key: 'exceptionAmt', label: 'Exception Amount', aliases: ['Exception Amount 2023'] },
+    { key: 'accountType', label: 'Account Type', aliases: ['Nature', 'P&L Statement Acct Type'] },
+    { key: 'functionalArea', label: 'Target Grouping', aliases: ['Target Grouping', 'Functional Area'] },
+    { key: 'amountCurrent',  label: 'Amount (Current Period)', aliases: ['Amount'],},
+    { key: 'amountPrevious', label: 'Amount (Previous Period)',  aliases: ['Amount'],},
+    // { key: 'Level 3 Desc', label: 'Level 3 Description', aliases: ['Level 3 Desc'] },
+    // { key: 'longText', label: 'Description / Long Text', aliases: ['G/L Acct Long Text', 'Description'] },
+    // { key: 'exceptionPct', label: 'Exception %', aliases: ['Exception Percentage 2023'] },
+    // { key: 'exceptionAmt', label: 'Exception Amount', aliases: ['Exception Amount 2023'] },
   ];
 
   // Attempt to auto-map columns based on aliases, ignoring case and whitespace.
@@ -83,11 +70,11 @@ const ColumnMapper: React.FC<Props> = ({ columns, rawData, onConfirm }) => {
   const [map, setMap] = useState<Partial<Record<keyof MappedRow, string>>>(getInitialMap);
 
   const handleConfirm = () => {
-    const requiredFields: (keyof MappedRow)[] = ['Level 1 Desc', 'Level 2 Desc', 'amountCurrent', 'amountPrevious'];
+    const requiredFields: (keyof MappedRow)[] = ['Level 1 Desc', 'Level 2 Desc', 'amountCurrent'];
     const allRequiredMapped = requiredFields.every(field => !!map[field]);
 
     if (!allRequiredMapped) {
-      alert('Please ensure you have mapped Level 1, Level 2, and both Amount columns.');
+      alert('Please ensure you have mapped Level 1, Level 2, and Amount columns.');
       return;
     }
     
@@ -112,13 +99,9 @@ const ColumnMapper: React.FC<Props> = ({ columns, rawData, onConfirm }) => {
         accountType: getValue('accountType'),
         'Level 1 Desc': getValue('Level 1 Desc'),
         'Level 2 Desc': getValue('Level 2 Desc'),
-        'Level 3 Desc': getValue('Level 3 Desc'),
-        longText: getValue('longText'),
         functionalArea: getValue('functionalArea'),
         amountCurrent: cleanAmount(getValue('amountCurrent', 0)),
         amountPrevious: cleanAmount(getValue('amountPrevious', 0)),
-        exceptionPct: cleanAmount(getValue('exceptionPct', 0)),
-        exceptionAmt: cleanAmount(getValue('exceptionAmt', 0)),
       };
     });
     onConfirm(mappedData);

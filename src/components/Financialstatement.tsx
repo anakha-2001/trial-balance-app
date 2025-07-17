@@ -60,6 +60,7 @@ interface TemplateItem {
 interface HierarchicalItem extends TemplateItem {
   valueCurrent: number | null;
   valuePrevious: number | null;
+  footer?: string;
   children?: HierarchicalItem[];
 }
 
@@ -67,7 +68,7 @@ interface FinancialNote {
     noteNumber: number;
     title: string;
     subtitle?: string;
-    content: HierarchicalItem[];
+    content: (HierarchicalItem | TableContent)[]; 
     footer?: string;
     totalCurrent: number;
     totalPrevious: number;
@@ -126,8 +127,8 @@ const PDF_STYLES = StyleSheet.create({
   noteSubtitle: { fontSize: 9, fontFamily: 'Helvetica-Oblique', marginBottom: 10 },
   noteFooter: { fontSize: 9, marginTop: 15, fontFamily: 'Helvetica' },
   noteRow: { flexDirection: 'row', paddingVertical: 2, paddingHorizontal: 2, alignItems: 'center' },
-  noteColParticulars: { width: '70%', textAlign: 'left' },
-  noteColAmount: { width: '15%', textAlign: 'right' },
+  noteColParticulars: { width: '40%', textAlign: 'left' }, // Adjusted width
+  noteColAmount: { width: '30%', textAlign: 'right' },    // Adjusted width
   noteSubTotalRow: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: '#333', paddingVertical: 2, paddingHorizontal: 2, marginTop: 2, marginBottom: 5 },
   noteGrandTotalRow: { flexDirection: 'row', borderTopWidth: 1, borderBottomWidth: 2, borderStyle: 'solid', borderColor: '#333', paddingVertical: 3, paddingHorizontal: 2, marginTop: 5 },
 });
@@ -148,7 +149,7 @@ const BALANCE_SHEET_STRUCTURE: TemplateItem[] = [
           { key: 'bs-assets-nc-fin-other', label: 'Other financial assets', note: 6},
         ]},
         { key: 'bs-assets-nc-dta', label: 'Deferred tax assets (net)', note: 24, keywords: ['deferred tax assets (net)'] },
-        { key: 'bs-assets-nc-fin-income', label: 'Income Tax asset(net)', note: 7, keywords: ['income tax assets'] },
+        { key: 'bs-assets-nc-fin-income', label: 'Income Tax asset(net)', note: 7},
         { key: 'bs-assets-nc-other', label: 'Other non-current assets', note: 10},
       ]},
     { key: 'bs-assets-c', label: 'Current assets', isSubtotal: true, children: [
@@ -166,14 +167,13 @@ const BALANCE_SHEET_STRUCTURE: TemplateItem[] = [
   { key: 'bs-eq-liab', label: 'EQUITY AND LIABILITIES', isGrandTotal: true, formula: ['eq', '+', 'liab-nc','+','liab-c'],children: [
     { key: 'bs-eq', label: 'Equity', isSubtotal: true, children: [
         { key: 'bs-eq-captial', label: 'Equity share capital', note: 12, keywords: ['equity'] },
-        { key: 'bs-eq-other', label: 'Other equity', note: 13, keywords: ['other equity'] },
+        { key: 'bs-eq-other', label: 'Other equity', note: 13},
       ]},
     { key: 'bs-liab-nc', label: 'Non-current liabilities', isSubtotal: true, children: [
         { key: 'bs-liab-nc-fin', label: 'Financial Liabilities', isSubtotal: true, children: [
           { key: 'bs-liab-nc-fin-borrow', label: 'Lease Liabilities', note: 25, keywords: ['other non current financial liabilities'] },
         ]},
-        { key: 'bs-liab-nc-prov', label: 'Provisions', note: 17, keywords: ['provisions- non current'] },
-      ]},
+        { key: 'bs-liab-nc-prov', label: 'Provisions', note: 17}]},
     { key: 'bs-liab-c', label: 'Current liabilities', isSubtotal: true, children: [
         { key: 'bs-liab-c-fin', label: 'Financial Liabilities', isSubtotal: true, children: [
           { key: 'bs-liab-c-fin-liability', label: 'Lease Liabilities', note: 29, keywords: ['other current financial liabilities'] },
@@ -185,16 +185,16 @@ const BALANCE_SHEET_STRUCTURE: TemplateItem[] = [
 
         ]},
         { key: 'bs-liab-c-other', label: 'Other current liabilities', note: 16},
-        { key: 'bs-liab-c-prov', label: 'Provisions', note: 17, keywords: ['provisions- current'] },
-        { key: 'bs-liab-c-tax', label: 'Income tax liabilities (net)', keywords: ['Income tax liabilities (net)'] },
+        { key: 'bs-liab-c-prov', label: 'Provisions', note: 17},
+        { key: 'bs-liab-c-tax', label: 'Income tax liabilities (net)', note:7},
       ]},
   ]}
 ];
 
 const INCOME_STATEMENT_STRUCTURE: TemplateItem[] = [
   { key: 'is-income', label: 'INCOME', id: 'totalIncome', isSubtotal: true, children: [
-      { key: 'is-rev-ops', label: 'Revenue from operations', keywords: ['revenue from operations'], note: 18 },
-      { key: 'is-other-inc', label: 'Other income', keywords: ['other income'], note: 19 },
+      { key: 'is-rev-ops', label: 'Revenue from operations', note: 18 },
+      { key: 'is-other-inc', label: 'Other income', note: 19 },
     ]
   },
   { key: 'is-expenses', label: 'EXPENSES', id: 'totalExpenses', isSubtotal: true, children: [
@@ -216,6 +216,23 @@ const INCOME_STATEMENT_STRUCTURE: TemplateItem[] = [
     ]
   },
   { key: 'is-pat', label: 'PROFIT FOR THE YEAR', id: 'pat', isGrandTotal: true, formula: ['pbt', '-', 'totalTax'] },
+{
+    key: 'is-oci', label: 'Other comprehensive income', isSubtotal: true,children: [
+      {key: 'is-oci-remesure',label: 'i) Remeasurement on the defined benefit liabilities',note: 28,},
+      {key: 'is-oci-tax',label: 'ii) Income tax relating to items not to be reclassified to profit or loss',note: 34,},
+      {key: 'is-oci-total',label: 'Other comprehensive income for the year',isSubtotal: true,},
+    ],
+  },
+  {
+    key: 'is-total-comprehensive',label: 'Total comprehensive income for the year',id: 'totalComprehensive',isGrandTotal: true,formula: ['pat', '+', 'is-oci-total'],
+  },
+{
+    key: 'is-eps', label: 'Earnings per equity share', isSubtotal: true,children: [
+      {
+        key: 'is-eps-value',label: '- Basic and diluted (in Rs.)',note:32
+     },                                                                               
+   ],
+  },
 ];
 
 const ACCOUNTING_POLICIES_CONTENT: AccountingPolicy[] = [
@@ -628,7 +645,130 @@ const calculateNote6 = (): FinancialNote => {
     ],
   };
 };
-    const calculateNote8 = (): FinancialNote => {
+const calculateNote7 = (): FinancialNote => {
+  // --- Calculations remain the same ---
+  const taxPaidUnderProtest = {
+    current: 837.77,
+    previous: 837.77,
+  };
+  const advanceTaxAndTDSLiab = {
+    current: 7174.68,
+    previous: 7174.68,
+  };
+  const provisionForTaxLiab = {
+    current: 9868.96,
+    previous: 9868.96,
+  };
+  const advanceTaxAndTDS = {
+    current: 46724.73,
+    previous:38257.70, 
+  };
+  const provisionForTaxAsset = {
+    current: 38604.49,
+    previous: 31376.99,
+  };
+  const netTaxAsset = {
+    current: advanceTaxAndTDS.current - provisionForTaxAsset.current,
+    previous: advanceTaxAndTDS.previous - provisionForTaxAsset.previous,
+  };
+  const netTaxLiability = {
+    current: provisionForTaxLiab.current - advanceTaxAndTDSLiab.current,
+    previous: provisionForTaxLiab.previous - advanceTaxAndTDSLiab.previous,
+  };
+
+  // --- Return a single FinancialNote object ---
+  return {
+    noteNumber: 7,
+    title: 'Income Tax',
+    totalCurrent: netTaxAsset.current,
+    totalPrevious: netTaxAsset.previous,
+    content: [
+      // Section 7: Income Tax Asset (Net)
+      {
+        key: 'note7-asset-section',
+        label: '7. Income Tax Asset (Net)',
+        isSubtotal: true, // Acts as a header for this section
+        valueCurrent: netTaxAsset.current,
+        valuePrevious: netTaxAsset.previous,
+        children: [
+          {
+            key: 'note7-main',
+            label: 'Advance income tax (net of provisions) (refer Note (i) below)',
+            valueCurrent: netTaxAsset.current - taxPaidUnderProtest.current,
+            valuePrevious: netTaxAsset.previous - taxPaidUnderProtest.previous,
+            children: [
+              {
+                key: 'note7-under-protest',
+                label: 'Income tax paid under protest',
+                valueCurrent: taxPaidUnderProtest.current,
+                valuePrevious: taxPaidUnderProtest.previous,
+              },
+            ],
+          },
+          {
+            key: 'note7-breakup',
+            label: 'Note (i)',
+            isSubtotal: true,
+            valueCurrent: netTaxAsset.current,
+            valuePrevious: netTaxAsset.previous,
+            children: [
+              {
+                key: 'note7-adv-tax',
+                label: 'Advance tax and TDS',
+                valueCurrent: advanceTaxAndTDS.current,
+                valuePrevious: advanceTaxAndTDS.previous,
+              },
+              {
+                key: 'note7-provision',
+                label: 'Less: Provision for tax',
+                valueCurrent: provisionForTaxAsset.current,
+                valuePrevious: provisionForTaxAsset.previous,
+              },
+            ],
+          },
+        ],
+      },
+      // Section 7a: Income Tax Liabilities (Net) - now part of the same content array
+      {
+        key: 'note7-liability-section',
+        label: '7a. Income Tax Liabilities (Net)',
+        isSubtotal: true, // Acts as a header for this section
+        valueCurrent: netTaxLiability.current,
+        valuePrevious: netTaxLiability.previous,
+        children: [
+          {
+            key: 'note7a-main',
+            label: 'Income tax provision (net of advance tax) (refer Note (ii) below)',
+            valueCurrent: netTaxLiability.current,
+            valuePrevious: netTaxLiability.previous,
+          },
+          {
+            key: 'note7a-breakup',
+            label: 'Note (ii)',
+            isSubtotal: true,
+            valueCurrent: netTaxLiability.current,
+            valuePrevious: netTaxLiability.previous,
+            children: [
+              {
+                key: 'note7a-provision',
+                label: 'Provision for tax',
+                valueCurrent: provisionForTaxLiab.current,
+                valuePrevious: provisionForTaxLiab.previous,
+              },
+              {
+                key: 'note7a-adv-tds',
+                label: 'Less: Advance tax and TDS',
+                valueCurrent: advanceTaxAndTDSLiab.current,
+                valuePrevious: advanceTaxAndTDSLiab.previous,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+};
+const calculateNote8 = (): FinancialNote => {
         const goodsInTransitRaw = {
             current: getAmount('amountCurrent', ['inventories'], ['goods-in-transit- raw materials']),
             previous: getAmount('amountPrevious', ['inventories'], ['goods-in-transit- raw materials'])
@@ -721,12 +861,6 @@ const calculateNote6 = (): FinancialNote => {
   previous:
     getAmount('amountPrevious', ['other current assets'], ['advance to creditors']) 
 };
-
-
-  // const advToOtherUnrelated = {
-  //   current: advToOtherTotal.current - advToRelated.current,
-  //   previous: advToOtherTotal.previous - advToRelated.previous,
-  // };
 
   const currentTotal =
     currentGovt.current +
@@ -832,6 +966,87 @@ const calculateNote6 = (): FinancialNote => {
             ]
         };
     };
+    const calculateNote13 = (): FinancialNote => {
+  const retainedOpening = {
+    current: 31939.72,
+    previous: 24481.71,
+  };
+
+  const transferredProfit = {
+    current: 22560.10,
+    previous: 7458.01,
+  };
+
+  const dividendsPaid = {
+    current: 3729.65,
+    previous: 0,
+  };
+
+  const retainedClosing = {
+    current: Number((retainedOpening.current + transferredProfit.current - dividendsPaid.current).toFixed(2)),
+    previous: Number((retainedOpening.previous + transferredProfit.previous - dividendsPaid.previous).toFixed(2)),
+  };
+
+  const oci = {
+    current: 479.79,
+    previous: 577.54,
+  };
+
+  const generalReserve = {
+    current: 11911.35,
+    previous: 11911.35,
+  };
+
+  const total = {
+    current: retainedClosing.current + oci.current + generalReserve.current-0.01,
+    previous: retainedClosing.previous + oci.previous + generalReserve.previous-0.01,
+  };
+
+  return {
+    noteNumber: 13,
+    title: 'Other Equity',
+    totalCurrent: total.current,
+    totalPrevious: total.previous,
+    content: [
+      {
+        key: 'note13-retained',
+        label: 'a) Retained Earnings*',
+        isSubtotal: true,
+        valueCurrent: retainedClosing.current,
+        valuePrevious: retainedClosing.previous,
+        children: [
+          { key: 'note13-opening', label: 'Balance at the beginning of the year', valueCurrent: retainedOpening.current, valuePrevious: retainedOpening.previous },
+          { key: 'note13-profit', label: 'Add: Transferred from surplus in statement of profit and loss', valueCurrent: transferredProfit.current, valuePrevious: transferredProfit.previous },
+          { key: 'note13-dividends', label: 'Less: Dividends Paid', valueCurrent: -dividendsPaid.current, valuePrevious: 0 },
+          { key: 'note13-closing', label: 'Balance at the end of year', valueCurrent: retainedClosing.current, valuePrevious: retainedClosing.previous },
+        ]
+      },
+      {
+        key: 'note13-oci',
+        label: 'b) Other Comprehensive Income#',
+        valueCurrent: oci.current,
+        valuePrevious: oci.previous,
+      },
+      {
+        key: 'note13-reserve',
+        label: 'c) General reserve ^',
+        valueCurrent: generalReserve.current,
+        valuePrevious: generalReserve.previous,
+      },
+      {
+        key: 'note13-total',
+        label: 'Total',
+        isGrandTotal: true,
+        valueCurrent: total.current,
+        valuePrevious: total.previous,
+      },
+    ],
+    footer: `* Retained earning comprises of the amounts that can be distributed as dividends to its equity shareholders.\n` +
+            `# Actuarial gain or losses on gratuity are recognised in other comprehensive income.\n` +
+            `^ This represents appropriation of profit by the company.`,
+  };
+};
+
     const calculateNote14 = (): FinancialNote => {
   // MSME and Non-MSME dues
   const msme = {
@@ -1000,18 +1215,18 @@ const calculateNote15 = (): FinancialNote => {
 };
 const calculateNote16 = (): FinancialNote => {
   const unearnedRevenue = {
-    current: getAmount('amountCurrent', ['other liabilities'], ['unearned revenue']),
-    previous: getAmount('amountPrevious', ['other liabilities'], ['unearned revenue']),
+    current: getAmount('amountCurrent', ['other current liabilities'], ['income received in advance (unearned revenue)']),
+    previous: getAmount('amountPrevious', ['other current liabilities'], ['income received in advance (unearned revenue)']),
   };
 
   const statutoryDues = {
-    current: getAmount('amountCurrent', ['other current liabilities'], ['statutory dues ( including pf, esi, GST (Net),withholding taxes, etc.)']),
-    previous: getAmount('amountPrevious', ['other liabilities'], ['statutory dues', 'pf', 'esi', 'gst', 'withholding tax']),
+    current: getAmount('amountCurrent', ['other current liabilities'], ['statutory dues ( including pf, esi, gst (net),withholding taxes, etc.)']),
+    previous: getAmount('amountPrevious', ['other current liabilities'], ['statutory dues ( including pf, esi, gst (net),withholding taxes, etc.)']),
   };
 
   const advancesFromCustomers = {
-    current: getAmount('amountCurrent', ['other liabilities'], ['advances from customers']),
-    previous: getAmount('amountPrevious', ['other liabilities'], ['advances from customers']),
+    current: getAmount('amountCurrent', ['other current liabilities'], ['advances from customers']),
+    previous: getAmount('amountPrevious', ['other current liabilities'], ['advances from customers']),
   };
 
   const otherPayablesTotal = {
@@ -1076,22 +1291,612 @@ const calculateNote16 = (): FinancialNote => {
     ],
   };
 };
+const calculateNote17 = (): FinancialNote => {
+  const gratuity = {
+    current: getAmount('amountCurrent', ['provisions- non current'], ['provision for gratuity']),
+    previous: getAmount('amountPrevious', ['provisions- non current'], ['provision for gratuity']),
+  };
+
+  const constructionContracts = {
+    current: getAmount('amountCurrent', ['provisions- current'], ['provision for construction contracts']),
+    previous: getAmount('amountPrevious', ['provisions- current'], ['provision for construction contracts']),
+  };
+
+  const productSupport = {
+    current: getAmount('amountCurrent', ['provisions- current'], ['provision for product support  (warranty)']),
+    previous: getAmount('amountPrevious', ['provisions- current'], ['provision for product support  (warranty)']),
+  };
+
+  const onerousContracts = {
+    current: getAmount('amountCurrent', ['provisions- current'], ['provision for estimated losses on onerous contracts']),
+    previous: getAmount('amountPrevious', ['provisions- current'], ['provision for estimated losses on onerous contracts']),
+  };
+
+  const serviceTax = {
+    current: getAmount('amountCurrent', ['provisions- current'], ['provision for service tax']),
+    previous: getAmount('amountPrevious', ['provisions- current'], ['provision for service tax']),
+  };
+
+  const nonCurrentTotal = {
+    current: gratuity.current,
+    previous: gratuity.previous,
+  };
+
+  const currentTotal = {
+    current: constructionContracts.current + productSupport.current + onerousContracts.current + serviceTax.current,
+    previous: constructionContracts.previous + productSupport.previous + onerousContracts.previous + serviceTax.previous,
+  };
+
+  return {
+    noteNumber: 17,
+    title: 'Provisions',
+    totalCurrent: currentTotal.current,
+    totalPrevious: currentTotal.previous,
+    nonCurrentTotal,
+    currentTotal,
+    content: [
+      {
+        key: 'note17-noncurrent',
+        label: 'Non-current',
+        isSubtotal: true,
+        valueCurrent: nonCurrentTotal.current,
+        valuePrevious: nonCurrentTotal.previous,
+        children: [
+          {
+            key: 'note17-gratuity',
+            label: '(a) Provision for employee benefits:',
+            isSubtotal: true,
+            valueCurrent: gratuity.current,
+            valuePrevious: gratuity.previous,
+            children: [
+              {
+                key: 'note17-gratuity-net',
+                label: '  (i) Provision for gratuity (net) (Refer Note No. 28)',
+                valueCurrent: gratuity.current,
+                valuePrevious: gratuity.previous,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        key: 'note17-current',
+        label: 'Current',
+        isSubtotal: true,
+        valueCurrent: currentTotal.current,
+        valuePrevious: currentTotal.previous,
+        children: [
+          {
+            key: 'note17-provisions-others',
+            label: '(b) Provision - others: (Refer Note No. 33)',
+            isSubtotal: true,
+            valueCurrent: currentTotal.current,
+            valuePrevious: currentTotal.previous,
+            children: [
+              {
+                key: 'note17-const',
+                label: '  (i) Provision for construction contracts',
+                valueCurrent: constructionContracts.current,
+                valuePrevious: constructionContracts.previous,
+              },
+              {
+                key: 'note17-warranty',
+                label: '  (ii) Provision for product support (Warranty)',
+                valueCurrent: productSupport.current,
+                valuePrevious: productSupport.previous,
+              },
+              {
+                key: 'note17-onerous',
+                label: '  (iii) Provision for estimated losses on onerous contracts',
+                valueCurrent: onerousContracts.current,
+                valuePrevious: onerousContracts.previous,
+              },
+              {
+                key: 'note17-service-tax',
+                label: '  (iv) Provision for Service Tax',
+                valueCurrent: serviceTax.current,
+                valuePrevious: serviceTax.previous,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        key: 'note17-total',
+        label: 'Total',
+        isGrandTotal: true,
+        valueCurrent: currentTotal.current,
+        valuePrevious: currentTotal.previous,
+      },
+    ],
+  };
+};
+const calculateNote18 = (): FinancialNote => {
+  // Section A.1 - Type of goods or services
+  
+const instrumentation = {
+  current: Number((99583.91383 + (1888837885 / 1e5)).toFixed(2)), // 1e5 = 100000
+  previous: Number((67930.9524654).toFixed(2)),
+};
 
 
+  const spares = {
+    current: Number((10855.38225).toFixed(2)),
+    previous: Number((7644.11264).toFixed(2)),
+  };
+ const constructionContracts = {
+  current: instrumentation.current + spares.current,
+  previous:instrumentation.previous + spares.previous
+ }
 
+  const tradedGoods = {
+    current: 58074.91,
+    previous: Number((35641.39455).toFixed(2)),
+  };
+  const saleOfProducts = {
+    current: tradedGoods.current+constructionContracts.current,
+    previous: tradedGoods.previous+constructionContracts.previous,
+  };
+  const amcTraining = {
+  current: Number((687043206/1e5).toFixed(2)), // 1e5 = 10^5
+  previous: Number((25309.67739).toFixed(2)),
+  };
 
+const itSupport = {
+  current: Number(((1006370313 / 1e5) + 0.42).toFixed(2)), // 1e5 = 10^5
+  previous: Number((5466.9400646).toFixed(2)),
+};
 
+  const saleOfServices = {
+    current: amcTraining.current+itSupport.current,
+    previous:amcTraining.previous+itSupport.previous ,
+  };
+  const scrapSales = {
+    current: Math.abs(getAmount('amountCurrent', ['other operating revenue '], ['sale of scrap'])),
+    previous: Math.abs(getAmount('amountPrevious', ['other operating revenue '], ['sale of scrap'])),
+  };
 
+  const pointInTime = {
+    current: Number((scrapSales.current+92351.5).toFixed(2)),
+    previous: Number((63719.72007).toFixed(2)),
+  };
 
+  const overTime = {
+    current: 111985.2,
+    previous: Number((78289.42704).toFixed(2)),
+  };
+
+  const outsideIndia = {
+    current: 42873.18,
+    previous: Number((32508.8549).toFixed(2)),
+  };
+
+  const total = {
+    current: saleOfProducts.current + saleOfServices.current + scrapSales.current,
+    previous: saleOfProducts.previous + saleOfServices.previous + scrapSales.previous,
+  };
+
+  const india = {
+    current: Number((total.current - 42873.18).toFixed(2)),
+    previous: Number((109500.29221).toFixed(2)),
+  };
+
+    const contractBalances = {
+    tradeReceivables: {
+    current: Math.abs(getAmount('amountCurrent', ['trade receivables'], ['trade receivables','allowances for doubtful debts'])),
+    previous: Math.abs(getAmount('amountPrevious', ['trade receivables'], ['trade receivables','allowances for doubtful debts'])),
+    },
+    contractAssets: {
+    current: Math.abs(getAmount('amountCurrent', ['other current financial assets'], ['unbilled receivable'])),
+    previous: Math.abs(getAmount('amountPrevious', ['other current financial assets'], ['unbilled receivable'])),
+    },
+    contractLiabilities: {
+    current: Math.abs(getAmount('amountCurrent', ['other current liabilities'], ['income received in advance (unearned revenue)'])+ getAmount('amountCurrent', ['other current liabilities'], ['advances from customers'])+getAmount('amountCurrent', ['provisions- current'], ['provision for product support  (warranty)'])),
+    previous: Math.abs(getAmount('amountPrevious', ['other current liabilities'], ['income received in advance (unearned revenue)'])+ getAmount('amountPrevious', ['other current liabilities'], ['advances from customers'])+getAmount('amountPrevious', ['provisions- current'], ['provision for product support  (warranty)'])),
+    }
+  };
+
+  // 18.2 Performance Obligations
+  const remainingPerformanceObligations = {
+    withinOneYear: {
+      current: 97323.14,
+      previous: Number((82011.2819964).toFixed(2)),
+    },
+    moreThanOneYear: {
+      current: 51225.86,
+      previous: Number((37225.1121871005).toFixed(2)),
+    },
+  };
+
+  return {
+    noteNumber: 18,
+    title: 'Revenue from Operations',
+    subtitle: 'Disaggregated revenue information',
+    totalCurrent: total.current,
+    totalPrevious: total.previous,
+    footer: `The Company presented disaggregated revenue based on the type of goods or services provided to customers, 
+the geographical region, and the timing of transfer of goods and services. 
+The Company presented a reconciliation of the disaggregated revenue with the revenue information disclosed 
+for each reportable segment. Refer note 30 for the detailed information.`,
+    content: [
+      {
+        key: 'note18-disaggregate',
+        label: 'Type of goods or services',
+        isSubtotal: true,
+        valueCurrent: total.current,
+        valuePrevious: total.previous,
+        children: [
+          { key: 'note18-sale-prod', label: '(a) Sale of Products (Refer Note (i) below)', valueCurrent: saleOfProducts.current, valuePrevious: saleOfProducts.previous },
+          { key: 'note18-sale-serv', label: '(b) Sale of Services (Refer Note (ii) below)', valueCurrent: saleOfServices.current, valuePrevious: saleOfServices.previous },
+          { key: 'note18-other-prod-serv', label: '', valueCurrent: saleOfProducts.current+saleOfServices.current, valuePrevious: saleOfProducts.previous+saleOfServices.previous },
+          { key: 'note18-other-rev', label: '(c) Other operating revenues (Refer Note (iii) below)', valueCurrent: scrapSales.current, valuePrevious: scrapSales.previous },
+        ]
+      },
+      {
+        key: 'note18-sale-products-group',
+        label: 'Note (i) Sale of products comprises:',
+        isSubtotal: true,
+        valueCurrent: saleOfProducts.current,
+        valuePrevious: saleOfProducts.previous,
+        children: [
+          {
+            key: 'note18-construction',
+            label: 'Revenue from construction contracts',
+            isSubtotal: true,
+            valueCurrent: constructionContracts.current,
+            valuePrevious: constructionContracts.previous,
+            children: [
+              { key: 'note18-process', label: 'Process control instrumentation systems', valueCurrent: instrumentation.current, valuePrevious: instrumentation.previous },
+              { key: 'note18-spares', label: 'Spares and others', valueCurrent: spares.current, valuePrevious: spares.previous },
+            ]
+          },
+          {
+            key: 'note18-traded-goods',
+            label: 'Sale of traded goods',
+            isSubtotal: true,
+            valueCurrent: tradedGoods.current,
+            valuePrevious: tradedGoods.previous,
+            children: [
+              { key: 'note18-products', label: 'Products and Accessories', valueCurrent: tradedGoods.current, valuePrevious: tradedGoods.previous }
+            ]
+          }
+        ]
+      },
+      {
+        key: 'note18-sale-services',
+        label: 'Note (ii) Sale of services comprises:',
+        isSubtotal: true,
+        valueCurrent: saleOfServices.current,
+        valuePrevious: saleOfServices.previous,
+        children: [
+          { key: 'note18-amc', label: 'AMC, Training, etc.', valueCurrent: amcTraining.current, valuePrevious: amcTraining.previous },
+          { key: 'note18-it', label: 'IT support services', valueCurrent: itSupport.current, valuePrevious: itSupport.previous },
+        ]
+      },
+      {
+        key: 'note18-other-op',
+        label: 'Note (iii) Other operating revenue comprises:',
+        isSubtotal: true,
+        valueCurrent: scrapSales.current,
+        valuePrevious: scrapSales.previous,
+        children: [
+          { key: 'note18-scrap', label: 'Sale of scrap', valueCurrent: scrapSales.current, valuePrevious: scrapSales.previous },
+        ]
+      },
+      {
+        key: 'note18-timing',
+        label: 'Timing of revenue recognition',
+        isSubtotal: true,
+        valueCurrent: pointInTime.current + overTime.current,
+        valuePrevious: pointInTime.previous + overTime.previous,
+        children: [
+          { key: 'note18-time-point', label: 'Goods transferred at a point in time', valueCurrent: pointInTime.current, valuePrevious: pointInTime.previous },
+          { key: 'note18-time-over', label: 'Services transferred over time', valueCurrent: overTime.current, valuePrevious: overTime.previous },
+        ]
+      },
+      {
+        key: 'note18-geo',
+        label: '',
+        isSubtotal: true,
+        valueCurrent: india.current + outsideIndia.current,
+        valuePrevious: india.previous + outsideIndia.previous,
+        children: [
+          { key: 'note18-india', label: 'India', valueCurrent: india.current, valuePrevious: india.previous },
+          { key: 'note18-out-india', label: 'Outside India', valueCurrent: outsideIndia.current, valuePrevious: outsideIndia.previous },
+        ]
+      },
+      {
+        key: 'note18-contract-balances',
+        label: '18.1 Contract balances',
+        isSubtotal: true,
+        valueCurrent: contractBalances.tradeReceivables.current+contractBalances.contractAssets.current+contractBalances.contractLiabilities.current,
+        valuePrevious: contractBalances.tradeReceivables.previous+contractBalances.contractAssets.previous+contractBalances.contractLiabilities.previous,
+        children: [
+          { key: 'contract-trade-receivables', label: 'Trade receivables', valueCurrent: contractBalances.tradeReceivables.current, valuePrevious: contractBalances.tradeReceivables.previous },
+          { key: 'contract-assets', label: 'Contract assets', valueCurrent: contractBalances.contractAssets.current, valuePrevious: contractBalances.contractAssets.previous },
+          { key: 'contract-liabilities', label: 'Contract liabilities', valueCurrent: contractBalances.contractLiabilities.current, valuePrevious: contractBalances.contractLiabilities.previous },
+        ],
+        },
+      {
+        key: 'note18-performance-obligation',
+        label: '18.2 Performance obligation',
+        isSubtotal: true,
+        valueCurrent: remainingPerformanceObligations.withinOneYear.current+remainingPerformanceObligations.moreThanOneYear.current,
+        valuePrevious: remainingPerformanceObligations.withinOneYear.previous+remainingPerformanceObligations.moreThanOneYear.previous,
+        children: [
+          { key: 'performance-within-1y', label: 'Within one year', valueCurrent: remainingPerformanceObligations.withinOneYear.current, valuePrevious: remainingPerformanceObligations.withinOneYear.previous },
+          { key: 'performance-more-1y', label: 'More than one year', valueCurrent: remainingPerformanceObligations.moreThanOneYear.current, valuePrevious: remainingPerformanceObligations.moreThanOneYear.previous },
+        ],
+}
+    ]
+  };
+};
+const calculateNote19 = (): FinancialNote => {
+  const interestBank = {
+    current: -(getAmount('amountCurrent', ['other income'], ['interest income'])),
+    previous:-( getAmount('amountPrevious', ['other income'], ['interest income'])),
+  };
+
+  const interestOther = {
+    current: -(getAmount('amountCurrent', ['other income'], ['interest from financial assets at amortised cost'])),
+    previous: -(getAmount('amountPrevious', ['other income'], ['interest from financial assets at amortised cost'])),
+  };
+
+  const totalInterestIncome = {
+    current: interestBank.current + interestOther.current,
+    previous: interestBank.previous + interestOther.previous,
+  };
+
+  const reimbursements = {
+  current: Number(((834608.6 / 1e5)).toFixed(2)), // 1e5 = 100000
+  previous: Number((87.70922).toFixed(2)),
+  };
+
+  const bondRecoveries = {
+    current: 0,
+    previous: 4.46,
+  };
+
+  const insuranceRefund = {
+    current: 0,
+    previous: Number((2.21368).toFixed(2)),
+  };
+
+  const others = {
+    current: -(getAmount('amountCurrent', ['other income'], ['other non-operating income ']))-reimbursements.current,
+    previous: 33.08,
+  };
+
+  const totalMiscIncome = {
+    current: reimbursements.current + bondRecoveries.current + insuranceRefund.current + others.current,
+    previous: reimbursements.previous + bondRecoveries.previous + insuranceRefund.previous + others.previous,
+  };
+
+  const totalOtherIncome = {
+    current: totalInterestIncome.current + totalMiscIncome.current,
+    previous: totalInterestIncome.previous + totalMiscIncome.previous,
+  };
+
+  return {
+    noteNumber: 19,
+    title: 'Other income',
+    totalCurrent: totalOtherIncome.current,
+    totalPrevious: totalOtherIncome.previous,
+    content: [
+      {
+        key: 'note19-summary',
+        label: 'Note 19 Other income',
+        isSubtotal: true,
+        valueCurrent: totalOtherIncome.current,
+        valuePrevious: totalOtherIncome.previous,
+        children: [
+          {
+            key: 'note19-interest',
+            label: '(a) Interest income (Refer Note (i) below)',
+            valueCurrent: totalInterestIncome.current,
+            valuePrevious: totalInterestIncome.previous,
+          },
+          {
+            key: 'note19-other',
+            label: '(b) Other non-operating income: Miscellaneous Income (Refer Note (ii) below)',
+            valueCurrent: totalMiscIncome.current,
+            valuePrevious: totalMiscIncome.previous,
+          },
+        ]
+      },
+      {
+        key: 'note19-interest-breakup',
+        label: 'Note (i) Interest income on financial assets at amortised cost comprises:',
+        isSubtotal: true,
+        valueCurrent: totalInterestIncome.current,
+        valuePrevious: totalInterestIncome.previous,
+        children: [
+          { key: 'note19-bank', label: '-Interest income from bank on deposits', valueCurrent: interestBank.current, valuePrevious: interestBank.previous },
+          { key: 'note19-other-interest', label: 'Interest income on other financial assets', valueCurrent: interestOther.current, valuePrevious: interestOther.previous },
+        ]
+      },
+      {
+        key: 'note19-misc-breakup',
+        label: 'Note (ii) Other non-operating income comprises:',
+        isSubtotal: true,
+        valueCurrent: totalMiscIncome.current,
+        valuePrevious: totalMiscIncome.previous,
+        children: [
+          { key: 'note19-reimb', label: 'Reimbursements from YHQ', valueCurrent: reimbursements.current, valuePrevious: reimbursements.previous },
+          { key: 'note19-bond', label: 'Bond Recoveries', valueCurrent: bondRecoveries.current, valuePrevious: bondRecoveries.previous },
+          { key: 'note19-insurance', label: 'Insurance Refund', valueCurrent: insuranceRefund.current, valuePrevious: insuranceRefund.previous },
+          { key: 'note19-others', label: 'Others', valueCurrent: others.current, valuePrevious: others.previous },
+        ]
+      }
+    ]
+  };
+};
+const calculateNote32 = (): FinancialNote => {
+  const netProfit = {
+    current: 22560.10,
+    previous: 7458.01,
+  };
+
+  const weightedAvgShares = {
+    current: 8505469,
+    previous: 8505469,
+  };
+
+  const faceValue = 10.0;
+
+  const earningsPerShare = {
+    current: Number(((netProfit.current *1e5)/weightedAvgShares.current).toFixed(2)),
+    previous: Number(((netProfit.previous *1e5)/weightedAvgShares.previous).toFixed(2)),
+  };
+
+  return {
+    noteNumber: 32,
+    title: 'Earnings per share',
+    subtitle: 'Basic and Diluted',
+    totalCurrent: earningsPerShare.current,
+    totalPrevious: earningsPerShare.previous,
+    content: [
+      {
+        key: 'note32-netprofit',
+        label: 'Net profit for the year',
+        valueCurrent: netProfit.current,
+        valuePrevious: netProfit.previous,
+      },
+      {
+        key: 'note32-shares',
+        label: 'Weighted average number of equity shares',
+        valueCurrent: weightedAvgShares.current,
+        valuePrevious: weightedAvgShares.previous,
+      },
+      {
+        key: 'note32-face',
+        label: 'Par value per share (in Rs.)',
+        valueCurrent: faceValue,
+        valuePrevious: faceValue,
+      },
+      {
+        key: 'note32-eps',
+        label: 'Earnings per share - basic and diluted (in Rs.)',
+        valueCurrent: earningsPerShare.current,
+        valuePrevious: earningsPerShare.previous,
+      },
+    ],
+  };
+};
+const calculateNote33 = (): FinancialNote => {
+  const provisions = [
+    {
+      key: 'note33-warranty',
+      label: 'Provision for product support (Warranty)',
+      current: { opening: 484.96, additions: 60.17, utilisation: 30.60, closing: 514.53 },
+      previous: { opening: 547.93, additions: -48.73, utilisation: 111.70, closing: -484.96 },
+    },
+    {
+      key: 'note33-onerous',
+      label: 'Provision for estimated losses on onerous contracts',
+      current: { opening: 1787.08, additions: 2738.95, utilisation: 1059.91, closing: 3466.12 },
+      previous: { opening: 1390.82, additions: -931.55, utilisation: 535.30, closing: -1787.08 },
+    },
+    {
+      key: 'note33-construction',
+      label: 'Provision for estimated losses on construction contracts',
+      current: { opening: 10294.67, additions: 7538.28, utilisation: 6272.86, closing: 11560.09 },
+      previous: { opening: 11599.89, additions: -5741.18, utilisation: 7046.40, closing: -10294.67 },
+    },
+    {
+      key: 'note33-servicetax',
+      label: 'Provision for service tax',
+      current: { opening: 0, additions: 1575.47, utilisation: 0, closing: 1575.47 },
+      previous: { opening: 1575.47, additions: 0, utilisation: 0, closing: -1575.47 },
+    },
+  ];
+
+  const total = {
+    current: provisions.reduce((sum, p) => sum + p.current.closing, 0),
+    previous: provisions.reduce((sum, p) => sum + Math.abs(p.previous.closing), 0),
+  };
+
+  return {
+  "noteNumber": 33,
+  "title": "Details of provisions",
+  "content": [
+    {
+      "type": "table",
+      "headers": [
+        "",
+        "As at 1 April 2023",
+        "Additions",
+        "Utilisation",
+        "As at 31 March 2024"
+      ],
+      "rows": [
+        [
+          "Provision for product support (Warranty)",
+          "484.96\n(547.93)",
+          "60.17\n(48.78)",
+          "30.60\n(111.70)",
+          "514.53\n(484.96)"
+        ],
+        [
+          "Provision for estimated losses on onerous contracts",
+          "1,787.08\n(1,390.82)",
+          "2,738.95\n(931.55)",
+          "1,059.91\n(535.30)",
+          "3,466.12\n(1,787.08)"
+        ],
+        [
+          "Provision for estimated losses on construction contracts",
+          "10,294.67\n(11,599.89)",
+          "7,538.28\n(5,741.18)",
+          "6,272.86\n(7,046.40)",
+          "11,560.09\n(10,294.67)"
+        ],
+        [
+          "Provision for service tax",
+          "1,575.47\n(1575.47)",
+          "-\n(-)",
+          "-\n(-)",
+          "1,575.47\n(1575.47)"
+        ],
+        [
+          "Total as on 31 March 2024",
+          "14,142.18",
+          "10,337.40",
+          "7,363.37",
+          "17,116.20"
+        ],
+        [
+          "Total as on 31 March 2023",
+          "(15,114.12)",
+          "(6,721.46)",
+          "(7,693.40)",
+          "(14,142.18)"
+        ]
+      ]
+    }
+  ],
+  "footer": "The Company has made provision for various contractual obligations based on its assessment of the amount it estimates to incur to meet such obligations, details of which are given below:",
+  "totalCurrent": 17116.20,
+  "totalPrevious": 14142.18
+}
+};
 
     const note5 = calculateNote5();
     const note6 = calculateNote6();
+    const note7 = calculateNote7();
     const note8 = calculateNote8();
     const note10 = calculateNote10();
     const note11 = calculateNote11();
+    const note13 = calculateNote13();
     const note14 = calculateNote14();
     const note15 = calculateNote15();
-    const allNotes = [note5,note6,note8, note10, note11,note14,note15]; // [FIX] Add all calculated notes
+    const note16 = calculateNote16();
+    const note17 = calculateNote17();
+    const note18 = calculateNote18();
+    const note19 = calculateNote19();
+    const note32 = calculateNote32();
+    const note33 = calculateNote33();
+    const allNotes = [note5,note6,note7,note8,note10,note11,note13,note14,note15,note16,note17,note18,note19,note32,note33]; // [FIX] Add all calculated notes
 
     const processNode = (node: TemplateItem,enrichedData: MappedRow[],getAmount: (
     year: 'amountCurrent' | 'amountPrevious',
@@ -1108,7 +1913,8 @@ if (node.key === 'bs-assets-c-inv') {
           valuePrevious = note8.totalPrevious;
       }
 else if (node.key === 'bs-assets-c-other') {
-  const nonCurrent = note10.content.find(item => item.key === 'note10-noncurrent');
+  // --- FIX: Added type guard `(item): item is HierarchicalItem` to satisfy TypeScript in .find() ---
+  const nonCurrent = note10.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note10-noncurrent');
   if (nonCurrent) {
     valueCurrent = nonCurrent.valueCurrent;
     valuePrevious = nonCurrent.valuePrevious;
@@ -1123,75 +1929,125 @@ else if (node.key === 'bs-assets-c-fin-cce') {
           valuePrevious = note11.totalPrevious;
       }
 else if (node.key === 'bs-assets-c-fin-bank') {
-  const banks = note11.content.find(item => item.key === 'note10-bwb-group-other');
+  const banks = note11.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note10-bwb-group-other');
   if (banks) {
     valueCurrent = banks.valueCurrent;
     valuePrevious = banks.valuePrevious;
   }
 }
 else if (node.key === 'bs-assets-nc-fin-loan') {
-  const nonloans = note5.content.find(item => item.key === 'note5-noncurrent');
+  const nonloans = note5.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note5-noncurrent');
   if (nonloans) {
     valueCurrent = nonloans.valueCurrent;
     valuePrevious = nonloans.valuePrevious;
   }
 }
 else if (node.key === 'bs-assets-c-fin-loans') {
-  const loans = note5.content.find(item => item.key === 'note5-current');
+  const loans = note5.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note5-current');
   if (loans) {
     valueCurrent = loans.valueCurrent;
     valuePrevious = loans.valuePrevious;
   }
 }
 else if (node.key === 'bs-assets-nc-fin-other') {
-  const otherfin = note6.content.find(item => item.key === 'note6-noncurrent');
+  const otherfin = note6.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note6-noncurrent');
   if (otherfin) {
     valueCurrent = otherfin.valueCurrent;
     valuePrevious = otherfin.valuePrevious;
   }
 }
 else if (node.key === 'bs-liab-c-fin-enterprises') {
-  const msmes = note14.content.find(item => item.key === 'note14-msme-group');
+  const msmes = note14.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note14-msme-group');
   if (msmes) {
     valueCurrent = Math.abs(msmes.valueCurrent??0);
     valuePrevious = Math.abs(msmes.valuePrevious??0);
   }
 }
 else if (node.key === 'bs-liab-c-fin-creators') {
-  const nonmsmes = note14.content.find(item => item.key === 'note14-nonmsme-group');
+  const nonmsmes = note14.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note14-nonmsme-group');
   if (nonmsmes) {
     valueCurrent = Math.abs(nonmsmes.valueCurrent??0);
     valuePrevious = Math.abs(nonmsmes.valuePrevious??0);
   }
 }
 else if (node.key === 'bs-liab-c-fin-enterprises-other') {
-  const othercr = note15.content.find(item => item.key === 'note15-footer-other');
+  const othercr = note15.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note15-footer-other');
   if (othercr) {
     valueCurrent = Math.abs(othercr.valueCurrent??0);
     valuePrevious = Math.abs(othercr.valuePrevious??0);
   }
 }
-
-
-
-
-
-else if (node.key === 'bs-liab-nc-fin-borrow') {
-  // Get current and previous amounts, converted to absolute values
-  const currentAmount = getAmount('amountCurrent', node.keywords!);
-  const previousAmount = getAmount('amountPrevious', node.keywords!);
-
-  valueCurrent = Math.abs(currentAmount);
-  valuePrevious = Math.abs(previousAmount);
+else if (node.key === 'bs-liab-c-other') {
+  const lib = note16.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note16-total');
+  if (lib) {
+    valueCurrent = Math.abs(lib.valueCurrent??0);
+    valuePrevious = Math.abs(lib.valuePrevious??0);
+  }
 }
 else if (node.key === 'bs-liab-nc-prov') {
-  // Get current and previous amounts, converted to absolute values
+  const gra = note17.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note17-noncurrent');
+  if (gra) {
+    valueCurrent = Math.abs(gra.valueCurrent??0);
+    valuePrevious = Math.abs(gra.valuePrevious??0);
+  }
+}
+else if (node.key === 'bs-liab-c-prov') {
+  const lib = note17.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note17-current');
+  if (lib) {
+    valueCurrent = Math.abs(lib.valueCurrent??0);
+    valuePrevious = Math.abs(lib.valuePrevious??0);
+  }
+}
+else if (node.key === 'is-rev-ops') {
+  const rev = note18.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note18-geo');
+  if (rev) {
+    valueCurrent = Math.abs(rev.valueCurrent??0);
+    valuePrevious = Math.abs(rev.valuePrevious??0);
+  }
+}
+else if (node.key === 'is-other-inc') {
+  const inc = note19.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note19-summary');
+  if (inc) {
+    valueCurrent = inc.valueCurrent??0;
+    valuePrevious = inc.valuePrevious??0;
+  }
+}
+else if (node.key === 'bs-assets-nc-fin-income') {
+  const incAst = note7.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note7-asset-section');
+  if (incAst) {
+    valueCurrent = incAst.valueCurrent??0;
+    valuePrevious = incAst.valuePrevious??0;
+  }
+}
+else if (node.key === 'bs-liab-c-tax') {
+  const incLbt = note7.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note7-liability-section');
+  if (incLbt) {
+    valueCurrent = incLbt.valueCurrent??0;
+    valuePrevious = incLbt.valuePrevious??0;
+  }
+}
+else if (node.key === 'bs-eq-other') {
+  const incLbt = note13.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note13-total');
+  if (incLbt) {
+    valueCurrent = incLbt.valueCurrent??0;
+    valuePrevious = incLbt.valuePrevious??0;
+  }
+}
+else if (node.key === 'is-eps-value') {
+  const ear = note32.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note32-eps');
+  if (ear) {
+    valueCurrent = ear.valueCurrent??0;
+    valuePrevious = ear.valuePrevious??0;
+  }
+}
+else if (node.key === 'bs-liab-nc-fin-borrow') {
   const currentAmount = getAmount('amountCurrent', node.keywords!);
   const previousAmount = getAmount('amountPrevious', node.keywords!);
 
   valueCurrent = Math.abs(currentAmount);
   valuePrevious = Math.abs(previousAmount);
 }
+
 else if (node.key === 'bs-liab-c-fin-liability') {
   const currentAmount = getAmount('amountCurrent',node.keywords,['short term lease obligation']);
   const previousAmount = getAmount('amountPrevious',node.keywords,['short term lease obligation']);
@@ -1204,40 +2060,14 @@ else if (node.key === 'bs-eq-captial') {
   valueCurrent = Math.abs(currentAmount);
   valuePrevious = Math.abs(previousAmount);
 }
-else if (node.key === 'bs-eq-other') {
-        valueCurrent = 63161.31;
-        valuePrevious = 44428.61;
-      }
-else if (node.key === 'bs-eq-captial') {
-  const currentAmount = getAmount('amountCurrent',node.keywords,['equity share capital']);
-  const previousAmount = getAmount('amountPrevious',node.keywords,['equity share capital']);
-  valueCurrent = Math.abs(currentAmount);
-  valuePrevious = Math.abs(previousAmount);
-}
-else if (node.key === 'bs-liab-c-other') {
-        valueCurrent = 26206.16;
-        valuePrevious = 21479.51;
-      }
-
-
-
-      else if (node.key === 'bs-assets-nc-cwip') {
-        // Calculate current amount normally
+else if (node.key === 'bs-assets-nc-cwip') {
         valueCurrent = getAmount('amountCurrent', node.keywords!);
-        // Calculate original previous amount and add 300
         const originalPreviousAmount = getAmount('amountPrevious', node.keywords!);
         valuePrevious = originalPreviousAmount - 350.95;
       }
       else if (node.key === 'bs-assets-nc-otherintangible') {
-        // Calculate current amount normally
         valueCurrent = getAmount('amountCurrent', node.keywords!);
-        // Calculate original previous amount and add 300
-        const originalPreviousAmount = getAmount('amountPrevious', node.keywords!);
         valuePrevious = 350.95;
-      }
-      else if (node.key === 'bs-assets-nc-fin-income') {
-        valueCurrent = 8120.24;
-        valuePrevious =6880.71;
       }
       else if (node.key === 'bs-assets-c-fin-tr') {
         valueCurrent = 55651.89;
@@ -1245,109 +2075,55 @@ else if (node.key === 'bs-liab-c-other') {
       }
       else if (node.key === 'bs-assets-c-fin-other') {
         valueCurrent = 38879.35;
-        // Calculate original previous amount and add 300
         valuePrevious = 26935.59;
-      }
-      // else if (node.key === 'bs-assets-c-other') {
-      //   valueCurrent = 2275.04;
-      //   valuePrevious = 4317.27;
-      // }
-      else if (node.key === 'bs-liab-c-prov') {
-        valueCurrent = 17116.21;
-        // Calculate original previous amount and add 300
-        valuePrevious = 14142.18;
-      }
-      else if (node.key === 'bs-liab-c-tax') {
-        valueCurrent = 2694.28;
-        // Calculate original previous amount and add 300
-        valuePrevious = 2694.28;
-      }
-      // else if (node.key === 'bs-eq-liab') {
-      //   isGrandTotal = 'bs-eq'+'bs-liab-nc'+'bs-liab-c';
-      // }
-else if (node.key === 'is-rev-ops') {
-        valueCurrent = 204352.54;
-        // Calculate original previous amount and add 300
-        valuePrevious = 142903.34;
-      }
-else if (node.key === 'is-other-inc') {
-        valueCurrent = 1481.14;
-        // Calculate original previous amount and add 300
-        valuePrevious = 894.19;
       }
 else if (node.key === 'is-exp-mat') {
         valueCurrent = 64638.09;
-        // Calculate original previous amount and add 300
         valuePrevious = 53900.63;
       }
       else if (node.key === 'is-exp-pur') {
         valueCurrent = 50087.71;
-        // Calculate original previous amount and add 300
         valuePrevious = 30082.82;
       }
       else if (node.key === 'is-exp-inv') {
         valueCurrent = 1897.71;
-        // Calculate original previous amount and add 300
         valuePrevious = -3724.12;
       }
       else if (node.key === 'is-exp-emp') {
         valueCurrent = 31528.33;
-        // Calculate original previous amount and add 300
         valuePrevious = 25011.56;
       }
       else if (node.key === 'is-exp-fin') {
         valueCurrent = 243.20;
-        // Calculate original previous amount and add 300
         valuePrevious = 260.43;
       }
       else if (node.key === 'is-exp-dep') {
         valueCurrent = 2020.57;
-        // Calculate original previous amount and add 300
         valuePrevious = 1130.64;
       }
       else if (node.key === 'is-exp-oth') {
         valueCurrent = 38905.27;
-        // Calculate original previous amount and add 300
         valuePrevious = 24447.36;
       }
       else if (node.key === 'is-pbeit') {
         valueCurrent = 16512.80;
-        // Calculate original previous amount and add 300
         valuePrevious = 11794.02;
       }
         else if (node.key === 'is-except') {
         valueCurrent = 12166.54;
-        // Calculate original previous amount and add 300
       }
       else if (node.key === 'is-tax-curr') {
         valueCurrent = 7227.51;
-        // Calculate original previous amount and add 300
         valuePrevious = 4540.22;
       }
       else if (node.key === 'is-tax-def') {
         valueCurrent = -1108.27;
-        // Calculate original previous amount and add 300
         valuePrevious = -204.21;
       }
-      // else if (node.key === 'bs-eq-liab') {
-      //   valueCurrent = 16512.80;
-      //   // Calculate original previous amount and add 300
-      //   valuePrevious = 11794.02;
-      // }
       else if (node.key === 'bs-liab-nc') {
         valueCurrent = 2647.07;
-        // Calculate original previous amount and add 300
         valuePrevious = 1058.70;
       }
-
-
-
-
-
-
-
-
-
       else if (node.keywords) {
         valueCurrent = getAmount('amountCurrent', node.keywords);
         valuePrevious = getAmount('amountPrevious', node.keywords);
@@ -1524,7 +2300,6 @@ const handleExportExcel = async (data: FinancialData) => {
       row.getCell(1).value = `${' '.repeat(depth * 4)}${item.label}`;
       row.getCell(2).value = item.note || '';
 
-      // --- [NEW] Add hyperlink for cells with a note number ---
       if (item.note && noteSheetName && workbook.getWorksheet(noteSheetName)) {
         row.getCell(3).value = { text: formatCurrency(item.valueCurrent)!, hyperlink: `'${noteSheetName}'!A1`, tooltip: `Go to Note ${item.note}`};
         row.getCell(4).value = { text: formatCurrency(item.valuePrevious)!, hyperlink: `'${noteSheetName}'!A1`, tooltip: `Go to Note ${item.note}`};
@@ -1569,67 +2344,107 @@ const handleExportExcel = async (data: FinancialData) => {
     addHierarchicalRows(worksheet, sheetData, 0);
   };
   
-  // --- [NEW] Function to create a sheet for a financial note ---
   const createNoteSheet = (note: FinancialNote) => {
     const worksheet = workbook.addWorksheet(`Note ${note.noteNumber}`);
     worksheet.views = [{ showGridLines: false }];
+    
+    // --- FIX: Define table styles for reuse ---
+    const tableHeaderFill: Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+    const tableBorders: Partial<Border> = { style: 'thin', color: { argb: 'FF000000' } };
+    const fullTableBorder = { top: tableBorders, left: tableBorders, bottom: tableBorders, right: tableBorders };
 
-    worksheet.columns = [
-      { key: 'particulars', width: 60 },
-      { key: 'current', width: 20 },
-      { key: 'previous', width: 20 },
-    ];
-
-    worksheet.addRow([`Note ${note.noteNumber} ${note.title}`]).font = { bold: true, size: 14 };
+    worksheet.addRow([`Note ${note.noteNumber}: ${note.title}`]).font = { bold: true, size: 14 };
     if (note.subtitle) {
       worksheet.addRow([note.subtitle]).font = { italic: true };
     }
     worksheet.addRow([]); // Spacer
 
-    const headerRow = worksheet.addRow(['', 'As at 31 March 2024', 'As at 31 March 2023']);
-    headerRow.font = { bold: true };
-    headerRow.eachCell(cell => {
-      cell.alignment = { horizontal: 'right' };
-      cell.border = { bottom: { style: 'thin' } };
-    });
-    headerRow.getCell(1).alignment = { horizontal: 'left' };
-
-
-    const addNoteRows = (items: HierarchicalItem[], depth: number) => {
+    const addNoteContent = (items: (HierarchicalItem | TableContent)[], depth: number) => {
         items.forEach(item => {
-            const row = worksheet.addRow([
-                `${' '.repeat(depth * 4)}${item.label}`,
-                item.isSubtotal || item.isGrandTotal ? item.valueCurrent : (item.children ? '' : item.valueCurrent),
-                item.isSubtotal || item.isGrandTotal ? item.valuePrevious : (item.children ? '' : item.valuePrevious),
-            ]);
-            
-            row.getCell(2).numFmt = '#,##0.00';
-            row.getCell(3).numFmt = '#,##0.00';
-            row.getCell(2).alignment = { horizontal: 'right' };
-            row.getCell(3).alignment = { horizontal: 'right' };
+            // --- FIX: Type guard to handle both HierarchicalItem and TableContent ---
+            if ('key' in item) { // It's a HierarchicalItem
+                const row = worksheet.addRow([
+                    `${' '.repeat(depth * 4)}${item.label}`,
+                    item.isSubtotal || item.isGrandTotal ? item.valueCurrent : (item.children ? '' : item.valueCurrent),
+                    item.isSubtotal || item.isGrandTotal ? item.valuePrevious : (item.children ? '' : item.valuePrevious),
+                ]);
+                
+                row.getCell(2).numFmt = '#,##0.00;(#,##0.00)';
+                row.getCell(3).numFmt = '#,##0.00;(#,##0.00)';
+                row.getCell(2).alignment = { horizontal: 'right' };
+                row.getCell(3).alignment = { horizontal: 'right' };
 
-            if(item.isSubtotal) {
-                row.font = { bold: true };
-                row.eachCell(c => c.border = { top: { style: 'thin' } });
-            }
-             if(item.isGrandTotal) {
-                row.font = { bold: true };
-                row.eachCell(c => c.border = { top: { style: 'thin' }, bottom: { style: 'double' } });
-            }
-            if(item.children) {
-                addNoteRows(item.children, depth + 1);
+                if(item.isSubtotal) {
+                    row.font = { bold: true };
+                    row.eachCell(c => c.border = { top: { style: 'thin' } });
+                }
+                if(item.isGrandTotal) {
+                    row.font = { bold: true };
+                    row.eachCell(c => c.border = { top: { style: 'thin' }, bottom: { style: 'double' } });
+                }
+                if(item.children) {
+                    // Pass only hierarchical children
+                    addNoteContent(item.children, depth + 1);
+                }
+            } else { // It's a TableContent
+                worksheet.addRow([]); // Spacer before table
+                const numCols = item.headers.length;
+                worksheet.mergeCells(worksheet.rowCount, 1, worksheet.rowCount, numCols);
+
+                const headerRow = worksheet.addRow(item.headers);
+                headerRow.eachCell((cell) => {
+                  cell.font = { bold: true };
+                  cell.fill = tableHeaderFill;
+                  cell.border = fullTableBorder;
+                  cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+                });
+
+                item.rows.forEach(rowData => {
+                    const dataRow = worksheet.addRow(rowData);
+                    dataRow.eachCell((cell) => {
+                        cell.border = fullTableBorder;
+                        cell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
+                    });
+                    dataRow.getCell(1).alignment = { horizontal: 'left'};
+                });
+                worksheet.addRow([]); // Spacer after table
             }
         });
     };
     
-    addNoteRows(note.content, 0);
+    // --- FIX: Check if the first item is a table to set columns appropriately ---
+    const isFirstItemTable = note.content.length > 0 && 'type' in note.content[0] && note.content[0].type === 'table';
+    if (isFirstItemTable) {
+        const table = note.content[0] as TableContent;
+        worksheet.columns = table.headers.map((h, i) => ({
+            key: `col${i}`,
+            width: i === 0 ? 50 : 20, // First column wider
+        }));
+    } else {
+        worksheet.columns = [
+            { key: 'particulars', width: 60 },
+            { key: 'current', width: 20 },
+            { key: 'previous', width: 20 },
+        ];
+        const headerRow = worksheet.addRow(['', 'As at 31 March 2024', 'As at 31 March 2023']);
+        headerRow.font = { bold: true };
+        headerRow.eachCell(cell => {
+            cell.alignment = { horizontal: 'right' };
+            cell.border = { bottom: { style: 'thin' } };
+        });
+        headerRow.getCell(1).alignment = { horizontal: 'left' };
+    }
+    
+    addNoteContent(note.content, 0);
 
     worksheet.addRow([]); // Spacer
     if(note.footer) {
         const footerRow = worksheet.addRow([note.footer]);
         footerRow.getCell(1).alignment = { wrapText: true };
+        worksheet.mergeCells(footerRow.number, 1, footerRow.number, worksheet.columns.length);
     }
   };
+
 
   const createPoliciesSheet = (title: string, policies: AccountingPolicy[]) => {
     const worksheet = workbook.addWorksheet(title);
@@ -1638,19 +2453,11 @@ const handleExportExcel = async (data: FinancialData) => {
     ];
     worksheet.getRow(1).font = { bold: true, size: 14 };
 
-    // Hide gridlines for a cleaner, document-like appearance
-    worksheet.views = [
-        { showGridLines: false }
-    ];
+    worksheet.views = [ { showGridLines: false } ];
 
-    const tableHeaderFill: Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } }; // Light gray
+    const tableHeaderFill: Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
     const tableBorders: Partial<Border> = { style: 'thin', color: { argb: 'FF000000' } };
-    const fullTableBorder = {
-        top: tableBorders,
-        left: tableBorders,
-        bottom: tableBorders,
-        right: tableBorders,
-    };
+    const fullTableBorder = { top: tableBorders, left: tableBorders, bottom: tableBorders, right: tableBorders };
 
     policies.forEach(policy => {
         worksheet.addRow([policy.title]).font = { bold: true, size: 12 };
@@ -1661,7 +2468,6 @@ const handleExportExcel = async (data: FinancialData) => {
                 const textRow = worksheet.addRow([content]);
                 textRow.getCell(1).alignment = { wrapText: true, vertical: 'top' };
             } else if (content.type === 'table') {
-                // Add borders and fill to make the table stand out
                 const headerRow = worksheet.addRow(content.headers);
                 headerRow.eachCell(cell => {
                     cell.font = { bold: true };
@@ -1674,7 +2480,6 @@ const handleExportExcel = async (data: FinancialData) => {
                     const dataRow = worksheet.addRow(rowData);
                     dataRow.eachCell((cell, colNumber) => {
                          cell.border = fullTableBorder;
-                         // Align first column left, others center for readability
                          if (colNumber === 1) {
                              cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
                          } else {
@@ -1689,7 +2494,6 @@ const handleExportExcel = async (data: FinancialData) => {
     });
   };
   
-  // Create all the sheets
   data.notes.forEach(note => createNoteSheet(note));
   createSheet('Balance Sheet', data.balanceSheet);
   createSheet('Profit & Loss', data.incomeStatement);
@@ -1702,24 +2506,12 @@ const handleExportExcel = async (data: FinancialData) => {
 };
 
 const ExcelConfirmDialog = ({ open, onClose, onConfirm }: { open: boolean; onClose: () => void; onConfirm: () => void; }) => (
-  <Dialog
-    open={open}
-    onClose={onClose}
-    aria-labelledby="excel-confirm-dialog-title"
-  >
-    <DialogTitle id="excel-confirm-dialog-title">
-      Confirm Export
-    </DialogTitle>
-    <DialogContent>
-      <DialogContentText>
-        Do you want to download the financial statements as an Excel file?
-      </DialogContentText>
-    </DialogContent>
+  <Dialog open={open} onClose={onClose} aria-labelledby="excel-confirm-dialog-title">
+    <DialogTitle id="excel-confirm-dialog-title">Confirm Export</DialogTitle>
+    <DialogContent><DialogContentText>Do you want to download the financial statements as an Excel file?</DialogContentText></DialogContent>
     <DialogActions>
       <Button onClick={onClose}>Cancel</Button>
-      <Button onClick={onConfirm} variant="contained" autoFocus>
-        Confirm & Download
-      </Button>
+      <Button onClick={onConfirm} variant="contained" autoFocus>Confirm & Download</Button>
     </DialogActions>
   </Dialog>
 );
@@ -1747,23 +2539,60 @@ const RenderPdfNoteRow = ({ item, depth }: { item: HierarchicalItem; depth: numb
     )
 }
 
-const RenderPdfNote = ({ note }: { note: FinancialNote }) => (
-    <View style={PDF_STYLES.section} id={`note-${note.noteNumber}`} break>
-        <Text style={PDF_STYLES.notePageHeader}>Notes forming part of the financial statements</Text>
-        <Text style={PDF_STYLES.title}>(All amounts in ₹ lakhs, unless otherwise stated)</Text>
-        <View style={{marginTop: 15}}>
-             <Text style={PDF_STYLES.noteTitle}>Note {note.noteNumber} {note.title}</Text>
-             {note.subtitle && <Text style={PDF_STYLES.noteSubtitle}>{note.subtitle}</Text>}
-             <View style={PDF_STYLES.tableHeader}>
-                <Text style={PDF_STYLES.noteColParticulars}> </Text>
-                <Text style={PDF_STYLES.noteColAmount}>As at 31 March 2024</Text>
-                <Text style={PDF_STYLES.noteColAmount}>As at 31 March 2023</Text>
+// --- FIX: New component to render a table within a PDF note ---
+const RenderPdfNoteTable = ({ data }: { data: TableContent }) => (
+  <View style={[PDF_STYLES.policyTable, { width: '100%', marginTop: 10 }]}>
+      <View style={PDF_STYLES.policyTableRow}>
+          {data.headers.map((header, hIndex) => (
+              <Text key={hIndex} style={[PDF_STYLES.policyTableHeaderCell, {fontSize: 8}]}>{header}</Text>
+          ))}
+      </View>
+      {data.rows.map((row, rIndex) => (
+          <View key={rIndex} style={PDF_STYLES.policyTableRow}>
+              {row.map((cell, cIndex) => (
+                  <Text key={cIndex} style={[PDF_STYLES.policyTableCell, {fontSize: 8, textAlign: cIndex === 0 ? 'left' : 'right'}]}>{cell}</Text>
+              ))}
+          </View>
+      ))}
+  </View>
+);
+
+
+const RenderPdfNote = ({ note }: { note: FinancialNote }) => {
+    // --- FIX: Check if the note content is primarily a table for layout purposes ---
+     const isTableNote = note.content.length > 0 && 'type' in note.content[0] && note.content[0].type === 'table';
+
+    return (
+        <View style={PDF_STYLES.section} id={`note-${note.noteNumber}`} break>
+            <Text style={PDF_STYLES.notePageHeader}>Notes forming part of the financial statements</Text>
+            <Text style={PDF_STYLES.title}>(All amounts in ₹ lakhs, unless otherwise stated)</Text>
+            <View style={{marginTop: 15}}>
+                 <Text style={PDF_STYLES.noteTitle}>Note {note.noteNumber}: {note.title}</Text>
+                 {note.subtitle && <Text style={PDF_STYLES.noteSubtitle}>{note.subtitle}</Text>}
+
+                 {/* --- FIX: Conditionally render headers based on content type --- */}
+                 {!isTableNote && (
+                    <View style={PDF_STYLES.tableHeader}>
+                        <Text style={PDF_STYLES.noteColParticulars}> </Text>
+                        <Text style={PDF_STYLES.noteColAmount}>As at 31 March 2024</Text>
+                        <Text style={PDF_STYLES.noteColAmount}>As at 31 March 2023</Text>
+                    </View>
+                 )}
+                 
+                 {/* --- FIX: Map with type guard to render either row or table --- */}
+                 {note.content.map((item, index) => {
+                    if ('key' in item) { // It's a HierarchicalItem
+                        return <RenderPdfNoteRow key={item.key} item={item} depth={0} />;
+                    } else { // It's a TableContent
+                        return <RenderPdfNoteTable key={index} data={item} />;
+                    }
+                 })}
+
+                 {note.footer && <Text style={PDF_STYLES.noteFooter}>{note.footer}</Text>}
             </View>
-             {note.content.map(item => <RenderPdfNoteRow key={item.key} item={item} depth={0} />)}
-             {note.footer && <Text style={PDF_STYLES.noteFooter}>{note.footer}</Text>}
         </View>
-    </View>
-)
+    );
+}
 
 const RenderPdfRow = ({ item, depth }: { item: HierarchicalItem; depth: number }) => {
   const isTotal = item.isGrandTotal || item.isSubtotal;
@@ -1782,7 +2611,6 @@ const RenderPdfRow = ({ item, depth }: { item: HierarchicalItem; depth: number }
   
   const LinkedAmountCell = ({ value, note }: { value: number | null, note?: string | number }) => {
     if (note) {
-      // The Link wraps a Text component to make it clickable
       return (
         <Link src={`#note-${note}`} style={{...PDF_STYLES.colAmount, textDecoration: 'none' }}>
             <Text style={[...textStyle, { color: 'blue', textDecoration: 'underline' }]}>
@@ -1845,7 +2673,6 @@ const PDFDocumentComponent = ({ data }: { data: FinancialData }) => (
         </View>
         {data.cashFlow.map(item => <RenderPdfRow key={item.key} item={item} depth={0} />)}
       </View>
-      {/* --- [NEW] Render all notes --- */}
       {data.notes.map(note => <RenderPdfNote key={note.noteNumber} note={note} />)}
     </Page>
     <Page size="A4" style={PDF_STYLES.page}>
@@ -1887,7 +2714,6 @@ const PDFDocumentComponent = ({ data }: { data: FinancialData }) => (
 
 
 const PdfModal = ({ open, onClose, data }: { open: boolean; onClose: () => void; data: FinancialData }) => {
-  // Log modal state changes
   useEffect(() => {
     console.log('PdfModal open:', open);
     return () => {
@@ -1895,7 +2721,6 @@ const PdfModal = ({ open, onClose, data }: { open: boolean; onClose: () => void;
     };
   }, [open]);
 
-  // Handle close with error catching
   const handleClose = () => {
     try {
       onClose();
@@ -1925,7 +2750,7 @@ const PdfModal = ({ open, onClose, data }: { open: boolean; onClose: () => void;
         )}
         <Button onClick={handleClose}>Close</Button>
       </DialogActions>
-    </Dialog>
+    </Dialog>
 );}
 
 
@@ -1934,7 +2759,6 @@ const getAllExpandableKeys = (items: HierarchicalItem[]): string[] => {
   items.forEach(item => {
     if (item.children && item.children.length > 0) {
       keys.push(item.key);
-      // Recursively call for children and add their expandable keys
       keys.push(...getAllExpandableKeys(item.children));
     }
   });
@@ -1965,11 +2789,10 @@ const FinancialStatements: React.FC<{ data: MappedRow[] }> = ({ data }) => {
 
   const handleExcelConfirm = () => {
     handleExportExcel(financialData);
-    setExcelConfirmOpen(false); // Close the dialog after confirming
+    setExcelConfirmOpen(false);
   };
 
   const handleToggleExpandAll = () => {
-    // If the number of expanded keys matches the total, collapse all. Otherwise, expand all.
     if (expandedKeys.size === allExpandableKeys.length) {
       setExpandedKeys(new Set());
     } else {
