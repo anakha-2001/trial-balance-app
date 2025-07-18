@@ -70,8 +70,8 @@ interface FinancialNote {
     subtitle?: string;
     content: (HierarchicalItem | TableContent)[]; 
     footer?: string;
-    totalCurrent: number;
-    totalPrevious: number;
+    totalCurrent: number | null;
+    totalPrevious: number | null;
     nonCurrentTotal?: { current: number; previous: number };
     currentTotal?: { current: number; previous: number };
     cceTotal?: { current: number; previous: number };
@@ -155,7 +155,7 @@ const BALANCE_SHEET_STRUCTURE: TemplateItem[] = [
     { key: 'bs-assets-c', label: 'Current assets', isSubtotal: true, children: [
         { key: 'bs-assets-c-inv', label: 'Inventories', note: 8},
         { key: 'bs-assets-c-fin', label: 'Financial Assets', isSubtotal: true, children: [
-           { key: 'bs-assets-c-fin-tr', label: 'Trade receivables', note: 9, keywords: ['Trade receivables'] },
+           { key: 'bs-assets-c-fin-tr', label: 'Trade receivables', note: 9 },
            { key: 'bs-assets-c-fin-cce', label: 'Cash and cash equivalents',note:11},
            { key: 'bs-assets-c-fin-bank', label: ' Bank balances other than above',note:11},
            { key: 'bs-assets-c-fin-loans', label: 'Loans', note: 5 },
@@ -822,6 +822,181 @@ const calculateNote8 = (): FinancialNote => {
             ]
         };
     };
+
+const calculateNote9 = (): FinancialNote => {
+  const tradeReceivables = getAmount('amountCurrent', ['trade receivables'], ['trade receivables']);
+  const tradeReceivablesPrev = getAmount('amountPrevious', ['trade receivables'], ['trade receivables']);
+
+  const doubtfulDebts = getAmount('amountCurrent', ['trade receivables'], ['allowances for doubtful debts']);
+  const doubtfulDebtsPrev = getAmount('amountPrevious', ['trade receivables'], ['allowances for doubtful debts']);
+
+  const consideredGoodCurrent = tradeReceivables - (-doubtfulDebts);
+  const consideredGoodPrevious = tradeReceivablesPrev - (-doubtfulDebtsPrev);
+
+  const creditImpairedCurrent = -doubtfulDebts;
+  const creditImpairedPrevious = -doubtfulDebtsPrev;
+
+  const subtotalCurrent = consideredGoodCurrent + creditImpairedCurrent;
+  const subtotalPrevious = consideredGoodPrevious + creditImpairedPrevious;
+
+  const allowanceCurrent = -doubtfulDebts;
+  const allowancePrevious = -doubtfulDebtsPrev;
+
+  const totalCurrent = subtotalCurrent - allowanceCurrent;
+  const totalPrevious = subtotalPrevious - allowancePrevious;
+
+  return {
+    noteNumber: 9,
+    title: 'Trade receivables (unsecured)',
+    totalCurrent: totalCurrent,
+    totalPrevious: totalPrevious,
+    footer:`Note: Figures in brackets relate to previous year.
+
+     **Expected credit loss**
+
+The Company uses a provision matrix to determine impairment loss on portfolio of its trade receivable. The provision matrix is based on its historically observed default rates over the expected life of the trade receivables and is adjusted for forward-looking estimates. At regular intervals, the historically observed default rates are updated and changes in forward-looking estimates are analysed.`,
+    content: [
+      {
+        key: 'note9-good',
+        label: 'Trade Receivables - Considered good',
+        valueCurrent: consideredGoodCurrent,
+        valuePrevious: consideredGoodPrevious,
+      },
+      {
+        key: 'note9-impaired',
+        label: 'Trade Receivables - Credit impaired',
+        valueCurrent: creditImpairedCurrent,
+        valuePrevious: creditImpairedPrevious,
+      },
+      {
+        key: 'note9-subtotal',
+        label: '',
+        isSubtotal: true,
+        valueCurrent: subtotalCurrent,
+        valuePrevious: subtotalPrevious,
+      },
+      {
+        key: 'note9-allowance',
+        label: 'Less: Allowances for credit impairment',
+        valueCurrent: allowanceCurrent,
+        valuePrevious: allowancePrevious,
+      },
+      {
+        key: 'note9-total',
+        label: 'Total',
+        isGrandTotal: true,
+        valueCurrent: totalCurrent,
+        valuePrevious: totalPrevious,
+      },
+      {
+        type: 'table',
+        headers: [
+          'PARTICULARS',
+          'Not due',
+          'Less than 6 months',
+          '6 months - 1 year',
+          '1-2 years',
+          '2-3 years',
+          'More than 3 years',
+          'Total'
+        ],
+        rows: [
+          [
+            'Undisputed Trade receivables – considered good',
+            '43,560.08\n(41,064.34)',
+            '9,832.94\n(8,481.43)',
+            '1,197.72\n(431.30)',
+            '533.18\n(875.74)',
+            '130.36\n(310.62)',
+            '7.61\n(-)',
+            '55,861.89\n(51,164.06)'
+          ],
+          [
+            'Undisputed Trade receivables – credit impaired',
+            '750.43\n(935.40)',
+            '851.15\n(216.61)',
+            '705.71\n(73.62)',
+            '563.71\n(528.75)',
+            '878.80\n(802.86)',
+            '2,838.28\n(1,735.37)',
+            '6,587.08\n(4,292.61)'
+          ],
+          [
+            'Disputed Trade Receivables – considered good',
+            '-',
+            '-',
+            '-',
+            '-',
+            '-',
+            '-',
+            '-'
+          ],
+          [
+            'Disputed Trade Receivables – significant increase in credit risk',
+            '-',
+            '-',
+            '-',
+            '-',
+            '-',
+            '-',
+            '-'
+          ],
+          [
+            'Disputed Trade Receivables – credit impaired',
+            '-',
+            '191.37\n(-)',
+            '66.61\n(-)',
+            '18.74\n(-)',
+            '35.15\n(165.30)',
+            '150.60\n(150.60)',
+            '462.47\n(315.90)'
+          ],
+          [
+            '',
+            '44,700.51\n(41999.74)',
+            '10,875.82\n(8698.05)',
+            '1,970.04\n(505.55)',
+            '1,115.63\n(1404.49)',
+            '1,044.31\n(1278.77)',
+            '2,996.49\n(1885.97)',
+            '62,702.80\n(55772.57)'
+          ],
+          [
+            'Less: Allowance for credit loss',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '7050.91\n(4608.51)'
+          ],
+          [
+            'Total Trade Receivables as on 31 March 2024',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '55651.89'
+          ],
+          [
+            'Total Trade Receivables as on 31 March 2023',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '(51164.06)'
+          ]
+        ]
+      }
+    ]
+  };
+};
+
     const calculateNote10 = (): FinancialNote => {
   // Non-current
   const nonCurrentGovt = {
@@ -966,6 +1141,229 @@ const calculateNote8 = (): FinancialNote => {
             ]
         };
     };
+const calculateNote12 = (): FinancialNote => {
+  // Authorised share data
+  const authorisedEquityNumber = 9500000;
+  const authorisedEquityAmount = 950.00;
+
+  const unclassifiedNumber = 500000;
+  const unclassifiedAmount = 50.00;
+
+  const totalAuthorisedNumber = authorisedEquityNumber + unclassifiedNumber;
+  const totalAuthorisedAmount = authorisedEquityAmount + unclassifiedAmount;
+
+  // Issued and Subscribed share data (same in both years)
+  const issuedNumber = 8505469;
+  const issuedAmount = 850.55;
+
+  const issuedAndSubscribedNumber = '85,05,469';
+  const issuedAndSubscribedAmount = '850.55';
+
+  const percent = '100.00%';
+
+  return {
+    noteNumber: 12,
+    title: 'Equity Share Capital',
+    totalCurrent: issuedAmount,
+    totalPrevious: issuedAmount,
+    content: [
+      {
+        type: 'table',
+        headers: [
+          '',
+          'As at 31 March 2024\nNumber',
+          '\nAmount',
+          'As at 31 March 2023\nNumber',
+          '\nAmount'
+        ],
+        rows: [
+          [
+            'Authorised',
+            totalAuthorisedNumber.toLocaleString('en-IN'),
+            totalAuthorisedAmount.toFixed(2),
+            totalAuthorisedNumber.toLocaleString('en-IN'),
+            totalAuthorisedAmount.toFixed(2)
+          ],
+          [
+            'Equity shares of ₹ 10 each',
+            authorisedEquityNumber.toLocaleString('en-IN'),
+            authorisedEquityAmount  .toFixed(2),
+            authorisedEquityNumber.toLocaleString('en-IN'),
+            authorisedEquityAmount.toFixed(2)
+          ],
+          [
+            'Unclassified shares of ₹ 10 each',
+            unclassifiedNumber.toLocaleString('en-IN'),
+            unclassifiedAmount.toFixed(2),
+            unclassifiedNumber.toLocaleString('en-IN'),
+            unclassifiedAmount.toFixed(2)
+          ],
+          [
+            'Issued Share Capital\nEquity shares of ₹ 10 each',
+            issuedNumber.toLocaleString('en-IN'),
+            issuedAmount.toFixed(2),
+            issuedNumber.toLocaleString('en-IN'),
+            issuedAmount.toFixed(2)
+          ],
+          [
+            'Subscribed and fully paid up\nEquity shares of ₹ 10 each',
+            issuedNumber.toLocaleString('en-IN'),
+            issuedAmount.toFixed(2),
+            issuedNumber.toLocaleString('en-IN'),
+            issuedAmount.toFixed(2)
+          ],
+          [
+            '',
+            issuedNumber.toLocaleString('en-IN'),
+            issuedAmount.toFixed(2),
+            issuedNumber.toLocaleString('en-IN'),
+            issuedAmount.toFixed(2)
+          ]
+        ]
+      },
+      {
+        key: 'note12-reconciliation-title',
+        label: `Refer note (a) to (d) below
+
+        (a) Reconciliation of the number of shares and amount outstanding at the beginning and at the end of the reporting period:`,
+        valueCurrent: null,
+        valuePrevious: null,
+        isSubtotal: true, // Use isSubtotal to make it bold like a header
+      },
+      // Second table for the reconciliation details
+      {
+        type: 'table',
+        headers: [
+          '',
+          'As at 31 March 2024\nNumber',
+          '\nAmount',
+          'As at 31 March 2023\nNumber',
+          '\nAmount'
+        ],
+        rows: [
+          ['Equity shares of ₹ 10 each par value'],
+          ['Balances as at the beginning of the year', issuedAndSubscribedNumber, issuedAndSubscribedAmount, issuedAndSubscribedNumber, issuedAndSubscribedAmount],
+          ['Balance at the end of the year', issuedAndSubscribedNumber, issuedAndSubscribedAmount, issuedAndSubscribedNumber, issuedAndSubscribedAmount]
+        ]
+      },
+      {
+        key: 'note12-terms-title',
+        label: `(b) Terms and rights attached to equity shares
+        
+        The Company has only one class of equity shares having a par value of ₹ 10 per share. Each equity share is entitled to one vote per share. The dividend, if any, proposed by the Board of Directors is subject to the approval of the shareholders in the ensuing Annual General Meeting and shall be payable in Indian rupees. In the event of liquidation of the company, the shareholders will be entitled to receive remaining assets of the company, after distribution of all preferential amounts.The distribution will be in proportion to the number of equity shares held by the shareholders.
+        There have been no issues with respect to unclassified shares.
+        `,
+        valueCurrent: null,
+        valuePrevious: null,
+      },
+      {
+        key: 'note12-shares-title',
+        label: `(c) Details of shares held by the holding company`,
+        valueCurrent: null,
+        valuePrevious: null,
+        isSubtotal:true,
+      },
+      {
+        type: 'table',
+        headers: [
+          '',
+          'As at 31 March 2024\nNumber',
+          '\nAmount',
+          'As at 31 March 2023\nNumber',
+          '\nAmount'
+        ],
+        rows: [
+          ['Holding Company:'],
+          ['Yokogawa Electric Corporation', issuedAndSubscribedNumber, issuedAndSubscribedAmount, issuedAndSubscribedNumber, issuedAndSubscribedAmount]
+        ]
+      },
+      {
+        key: 'note12-shareholders-title',
+        label: `(d) Details of shares held by each shareholder holding more than 5% shares:`,
+        valueCurrent: null,
+        valuePrevious: null,
+        isSubtotal:true,
+      },
+      {
+        type: 'table',
+        headers: [
+          '',
+          'As at 31 March 2024\nNumber',
+          '\nPercentage',
+          'As at 31 March 2023\nNumber',
+          '\nPercentage'
+        ],
+        rows: [
+          ['Equity shares of ₹ 10 each, par value'],
+          ['Yokogawa Electric Corporation and its nominees', issuedAndSubscribedNumber, percent, issuedAndSubscribedNumber, percent]
+        ]
+      },
+      {
+        key: 'note12-e-title',
+        label: `(e) In the period of five years immediately preceding the Balance Sheet date, the Company has not issued any bonus shares or has bought back any shares.`,
+        valueCurrent: null,
+        valuePrevious: null,
+      },
+      {
+        key: 'note12-f-title',
+        label: `
+
+
+
+        (f) Capital Reduction : 
+
+        The Company considered the Reduction of Share Capital on selective basis by reducing the capital to the extent of the holding by the shareholders other than the promoter shareholders. Before the capital reduction, 97.21% of the share capital was held by M/s. Yokogawa Electric Corporation and the balance 2.79% by public. It was therefore proposed to reduce and hence cancel the portion of the shares held by the public by 2.79% (244,531 number of shares). The Board of Directors during the 147th Meeting held on 13th November 2017 and the shareholders during the Extra Ordinary General Meeting held on 11th January 2018 have considered and approved the proposal of selective capital reduction.
+The Company had accordingly filed petition with the Hon’ble Tribunal (National Company Law Tribunal-Bengaluru Bench) to reduce the issued, subscribed and paid up share capital of the company consisting of 244,531 equity shares of INR 10/- each fully paid up (INR 2,445,310/-), held by shareholders belonging to non-promoter group and cancel along with the securities premium/free reserves of the Company. The reduction and cancellation is effected by returning the paid-up equity share capital along with the securities premium lying to the credit of the securities premium account and free reserves to the shareholders belonging to non-promoter group ( “Public Shareholders”) in cash at the rate of INR 923.20/- which includes the paid up share capital and the premium amount thereon.
+The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed the petition for the reduction of the share capital of the Company. The company pursuant to the order of the Hon’ble Tribunal discharged the dues to the shareholders whose shares were reduced by depositing the fund with an Escrow Account opened for the purpose and paying the shareholders out of this account by Bank Transfer or Draft or other mode as indicated by the respective shareholder with the Company. For the year ended 31st March 2024 the capital reduction liability payable to shareholders has been discharged to the extent of Rs. 92,320/-.
+
+`,
+        valueCurrent: null,
+        valuePrevious: null,
+      },
+      {
+        key: 'note12-g-title',
+        label: `(g) Promoter’s Shareholding as on 31 March 2024 :`,
+        valueCurrent: null,
+        valuePrevious: null,
+        isSubtotal:true,
+      },
+     {
+        type: 'table',
+        headers: [
+          'SL.No',
+          'Promoter Name',
+          'No. of shares held',
+          '% of total shares',
+          '% change during the year'
+        ],
+        rows: [
+          ['1','Yokogawa Electric Corporation, Japan','8505469','100%','No change during the year'],
+        ]
+      },
+      {
+        key: 'note12-h-title',
+        label: `(h) Promoter’s Shareholding as on 31st March 2023 :`,
+        valueCurrent: null,
+        valuePrevious: null,
+        isSubtotal:true,
+      }, 
+      {
+        type: 'table',
+        headers: [
+          'SL.No',
+          'Promoter Name',
+          'No. of shares held',
+          '% of total shares',
+          '% change during the year'
+        ],
+        rows: [
+          ['1','Yokogawa Electric Corporation, Japan','8505469','100%','No change during the year'],
+        ]
+      },
+    ]
+  };
+};
+
     const calculateNote13 = (): FinancialNote => {
   const retainedOpening = {
     current: 31939.72,
@@ -1731,6 +2129,368 @@ const calculateNote19 = (): FinancialNote => {
     ]
   };
 };
+
+const calculateNote26 = (): FinancialNote => {
+  const principalUnpaid = {
+    current: 3408.58,
+    previous: 1976.63,
+  };
+
+  const interestUnpaid = {
+    current: 89.91,
+    previous:61.58,
+  };
+
+  const interestDuePayable = {
+    current: 28.33,
+    previous: 11.82,
+  };
+
+  const interestAccruedUnpaid = {
+    current: 89.91,
+    previous: 61.58,
+  };
+
+  return {
+    noteNumber: 26,
+    title: 'Disclosures required under Section 22 of the Micro, Small and Medium Enterprises Development Act, 2006',
+    totalCurrent: 0, // Not applicable; shown as a disclosure table
+    totalPrevious: 0,
+    content: [
+      {
+        key: 'note26-1',
+        label: '(i) Principal amount remaining unpaid to any supplier as at the end of the accounting year',
+        valueCurrent: principalUnpaid.current,
+        valuePrevious: principalUnpaid.previous,
+      },
+      {
+        key: 'note26-2',
+        label: '(ii) Interest due thereon remaining unpaid to any supplier as at the end of the accounting year',
+        valueCurrent: interestUnpaid.current,
+        valuePrevious: interestUnpaid.previous,
+      },
+      {
+        key: 'note26-3',
+        label: '(iii) The amount of interest paid along with the amounts of the payment made to the supplier beyond the appointed day ',
+        valueCurrent: 0,
+        valuePrevious: 0,
+      },
+      {
+        key: 'note26-4',
+        label: '(iv) The amount of interest due and payable for the year',
+        valueCurrent: interestDuePayable.current,
+        valuePrevious: interestDuePayable.previous,
+      },
+      {
+        key: 'note26-5',
+        label: '(v) The amount of interest accrued and remaining unpaid at the end of the accounting year',
+        valueCurrent: interestAccruedUnpaid.current,
+        valuePrevious: interestAccruedUnpaid.previous,
+      },
+      {
+        key: 'note26-6',
+        label: '(vi) The amount of further interest due and payable even in the succeeding year, until such date when the interest dues as above are actually paid',
+        valueCurrent: 0,
+        valuePrevious: 0,
+      },
+    ],
+    footer: 'The said information regarding Micro and Small Enterprises has been determined to the extent such parties have been identified on the basis of information collected by the Management bases on enquiries made with the parties. This has been relied upon by the auditors.',
+  };
+};
+
+
+const format = (value: number): string => value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const calculateNote30 = (): FinancialNote => {
+  const sales = {
+    india: 161479.36,
+    outsideIndia: 42873.18,
+    indiaPrev: 109500.30,
+    outsideIndiaPrev: 32508.85,
+    total:204352.54,
+    totalPrev:142009.15
+  };
+
+  const otherIncome = {
+    india: 1481.14,
+    outsideIndia: 0,
+    indiaPrev: 894.19,
+    outsideIndiaPrev: 0,
+    total:1481.14,
+    totalPrev:894.19
+  };
+
+  const income = {
+    india: sales.india + otherIncome.india,
+    outsideIndia: sales.outsideIndia + otherIncome.outsideIndia,
+    indiaPrev: sales.indiaPrev + otherIncome.indiaPrev,
+    outsideIndiaPrev: sales.outsideIndiaPrev + otherIncome.outsideIndiaPrev,
+    total: sales.total + otherIncome.total, 
+    totalPrev: sales.totalPrev + otherIncome.totalPrev
+  };
+
+  // const totalIncome = {
+  //   current: income.india + income.outsideIndia,
+  //   previous: income.indiaPrev + income.outsideIndiaPrev,
+  // };
+
+  const expenses = {
+    raw: { india: 89409.88, indiaPrev: 64964.44, outside: 27213.63, outsidePrev: 15294.89,total:116623.51,totalPrev:80259.33 },
+    employee: { india: 25287.18, indiaPrev: 19323.73, outside: 6241.15, outsidePrev: 5087.83,total:31528.33,totalPrev:25011.56 },
+    depreciation: { india: 1606.35, indiaPrev: 870.85, outside: 414.22, outsidePrev: 259.79,total:2020.57,totalPrev:1130.64 },
+    other: { india: 35405.04, indiaPrev: 19801.56, outside: 3500.23, outsidePrev: 4645.80,total:38905.27,totalPrev:24447.36},
+    finance:{total:243.20,totalPrev:260.43}
+  };
+  
+  const totalExpense = {
+    india: expenses.raw.india +expenses.employee.india+expenses.depreciation.india+expenses.other.india,
+    indiaPrev: expenses.raw.indiaPrev +expenses.employee.indiaPrev+expenses.depreciation.indiaPrev+expenses.other.indiaPrev,
+    outside: expenses.raw.outside + expenses.employee.outside + expenses.depreciation.outside + expenses.other.outside,
+    outsidePrev: expenses.raw.outsidePrev + expenses.employee.outsidePrev + expenses.depreciation.outsidePrev + expenses.other.outsidePrev,
+    total: expenses.raw.total +expenses.employee.total+expenses.depreciation.total+expenses.other.total+expenses.finance.total,
+    totalPrev:expenses.raw.totalPrev +expenses.employee.totalPrev+expenses.depreciation.totalPrev+expenses.other.totalPrev+expenses.finance.totalPrev
+  };
+
+  const Assets = {
+    india: 137694.98,
+    outsideIndia: 119527.19,
+    indiaPrev: 10645.12,
+    outsideIndiaPrev: 7831.74,
+    total:148340.10,
+    totalPrev:127358.93
+  };
+
+  const isassets = {
+    total:8118.21,
+    totalPrev:6977.07
+  }
+  const isassetsincome = {
+    total:8120.24,
+    totalPrev:6880.71
+  }
+    const liabilities = {
+    india: 71283.40,
+    outsideIndia: 58876.22,
+    indiaPrev: 26589.01,
+    outsideIndiaPrev: 34367.05,
+    total:97872.41,
+    totalPrev:93243.27
+  };
+    const taxliabilities = {
+    total:2694.28,
+    totalPrev:2694.28
+  };
+  const capital = {
+    india:6109.71,
+    outsideIndia: 6029.89,
+    total:6109.71,
+    totalPrev:6029.89
+  }
+
+  return {
+    noteNumber: 30,
+    title: "Segment information",
+    totalCurrent: 0,
+    totalPrevious: 0,
+            footer:`Note:
+        
+        The Secondary Segment is determined based on location of the customers. All other assets are situated in India.`,
+    content: [
+      {
+        key: "note30-intro",
+        label: `As part of structural reform global project, the Yokogawa Group has established Structure between the Parent Company and its Subsidiaries wherein for each Global Business Function, a corresponding Regional Business/Process Function will be responsible for routine business/process operations. These Regional Business/Process Functions will make operating decisions in ratification with Managing Director of the Company and have been identified as the Chief Operating Decision Maker (CODM) as defined by Ind AS 108, operating segments. 
+        The Company has identified geographic segments as operating and reportable segment. Revenues and expenses directly attributable to the geographic segment are reported under such segments. Assets and liabilities that are directly attributable or allocable to the segments are disclosed under the reportable segments. All other assets and liabilities are disclosed as unallocable. Fixed assets that are used interchangeably amongst segments are not allocated to the reportable segments. Geographical revenues are allocated based on the location of the customer. Geographic segments of the Company includes Japan, Singapore, Middle East & others.
+        
+        The geographic segments individually contributing 10 percent or more of the Company's revenues and segment assets are shown separately:`,
+        valueCurrent: null,
+        valuePrevious: null,
+      },
+      {
+        type: "table",
+        headers: [
+          "Geographic segment",
+          "India\n31 March 2024",
+          "\n31 March 2023",
+          "Outside India\n31 March 2024",
+          "\n31 March 2023",
+          "Total\n31 March 2024",
+          "\n31 March 2023"
+        ],
+        rows: [
+          ["Revenue by geographical segment"],
+          [
+            "a) Sale and services(Net)",
+            format(sales.india),
+            format(sales.indiaPrev),
+            format(sales.outsideIndia),
+            format(sales.outsideIndiaPrev),
+            format(sales.total),
+            format(sales.totalPrev)
+          ],
+          [
+            "b) Other income",
+            format(otherIncome.india),
+            format(otherIncome.indiaPrev),
+            "-",
+            "-",
+            format(otherIncome.total),
+            format(otherIncome.totalPrev)
+          ],
+          [
+            "Total income",
+            format(income.india),
+            format(income.indiaPrev),
+            format(income.outsideIndia),
+            format(income.outsideIndiaPrev),
+            format(income.total),
+            format(income.totalPrev)
+          ],
+          ["Income/(Expenses)"],
+          [
+            "Cost of raw material and components consumed",
+            format(expenses.raw.india),
+            format(expenses.raw.indiaPrev),
+            format(expenses.raw.outside),
+            format(expenses.raw.outsidePrev),
+            format(expenses.raw.total),
+            format(expenses.raw.totalPrev)
+          ],
+          [
+            "Employee benefits expense",
+            format(expenses.employee.india),
+            format(expenses.employee.indiaPrev),
+            format(expenses.employee.outside),
+            format(expenses.employee.outsidePrev),
+            format(expenses.employee.total),
+            format(expenses.employee.totalPrev)
+          ],
+          [
+            "Depreciation and amortization",
+            format(expenses.depreciation.india),
+            format(expenses.depreciation.indiaPrev),
+            format(expenses.depreciation.outside),
+            format(expenses.depreciation.outsidePrev),
+            format(expenses.depreciation.total),
+            format(expenses.depreciation.totalPrev)
+          ],
+          [
+            "Other Expenses",
+            format(expenses.other.india),
+            format(expenses.other.indiaPrev),
+            format(expenses.other.outside),
+            format(expenses.other.outsidePrev),
+            format(expenses.other.total),
+            format(expenses.other.totalPrev)
+          ],
+          ["Unallocable"],
+          ["i) Finance Cost",
+            '-',
+            '-',
+            '-',
+            '-',
+            format(expenses.finance.total),
+            format(expenses.finance.totalPrev)
+          ],
+          [
+            "Total Expenses",
+            format(totalExpense.india),
+            format(totalExpense.indiaPrev),
+            format(totalExpense.outside),
+            format(totalExpense.outsidePrev),
+            format(totalExpense.total),
+            format(totalExpense.totalPrev),
+          ],
+          [
+            "Segment Profit",
+            format(income.india - totalExpense.india ),
+            format(income.indiaPrev - totalExpense.indiaPrev ),
+            format(income.outsideIndia - totalExpense.outside ),
+            format(income.outsideIndiaPrev - totalExpense.outsidePrev),
+            format(income.total - totalExpense.total),
+            format(income.totalPrev - totalExpense.totalPrev),
+          ],
+          [
+            "Assets",
+            format(Assets.india ),
+            format(Assets.indiaPrev ),
+            format(Assets.outsideIndia ),
+            format(Assets.outsideIndiaPrev),
+            format(Assets.total),
+            format(Assets.totalPrev),
+          ],
+          [
+            "Unaliocable Assets"
+          ],
+          [
+            "i) Deffered tax assets(net)",
+            "-",
+            "-",
+            "-",
+            "-",
+            format(isassets.total),
+            format(isassets.totalPrev), 
+          ],
+          [
+            "ii) Income tax assets(net)",
+            "-",
+            "-",
+            "-",
+            "-",
+            format(isassetsincome.total),
+            format(isassetsincome.totalPrev), 
+          ],
+         [
+            "Total Assets",
+            format(Assets.india ),
+            format(Assets.indiaPrev ),
+            format(Assets.outsideIndia ),
+            format(Assets.outsideIndiaPrev),
+            format(Assets.total + isassets.total + isassetsincome.total),
+            format(Assets.totalPrev + isassets.totalPrev + isassetsincome.totalPrev),
+          ],
+          [
+            "Liabilities",
+            format(liabilities.india ),
+            format(liabilities.indiaPrev ),
+            format(liabilities.outsideIndia ),
+            format(liabilities.outsideIndiaPrev),
+            format(liabilities.total),
+            format(liabilities.totalPrev),
+          ],
+          ["Unallocable Liabilities"],
+          [
+            "i)Income tax Liabilities(net)",
+            "-",
+            "-",
+            "-",
+            "-",
+            format(taxliabilities.total),
+            format(taxliabilities.totalPrev),
+          ],
+          [
+            "Total Liabilities",
+            format(liabilities.india ),
+            format(liabilities.indiaPrev ),
+            format(liabilities.outsideIndia ),
+            format(liabilities.outsideIndiaPrev),
+            format(liabilities.total + taxliabilities.total),
+            format(liabilities.totalPrev + taxliabilities.totalPrev),
+          ],
+          [
+            "Capital Expenditure",
+            format(capital.india ),
+            format(capital.outsideIndia ),
+            format(capital.total),
+            format(capital.totalPrev),
+          ],
+        ]
+      }
+    ],
+
+  };
+};
+
+
 const calculateNote32 = (): FinancialNote => {
   const netProfit = {
     current: 22560.10,
@@ -1817,19 +2577,27 @@ const calculateNote33 = (): FinancialNote => {
   };
 
   return {
-  "noteNumber": 33,
-  "title": "Details of provisions",
-  "content": [
+  noteNumber: 33,
+  title: "Details of provisions",
+  totalCurrent: total.current,
+  totalPrevious: total.previous,
+  content: [
+      {
+        key: 'note32-title',
+        label: `The Company has made provision for various contractual obligations based on its assessment of the amount it estimates to incur to meet such obligations, details of which are given below:`,
+        valueCurrent: null,
+        valuePrevious: null,
+      },
     {
-      "type": "table",
-      "headers": [
+      type: "table",
+      headers: [
         "",
         "As at 1 April 2023",
         "Additions",
         "Utilisation",
         "As at 31 March 2024"
       ],
-      "rows": [
+      rows: [
         [
           "Provision for product support (Warranty)",
           "484.96\n(547.93)",
@@ -1875,9 +2643,6 @@ const calculateNote33 = (): FinancialNote => {
       ]
     }
   ],
-  "footer": "The Company has made provision for various contractual obligations based on its assessment of the amount it estimates to incur to meet such obligations, details of which are given below:",
-  "totalCurrent": 17116.20,
-  "totalPrevious": 14142.18
 }
 };
 
@@ -1885,8 +2650,10 @@ const calculateNote33 = (): FinancialNote => {
     const note6 = calculateNote6();
     const note7 = calculateNote7();
     const note8 = calculateNote8();
+    const note9 = calculateNote9();
     const note10 = calculateNote10();
     const note11 = calculateNote11();
+    const note12 = calculateNote12();
     const note13 = calculateNote13();
     const note14 = calculateNote14();
     const note15 = calculateNote15();
@@ -1894,9 +2661,11 @@ const calculateNote33 = (): FinancialNote => {
     const note17 = calculateNote17();
     const note18 = calculateNote18();
     const note19 = calculateNote19();
+    const note26 = calculateNote26();
+    const note30 = calculateNote30();
     const note32 = calculateNote32();
     const note33 = calculateNote33();
-    const allNotes = [note5,note6,note7,note8,note10,note11,note13,note14,note15,note16,note17,note18,note19,note32,note33]; // [FIX] Add all calculated notes
+    const allNotes = [note5,note6,note7,note8,note9,note10,note11,note12,note13,note14,note15,note16,note17,note18,note19,note26,note30,note32,note33]; // [FIX] Add all calculated notes
 
     const processNode = (node: TemplateItem,enrichedData: MappedRow[],getAmount: (
     year: 'amountCurrent' | 'amountPrevious',
@@ -2040,6 +2809,17 @@ else if (node.key === 'is-eps-value') {
     valuePrevious = ear.valuePrevious??0;
   }
 }
+else if (node.key === 'bs-assets-c-fin-tr') {
+  const rec = note9.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note9-total');
+  if (rec) {
+    valueCurrent = rec.valueCurrent??0;
+    valuePrevious = rec.valuePrevious??0;
+  }
+}
+
+
+
+
 else if (node.key === 'bs-liab-nc-fin-borrow') {
   const currentAmount = getAmount('amountCurrent', node.keywords!);
   const previousAmount = getAmount('amountPrevious', node.keywords!);
@@ -2068,10 +2848,6 @@ else if (node.key === 'bs-assets-nc-cwip') {
       else if (node.key === 'bs-assets-nc-otherintangible') {
         valueCurrent = getAmount('amountCurrent', node.keywords!);
         valuePrevious = 350.95;
-      }
-      else if (node.key === 'bs-assets-c-fin-tr') {
-        valueCurrent = 55651.89;
-        valuePrevious = 51164.06;
       }
       else if (node.key === 'bs-assets-c-fin-other') {
         valueCurrent = 38879.35;
@@ -2526,7 +3302,7 @@ const RenderPdfNoteRow = ({ item, depth }: { item: HierarchicalItem; depth: numb
     return (
           <View key={item.key}>
             <View style={rowStyle} wrap={false}>
-                 <Text style={[textStyle, PDF_STYLES.noteColParticulars, { paddingLeft: depth * 15 }]}>{item.label}</Text>
+              <Text style={[textStyle,PDF_STYLES.colParticulars,{ paddingLeft: depth * 15 }]}>{item.label}</Text>
                  <Text style={[textStyle, PDF_STYLES.noteColAmount]}>
                     {item.isSubtotal || item.isGrandTotal ? formatCurrency(item.valueCurrent) : (item.children ? '' : formatCurrency(item.valueCurrent))}
                 </Text>
@@ -2625,9 +3401,9 @@ const RenderPdfRow = ({ item, depth }: { item: HierarchicalItem; depth: number }
   return (
     <Fragment>
       <View style={rowStyle} wrap={false}>
-        <Text style={[...textStyle, PDF_STYLES.colParticulars, { paddingLeft: depth > 0 ? (depth * 15) + 5 : 5, textTransform: depth === 0 ? 'uppercase' : 'none' }]}>
+              <Text style={[...textStyle,PDF_STYLES.colParticulars, { paddingLeft: depth > 0 ? (depth * 15) + 5 : 5, textTransform: depth === 0 ? 'uppercase' : 'none' }]}>
           {item.label}
-        </Text>
+      </Text>
         <Text style={[...textStyle, PDF_STYLES.colNote]}>{item.note}</Text>
         <LinkedAmountCell value={item.valueCurrent} note={item.note} />
         <LinkedAmountCell value={item.valuePrevious} note={item.note} />
