@@ -68,7 +68,7 @@ interface FinancialNote {
     noteNumber: number;
     title: string;
     subtitle?: string;
-    content: (HierarchicalItem | TableContent)[]; 
+    content: (HierarchicalItem | TableContent )[]; 
     footer?: string;
     totalCurrent: number | null;
     totalPrevious: number | null;
@@ -148,7 +148,7 @@ const BALANCE_SHEET_STRUCTURE: TemplateItem[] = [
           { key: 'bs-assets-nc-fin-loan', label: 'Loans', note:5},
           { key: 'bs-assets-nc-fin-other', label: 'Other financial assets', note: 6},
         ]},
-        { key: 'bs-assets-nc-dta', label: 'Deferred tax assets (net)', note: 24, keywords: ['deferred tax assets (net)'] },
+        { key: 'bs-assets-nc-dta', label: 'Deferred tax assets (net)', note: 34, keywords: ['deferred tax assets (net)'] },
         { key: 'bs-assets-nc-fin-income', label: 'Income Tax asset(net)', note: 7},
         { key: 'bs-assets-nc-other', label: 'Other non-current assets', note: 10},
       ]},
@@ -171,7 +171,7 @@ const BALANCE_SHEET_STRUCTURE: TemplateItem[] = [
       ]},
     { key: 'bs-liab-nc', label: 'Non-current liabilities', isSubtotal: true, children: [
         { key: 'bs-liab-nc-fin', label: 'Financial Liabilities', isSubtotal: true, children: [
-          { key: 'bs-liab-nc-fin-borrow', label: 'Lease Liabilities', note: 25, keywords: ['other non current financial liabilities'] },
+          { key: 'bs-liab-nc-fin-borrow', label: 'Lease Liabilities', note: 29, keywords: ['other non current financial liabilities'] },
         ]},
         { key: 'bs-liab-nc-prov', label: 'Provisions', note: 17}]},
     { key: 'bs-liab-c', label: 'Current liabilities', isSubtotal: true, children: [
@@ -198,13 +198,13 @@ const INCOME_STATEMENT_STRUCTURE: TemplateItem[] = [
     ]
   },
   { key: 'is-expenses', label: 'EXPENSES', id: 'totalExpenses', isSubtotal: true, children: [
-      { key: 'is-exp-mat', label: 'Cost of materials consumed', keywords: ['cost of material consumed'], note: '20a' },
-      { key: 'is-exp-pur', label: 'Purchase of traded goods', keywords: ['purchase of traded goods'], note: '20a' },
-      { key: 'is-exp-inv', label: 'Changes in inventories', keywords: ['changes in inventories'], note: '20a' },
-      { key: 'is-exp-emp', label: 'Employee benefits expense', keywords: ['employee benefits expense'], note: 21 },
-      { key: 'is-exp-fin', label: 'Finance cost', keywords: ['finance cost'], note: 22 },
-      { key: 'is-exp-dep', label: 'Depreciation and amortisation', keywords: ['depreciation expense'], note: 23 },
-      { key: 'is-exp-oth', label: 'Other expenses', keywords: ['other expenses'], note: 24 },
+      { key: 'is-exp-mat', label: 'Cost of materials consumed', note: 20 },
+      { key: 'is-exp-pur', label: 'Purchase of traded goods', note: 20 },
+      { key: 'is-exp-inv', label: 'Changes in inventories',  note: 20 },
+      { key: 'is-exp-emp', label: 'Employee benefits expense', note: 21 },
+      { key: 'is-exp-fin', label: 'Finance cost', note: 22 },
+      { key: 'is-exp-dep', label: 'Depreciation and amortisation',  note: 23 },
+      { key: 'is-exp-oth', label: 'Other expenses', note: 24 },
     ]
   },
   { key: 'is-pbeit', label: 'PROFIT BEFORE EXCEPTIONAL ITEM & TAXES', id: 'pbeit', isSubtotal: true, formula: ['totalIncome', '-', 'totalExpenses'] },
@@ -2130,10 +2130,1378 @@ const calculateNote19 = (): FinancialNote => {
   };
 };
 
+const calculateNote20 = (): FinancialNote => {
+      const allRawMaterials = {
+        current: getAmount("amountCurrent", ["inventories"], ["raw material"]),
+        previous: getAmount(
+          "amountPrevious",
+          ["inventories"],
+          ["raw material"]
+        ),
+      };
+
+      const clossingStock = {
+        current: allRawMaterials.current,
+        previous: allRawMaterials.previous,
+      };
+
+      const openStock = {
+        current: allRawMaterials.previous,
+        previous: 650.79,
+      };
+
+      const costOfMaterialsConsumed = {
+        current: getAmount(
+          "amountCurrent",
+          ["direct expenses", "cost of material consumed"],
+          ["cost of materials consumed"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["direct expenses", "cost of material consumed"],
+          ["cost of materials consumed"]
+        ),
+      };
+
+      const produtAndAccessories = {
+        current: 50087.71,
+        previous: 30082.82,
+      };
+
+      const workInProgress = {
+        current: getAmount(
+          "amountCurrent",
+          ["inventories"],
+          ["work-in-progress"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["inventories"],
+          ["work-in-progress"]
+        ),
+      };
+
+      const goodsInTransitStock = {
+        current: getAmount(
+          "amountCurrent",
+          ["inventories"],
+          ["goods-in-transit- (acquired for trading)"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["inventories"],
+          ["goods-in-transit- (acquired for trading)"]
+        ),
+      };
+
+      const allStockInTrade = {
+        current: getAmount(
+          "amountCurrent",
+          ["inventories"],
+          ["stock-in-trade"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["inventories"],
+          ["stock-in-trade"]
+        ),
+      };
+
+      const stockInTradeSubTotal = {
+        current: allStockInTrade.current + goodsInTransitStock.current,
+        previous: allStockInTrade.previous + goodsInTransitStock.previous,
+      };
+
+      const workInProgressBOY = {
+        current: workInProgress.previous,
+        previous: 1431.0,
+      };
+      const stockInTradeBOY = {
+        current: stockInTradeSubTotal.previous,
+        previous: 3496.34,
+      };
+
+      const inventoryEOY = {
+        current: stockInTradeSubTotal.current + workInProgress.current,
+        previous: stockInTradeSubTotal.previous + workInProgress.previous,
+      };
+      const inventoryBOY = {
+        current: stockInTradeBOY.current + workInProgressBOY.current,
+        previous: stockInTradeBOY.previous + workInProgressBOY.previous,
+      };
+
+      const netIncDec = {
+        current: inventoryBOY.current - inventoryEOY.current,
+        previous: inventoryBOY.previous - inventoryEOY.previous,
+      };
+
+      const purchase = {
+        current:
+          costOfMaterialsConsumed.current -
+          produtAndAccessories.current -
+          netIncDec.current -
+          openStock.current +
+          clossingStock.current,
+        previous:
+          costOfMaterialsConsumed.previous -
+          produtAndAccessories.previous -
+          netIncDec.previous -
+          openStock.previous +
+          clossingStock.previous,
+      };
+      const subTotal = {
+        current: purchase.current + openStock.current - clossingStock.current,
+        previous:
+          purchase.previous + openStock.previous - clossingStock.previous,
+      };
+
+      return {
+        noteNumber: 20,
+        title: "",
+        totalCurrent: 0,
+        totalPrevious: 0,
+        content: [
+          {
+            key: "note20-cogs",
+            label: "a Cost of materials consumed",
+            isGrandTotal: true,
+            valueCurrent: subTotal.current,
+            valuePrevious: subTotal.previous,
+            children: [
+              {
+                key: "note20-openstock",
+                label: "Opening stock",
+                valueCurrent: openStock.current,
+                valuePrevious: openStock.previous,
+              },
+              {
+                key: "note20-purchase",
+                label: "Add: Purchases",
+                valueCurrent: purchase.current,
+                valuePrevious: purchase.previous,
+              },
+              {
+                key: "note20-closingstock",
+                label: "Less: Closing stock",
+                valueCurrent: clossingStock.current,
+                valuePrevious: clossingStock.previous,
+              },
+            ],
+          },
+          {
+            key: "note20-purchase-traded-goods",
+            label: "b Purchase of traded goods",
+            isSubtotal: true,
+            valueCurrent: produtAndAccessories.current,
+            valuePrevious: produtAndAccessories.previous,
+            children: [
+              {
+                key: "note20-prod-access",
+                label: "Products and Accessories",
+                valueCurrent: produtAndAccessories.current,
+                valuePrevious: produtAndAccessories.previous,
+              },
+            ],
+          },
+
+          {
+            key: "note20-changes-in-inventories",
+            label:
+              "c Changes in inventories of work-in-progress and stock in trade",
+            isSubtotal: true,
+            valueCurrent: netIncDec.current,
+            valuePrevious: netIncDec.previous,
+            children: [
+              {
+                key: "note20-inventory-eoy",
+                label: "Inventories at the end of the year:s",
+                isSubtotal: true,
+                valueCurrent: inventoryEOY.current,
+                valuePrevious: inventoryEOY.previous,
+                children: [
+                  {
+                    key: "note20-inventory-eoy-wip",
+                    label: "Work-in-progress",
+                    valueCurrent: workInProgress.current,
+                    valuePrevious: workInProgress.previous,
+                  },
+                  {
+                    key: "note20-inventory-eoy-sit",
+                    label: "Stock-in-trade",
+                    valueCurrent: stockInTradeSubTotal.current,
+                    valuePrevious: stockInTradeSubTotal.previous,
+                  },
+                ],
+              },
+
+              {
+                key: "note20-inventory-boy",
+                label: "Inventories at the beginning of the year:",
+                isSubtotal: true,
+                valueCurrent: inventoryBOY.current,
+                valuePrevious: inventoryBOY.previous,
+                children: [
+                  {
+                    key: "note20-inventory-boy-wip",
+                    label: "Work-in-progress",
+                    valueCurrent: workInProgressBOY.current,
+                    valuePrevious: workInProgressBOY.previous,
+                  },
+                  {
+                    key: "note20-inventory-boy-sit",
+                    label: "Stock-in-trade",
+                    valueCurrent: stockInTradeBOY.current,
+                    valuePrevious: stockInTradeBOY.previous,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+    };
+
+    const calculateNote21 = (): FinancialNote => {
+      const salary = {
+        current: getAmount(
+          "amountCurrent",
+          ["employee benefits expense"],
+          ["salaries and wages"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["employee benefits expense"],
+          ["salaries and wages"]
+        ),
+      };
+      const contribution = {
+        current: getAmount(
+          "amountCurrent",
+          ["employee benefits expense"],
+          ["contributions to provident and other funds"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["employee benefits expense"],
+          ["contributions to provident and other funds"]
+        ),
+      };
+      const welfare = {
+        current: getAmount(
+          "amountCurrent",
+          ["employee benefits expense"],
+          ["staff welfare expenses"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["employee benefits expense"],
+          ["staff welfare expenses"]
+        ),
+      };
+
+      const grandTotal = {
+        current: salary.current + contribution.current + welfare.current,
+        previous: salary.previous + contribution.previous + welfare.previous,
+      };
+
+      return {
+        noteNumber: 21,
+        title: "Employee benefits expense",
+        totalCurrent: 0,
+        totalPrevious: 0,
+        content: [
+          {
+            key: "note21-salary-wages",
+            label: "Salaries, wages and Bonus",
+
+            valueCurrent: salary.current,
+            valuePrevious: salary.previous,
+          },
+          {
+            key: "note21-contribution",
+            label:
+              "Contributions to provident and other funds (Refer Note No. 28(a))",
+            valueCurrent: contribution.current,
+            valuePrevious: contribution.previous,
+          },
+          {
+            key: "note21-employee-benefits",
+            label: "Staff welfare expenses",
+            valueCurrent: welfare.current,
+            valuePrevious: welfare.previous,
+          },
+          {
+            key: "note21-total",
+            label: "",
+            isGrandTotal: true,
+            valueCurrent: grandTotal.current,
+            valuePrevious: grandTotal.previous,
+          },
+        ],
+      };
+    };
+
+    const calculateNote22 = (): FinancialNote => {
+      const leaseLiability = {
+        current: getAmount(
+          "amountCurrent",
+          ["finance cost"],
+          ["interest under ind as-116"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["finance cost"],
+          ["interest under ind as-116"]
+        ),
+      };
+      const msme = {
+        current: getAmount(
+          "amountCurrent",
+          ["finance cost"],
+          ["msme interest"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["finance cost"],
+          ["msme interest"]
+        ),
+      };
+      const others = {
+        current: getAmount(
+          "amountCurrent",
+          ["finance cost"],
+          ["other interest"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["finance cost"],
+          ["other interest"]
+        ),
+      };
+
+      const grandTotal = {
+        current: leaseLiability.current + msme.current + others.current,
+        previous: leaseLiability.previous + msme.previous + others.previous,
+      };
+
+      return {
+        noteNumber: 22,
+        title: "Finance cost",
+        totalCurrent: 0,
+        totalPrevious: 0,
+        content: [
+          {
+            key: "note22-interest",
+            label: "Interest expense on:",
+            valueCurrent: grandTotal.current,
+            valuePrevious: grandTotal.previous,
+            children: [
+              {
+                key: "note22-lease-liability",
+                label: "Lease liability",
+                valueCurrent: leaseLiability.current,
+                valuePrevious: leaseLiability.previous,
+              },
+              {
+                key: "note22-contribution",
+                label: "MSME Interest",
+                valueCurrent: msme.current,
+                valuePrevious: msme.previous,
+              },
+              {
+                key: "note22-employee-benefits",
+                label: "Others",
+                valueCurrent: others.current,
+                valuePrevious: others.previous,
+              },
+            ],
+          },
+
+          {
+            key: "note22-total",
+            label: "",
+            isGrandTotal: true,
+            valueCurrent: grandTotal.current,
+            valuePrevious: grandTotal.previous,
+          },
+        ],
+      };
+    };
+
+
+    const calculateNote23 = (): FinancialNote => {
+      const property = {
+        current: getAmount(
+          "amountCurrent",
+          ["depreciation expense"],
+          ["depreciation for the year on property, plant and equipment"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["depreciation expense"],
+          ["depreciation for the year on property, plant and equipment"]
+        ),
+      };
+      const rouAsset = {
+        current: getAmount(
+          "amountCurrent",
+          ["depreciation expense"],
+          ["depreciation on rou asset"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["depreciation expense"],
+          ["depreciation on rou asset"]
+        ),
+      };
+      const intangibleAsset = {
+        current: getAmount(
+          "amountCurrent",
+          ["depreciation expense"],
+          ["amortization for the year on intangible assets"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["depreciation expense"],
+          ["amortization for the year on intangible assets"]
+        ),
+      };
+
+      const grandTotal = {
+        current: property.current + rouAsset.current + intangibleAsset.current,
+        previous: property.previous + rouAsset.previous + intangibleAsset.previous,
+      };
+
+      return {
+        noteNumber: 23,
+        title: "Depreciation Expense ",
+        totalCurrent: 0,
+        totalPrevious: 0,
+        content: [
+          {
+            key: "note23-subhead",
+            label: "Depreciation/ Amortisation",
+            valueCurrent: grandTotal.current,
+            valuePrevious: grandTotal.previous,
+            children: [
+              {
+                key: "note23-property",
+                label: "Property, plant and equipment : Refer Note 3a",
+                valueCurrent: property.current,
+                valuePrevious: property.previous,
+              },
+              {
+                key: "note23-right-of-use-asset",
+                label: "Right of use asset : Refer Note 4a",
+                valueCurrent: rouAsset.current,
+                valuePrevious: rouAsset.previous,
+              },
+              {
+                key: "note23-intangible-assets",
+                label: "Intangible assets : Refer Note 4b",
+                valueCurrent: intangibleAsset.current,
+                valuePrevious: intangibleAsset.previous,
+              },
+            ],
+          },
+
+          {
+            key: "note23-total",
+            label: "",
+            isGrandTotal: true,
+            valueCurrent: grandTotal.current,
+            valuePrevious: grandTotal.previous,
+          },
+        ],
+      };
+    };
+
+    const calculateNote24 = (): FinancialNote => {
+      const packingMaterial = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["consumption of packing materials"]
+        )+0.01,
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["consumption of packing materials"]
+        )+0.01,
+      };
+      const powerFuel = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["power and fuel"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["power and fuel"]
+        ),
+      };
+      const rent = {
+        current: getAmount(  "amountCurrent",
+          ["other expenses"],
+          ["rent including lease rentals"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["rent including lease rentals"]
+        ),
+      };
+      const buildingRepair = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["repairs and maintenance - buildings"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["repairs and maintenance - buildings"]
+        ),
+      };
+      const otherRepair = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["repairs and maintenance - others"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["repairs and maintenance - others"]
+        ),
+      };
+      const systemUsage = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["system usage fee (ygs implementation cost)"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["system usage fee (ygs implementation cost)"]
+        ),
+      };
+      const insurance = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["insurance"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["insurance"]
+        ),
+      };
+      const ratesTaxes = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["rates and taxes"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["rates and taxes"]
+        ),
+      };
+      const communication = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["communication"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["communication"]
+        ),
+      };
+      const travelling = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["travelling and conveyance"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["travelling and conveyance"]
+        ),
+      };
+      const lossonFD = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["loss on fixed assets sold / scrapped / written off "]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["loss on fixed assets sold / scrapped / written off "]
+        ),
+      };
+      const printingandStationery = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["printing and stationery"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["printing and stationery"]
+        ),
+      };
+      const sellingExpence = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["selling expenses"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["selling expenses"]
+        ),
+      };
+      const salesCommission = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["sales commission"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["sales commission"]
+        ),
+      };
+      const Donations = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["donations and contributions"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["donations and contributions"]
+        ),
+      };
+      const legalProfessional = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["legal and professional"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["legal and professional"]
+        ),
+      };
+      const netLossFC = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["net loss on foreign currency transactions and translation"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["net loss on foreign currency transactions and translation"]
+        ),
+      };
+      const doubtfulTrade  = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["provision for doubtful trade receivables/(provision written back) (net)"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["provision for doubtful trade receivables/(provision written back) (net)"]
+        ),
+      };
+      const estimateLoss = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["provision for estimated losses on construction contracts /(provision written back)"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["provision for estimated losses on construction contracts /(provision written back)"]
+        ),
+      };
+      const expLoss = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["provision for expected loss on onerous contracts"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["provision for expected loss on onerous contracts"]
+        ),
+      };
+      const sittingFee = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["directors' sitting fees"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["directors' sitting fees"]
+        ),
+      };
+      const bankCharge = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["bank charges "]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["bank charges "]
+        ),
+      };
+      const corpSocialResp = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["corporate social responsibility"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["corporate social responsibility"]
+        ),
+      };
+      const usageFee = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["prism usage fees"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["prism usage fees"]
+        ),
+      };
+      const globSaleFee = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["global sales and marketing activity fee"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["global sales and marketing activity fee"]
+        ),
+      };
+      const managementFee = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["management fee"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["management fee"]
+        ),
+      };
+      const engSerFee = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["engineering service fees"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["engineering service fees"]
+        ),
+      };
+      const engSupFee = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["engineering support fees"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["engineering support fees"]
+        ),
+      };
+      const supSerFee = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["support service fees"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["support service fees"]
+        ),
+      };
+      const subContract = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["sub-contract expenses"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["sub-contract expenses"]
+        ),
+      };
+      const eduTraining = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["education & training "]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["education & training "]
+        ),
+      };
+      const reqExp = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["recruitment expense"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["recruitment expense"]
+        ),
+      };
+      const warantyExp = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["warranty expenses"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["warranty expenses"]
+        ),
+      };
+      const membership = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["membership fees"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["membership fees"]
+        ),
+      };
+      const miscellaneous = {
+        current: getAmount(
+          "amountCurrent",
+          ["other expenses"],
+          ["miscellaneous expenses"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["other expenses"],
+          ["miscellaneous expenses"]
+        ),
+      };
+
+
+      const grandTotal = {
+        current: packingMaterial.current +
+                  powerFuel.current +
+                  rent.current +
+                  buildingRepair.current +
+                  otherRepair.current +
+                  systemUsage.current +
+                  insurance.current +
+                  ratesTaxes.current +
+                  communication.current +
+                  travelling.current +
+                  lossonFD.current +
+                  printingandStationery.current +
+                  sellingExpence.current +
+                  salesCommission.current +
+                  Donations.current +
+                  legalProfessional.current +
+                  netLossFC.current +
+                  doubtfulTrade.current +
+                  estimateLoss.current +
+                  expLoss.current +
+                  sittingFee.current +
+                  bankCharge.current +
+                  corpSocialResp.current +
+                  usageFee.current +
+                  globSaleFee.current +
+                  managementFee.current +
+                  engSerFee.current +
+                  engSupFee.current +
+                  supSerFee.current +
+                  subContract.current +
+                  eduTraining.current +
+                  reqExp.current +
+                  warantyExp.current +
+                  membership.current +
+                  miscellaneous.current,
+        previous: packingMaterial.previous +
+                  powerFuel.previous +
+                  rent.previous +
+                  buildingRepair.previous +
+                  otherRepair.previous +
+                  systemUsage.previous +
+                  insurance.previous +
+                  ratesTaxes.previous +
+                  communication.previous +
+                  travelling.previous +
+                  lossonFD.previous +
+                  printingandStationery.previous +
+                  sellingExpence.previous +
+                  salesCommission.previous +
+                  Donations.previous +
+                  legalProfessional.previous +
+                  netLossFC.previous +
+                  doubtfulTrade.previous +
+                  estimateLoss.previous +
+                  expLoss.previous +
+                  sittingFee.previous +
+                  bankCharge.previous +
+                  corpSocialResp.previous +
+                  usageFee.previous +
+                  globSaleFee.previous +
+                  managementFee.previous +
+                  engSerFee.previous +
+                  engSupFee.previous +
+                  supSerFee.previous +
+                  subContract.previous +
+                  eduTraining.previous +
+                  reqExp.previous +
+                  warantyExp.previous +
+                  membership.previous +
+                  miscellaneous.previous
+      };
+
+      return {
+        noteNumber: 24,
+        title: "Other expenses",
+        totalCurrent: 0,
+        totalPrevious: 0,
+        content: [
+          
+              {
+                key: "note24-packingMaterial",
+                label: "Consumption of packing materials",
+                valueCurrent: packingMaterial.current,
+                valuePrevious: packingMaterial.previous,
+              },
+              {
+                key: "note24-powerFuel",
+                label: "Power and fuel",
+                valueCurrent: powerFuel.current,
+                valuePrevious: powerFuel.previous,
+              },
+              {
+                key: "note24-rent",
+                label: "Rent including lease rentals ",
+                valueCurrent: rent.current,
+                valuePrevious: rent.previous,
+              },
+              {
+                key: "note24-buildingRepair",
+                label: "Repairs and maintenance - Buildings",
+                valueCurrent: buildingRepair.current,
+                valuePrevious: buildingRepair.previous,
+              },
+              {
+                key: "note24-otherRepair",
+                label: "Repairs and maintenance - Others",
+                valueCurrent: otherRepair.current,
+                valuePrevious: otherRepair.previous,
+              },
+              {
+                key: "note24-systemUsage",
+                label: "System usage fee (YGS implementation cost) [Refer note: 31]",
+                valueCurrent: systemUsage.current,
+                valuePrevious: systemUsage.previous,
+              },
+              {
+                key: "note24-insurance",
+                label: "Insurance",
+                valueCurrent: insurance.current,
+                valuePrevious: insurance.previous,
+              },
+              {
+                key: "note24-ratesTaxes",
+                label: "Rates and taxes",
+                valueCurrent: ratesTaxes.current,
+                valuePrevious: ratesTaxes.previous,
+              },
+              {
+                key: "note24-communication",
+                label: "Communication expense [Refer note: 31]",
+                valueCurrent: communication.current,
+                valuePrevious: communication.previous,
+              },
+              {
+                key: "note24-travelling",
+                label: "Travelling and conveyance expense",
+                valueCurrent: travelling.current,
+                valuePrevious: travelling.previous,
+              },
+              {
+                key: "note24-lossonFD",
+                label: "Loss/(Gain) on fixed assets sold / scrapped / written off ",
+                valueCurrent: lossonFD.current,
+                valuePrevious: lossonFD.previous,
+              },
+              {
+                key: "note24-printingandStationery",
+                label: "Printing and stationery",
+                valueCurrent: printingandStationery.current,
+                valuePrevious: printingandStationery.previous,
+              },
+              {
+                key: "note24-sellingExpence",
+                label: "Selling expenses",
+                valueCurrent: sellingExpence.current,
+                valuePrevious: sellingExpence.previous,
+              },
+              {
+                key: "note24-salesCommission",
+                label: "Sales commission",
+                valueCurrent: salesCommission.current,
+                valuePrevious: salesCommission.previous,
+              },
+              {
+                key: "note24-Donations",
+                label: "Donations and contributions",
+                valueCurrent: Donations.current,
+                valuePrevious: Donations.previous,
+              },
+              {
+                key: "note24-legalProfessional",
+                label: "Legal and professional fees (Refer Note (i) below)",
+                valueCurrent: legalProfessional.current,
+                valuePrevious: legalProfessional.previous,
+              },
+              {
+                key: "note24-netLossFC",
+                label: "Net loss/(gain) on foreign currency transactions and translations",
+                valueCurrent: netLossFC.current,
+                valuePrevious: netLossFC.previous,
+              },
+              {
+                key: "note24-doubtfulTrade",
+                label: "Provision for doubtful trade receivables/(provision written back) (net)",
+                valueCurrent: doubtfulTrade.current,
+                valuePrevious: doubtfulTrade.previous,
+              },
+              {
+                key: "note24-estimateLoss",
+                label: "Provision for estimated losses on construction contracts /(provision written back) [Refer note: 33]",
+                valueCurrent: estimateLoss.current,
+                valuePrevious: estimateLoss.previous,
+              },
+              {
+                key: "note24-expLoss",
+                label: "Provision for expected loss on onerous contracts (Refer Note 33)",
+                valueCurrent: expLoss.current,
+                valuePrevious: expLoss.previous,
+              },
+              {
+                key: "note24-sittingFee",
+                label: "Directors' sitting fees",
+                valueCurrent: sittingFee.current,
+                valuePrevious: sittingFee.previous,
+              },
+              {
+                key: "note24-bankCharge",
+                label: "Bank charges ",
+                valueCurrent: bankCharge.current,
+                valuePrevious: bankCharge.previous,
+              },
+              {
+                key: "note24-corpSocialResp",
+                label: "Corporate Social Responsibility(Refer Note 27)",
+                valueCurrent: corpSocialResp.current,
+                valuePrevious: corpSocialResp.previous,
+              },
+              {
+                key: "note24-usageFee",
+                label: "Prism Usage Fees [Refer note: 31]",
+                valueCurrent: usageFee.current,
+                valuePrevious: usageFee.previous,
+              },
+              {
+                key: "note24-globSaleFee",
+                label: "Global sales and marketing activity fee [Refer note: 31]",
+                valueCurrent: globSaleFee.current,
+                valuePrevious: globSaleFee.previous,
+              },
+              {
+                key: "note24-managementFee",
+                label: "Management Fee [Refer note: 31]",
+                valueCurrent: managementFee.current,
+                valuePrevious: managementFee.previous,
+              },
+              {
+                key: "note24-engSerFee",
+                label: "Engineering service fees [Refer note: 31]",
+                valueCurrent: engSerFee.current,
+                valuePrevious: engSerFee.previous,
+              },
+              {
+                key: "note24-engSupFee",
+                label: "Engineering support fees (ESF) [Refer note: 31]",
+                valueCurrent: engSupFee.current,
+                valuePrevious: engSupFee.previous,
+              },
+              {
+                key: "note24-supSerFee",
+                label: "Support Service Fees [Refer note: 31]",
+                valueCurrent: supSerFee.current,
+                valuePrevious: supSerFee.previous,
+              },
+              {
+                key: "note24-subContract",
+                label: "Sub-contract expenses",
+                valueCurrent: subContract.current,
+                valuePrevious: subContract.previous,
+              },
+              {
+                key: "note24-eduTraining",
+                label: "Education & Training ",
+                valueCurrent: eduTraining.current,
+                valuePrevious: eduTraining.previous,
+              },
+              {
+                key: "note24-reqExp",
+                label: "Recruitment expense",
+                valueCurrent: reqExp.current,
+                valuePrevious: reqExp.previous,
+              },
+              {
+                key: "note24-warantyExp",
+                label: "Warranty expenses (Net of utilisation) [ Refer Note 33]",
+                valueCurrent: warantyExp.current,
+                valuePrevious: warantyExp.previous,
+              },
+              {
+                key: "note24-membership",
+                label: "Membership Fees",
+                valueCurrent: membership.current,
+                valuePrevious: membership.previous,
+              },
+              {
+                key: "note24-miscellaneous",
+                label: "Miscellaneous expenses",
+                valueCurrent: miscellaneous.current,
+                valuePrevious: miscellaneous.previous,
+              },
+
+            
+
+          {
+            key: "note24-total",
+            label: "Total",
+            isGrandTotal: true,
+            valueCurrent: grandTotal.current,
+            valuePrevious: grandTotal.previous,
+          },
+
+              {
+                key: "note24-notes",
+                label: "(i) Includes payments to the statutory auditors (excluding goods and service tax):",
+                valueCurrent: miscellaneous.current,
+                valuePrevious: miscellaneous.previous,
+                children: [
+                  {
+                    key: "note24-statutoryAudit",
+                    label: "As auditors - statutory audit:",
+                    valueCurrent: 51.00,
+                    valuePrevious: 51.00,
+                
+                  },
+                  {
+                    key: "note24- taxAudit",
+                    label: "For tax audit",
+                    valueCurrent: 5.00,
+                    valuePrevious:5.00,
+                
+                  },
+                ],
+              },
+
+          {
+            key: "note24-total1",
+            label: "Total",
+            isGrandTotal: true,
+            valueCurrent: 56.00,
+            valuePrevious: 56.00,
+          },
+        ],
+      };
+    };
+
+const calculateNote25 = (): FinancialNote => {
+ const incomeTax = {
+        current: 11114.10,
+        previous: 9455.42,
+        
+      };
+  const indirectTax = {
+          current: 638.94,
+          previous: 371.83,
+          
+        };
+  const epfo = {
+          current: 1416.55,
+          previous: 1416.55,
+          
+        };  
+        
+  const pop = {
+          current: 1532.61,
+          previous: 709.88,
+          
+        };
+     
+
+  
+
+  return {
+    noteNumber: 25,
+    title: 'Contingent liabilities and commitments (to the extent not provided for)',
+    totalCurrent: 0, // Not applicable; shown as a disclosure table
+    totalPrevious: 0,
+    content: [
+      {
+        key: 'note25-1',
+        label: '(i)  Contingent liabilities ',
+        valueCurrent: 0,
+        valuePrevious: 0,
+        children: [
+          {
+            key: 'note25-2',
+            label: '(a) Claims against the Company not acknowledged as debt ',
+            valueCurrent: 0,
+            valuePrevious:0,
+            children: [
+              {
+                key: 'note25-3',
+                label: '(i) Income tax matters in dispute (includes paid under protest ₹. 837.7 lakhs, as at 31 March 2023 ₹. 837.77 lakhs)',
+                valueCurrent: incomeTax.current,
+                valuePrevious: incomeTax.previous,
+              },
+              {
+                key: 'note25-4',
+                label: '(ii) Indirect tax matters in dispute (includes paid under protest ₹.49.05 lakhs, as at 31 March 2023 ₹. 49.05 lakhs)',
+                valueCurrent: indirectTax.current,
+                valuePrevious:indirectTax.previous,
+              },
+              {
+                key: 'note25-5',
+                label: "(iii) Employees' provident fund organisation (EPFO) matters of Yokogawa India Limited Employees Provident Fund in dispute (including paid under protest  ₹. 784.66 lakhs , as at 31 March 2023 ₹.784.66 lakhs)",
+                valueCurrent: epfo.current,
+                valuePrevious:epfo.previous,
+              },
+              
+            ],
+            
+          },
+          {
+                key: 'note25-6',
+                isSubtotal: true,
+                label: "Contingent liabilities disclosed above represent possible obligation where possibility of cash outflow to settle the obligation is not remote. ",
+                valueCurrent: incomeTax.current + indirectTax.current + epfo.current,
+                valuePrevious:incomeTax.previous + indirectTax.previous + epfo.previous,
+              },
+
+        ],
+      },
+              
+      {
+        key: 'note25-7',
+        label: '(ii) Other Commitments',
+        valueCurrent: 0,
+        valuePrevious: 0,
+        children: [
+          {
+                key: 'note25-8',
+                label: "(a) Commitment towards procurement of property, plant and equipment",
+                valueCurrent: pop.current,
+                valuePrevious:pop.previous,
+              },
+        ],
+      },
+      {
+                key: 'note25-8-1',
+                label: "Total",
+                isSubtotal: true,
+                valueCurrent: pop.current,
+                valuePrevious:pop.previous,
+              },
+
+      {
+        key: 'note25-9',
+        label: '(iii) Guarantees',
+        valueCurrent: 0,
+        valuePrevious: 0,
+        children: [
+          {
+                key: 'note25-10',
+                label: "Guarantees given by banks on behalf of the Company for contractual obligations of the Company.\nThe necessary terms and conditions have been complied with and no liabilities have arisen.",
+                valueCurrent: 43194.01,
+                valuePrevious:39386.84,
+              },
+        ],
+      },
+      {
+                key: 'note25-11',
+                label: "",
+                isSubtotal: true,
+                valueCurrent: 43194.01,
+                valuePrevious:39386.84,
+              },
+            ],
+            footer:"Note: \nThe Company is evaluating and assessing the impact on recent decision of the Honourable Supreme Court of India regarding Provident Fund.  Subsequently, review petitions have been filed regarding this matter in the Honourable Supreme Court.  Since the matter is pending before Honourable Supreme Court, the management is of the view that no provision is presently required.  Accordingly, no provision has been considered in the financial statements for the year end March 31, 2022."
+};
+};
+
 const calculateNote26 = (): FinancialNote => {
   const principalUnpaid = {
-    current: 3408.58,
-    previous: 1976.63,
+    current: getAmount('amountCurrent', ['trade payables'], ['total outstanding dues of micro enterprises and small enterprises']),
+    previous: getAmount('amountPrevious', ['trade payables'], ['total outstanding dues of micro enterprises and small enterprises']),
   };
 
   const interestUnpaid = {
@@ -2142,8 +3510,8 @@ const calculateNote26 = (): FinancialNote => {
   };
 
   const interestDuePayable = {
-    current: 28.33,
-    previous: 11.82,
+    current: getAmount("amountCurrent",["finance cost"],["msme interest"]),
+    previous: getAmount("amountPrevious",["finance cost"],["msme interest"]),
   };
 
   const interestAccruedUnpaid = {
@@ -2196,6 +3564,153 @@ const calculateNote26 = (): FinancialNote => {
     ],
     footer: 'The said information regarding Micro and Small Enterprises has been determined to the extent such parties have been identified on the basis of information collected by the Management bases on enquiries made with the parties. This has been relied upon by the auditors.',
   };
+};
+const calculateNote27 = (): FinancialNote => {
+
+  const grossAmount = {
+        current: 191.43,
+        previous: 122.41,
+        
+      };
+  const amountSpent = {
+        current: 191.43,
+        previous: 79.60,
+        
+      };
+
+  const construction = {
+   incash:0,
+   ytp:0,
+
+   preincash: 0,
+   preytp: 0,
+   
+  };
+  const others = {
+   incash:amountSpent.current,
+   ytp:0, 
+   preincash:122.41 ,
+   preytp: 0, 
+  };
+
+ 
+  return {
+    noteNumber: 27,
+    title: 'Corporate Social Responsibility (CSR)\n As per Section 135 of the Companies Act, 2013, a CSR committee has been formed by the Company. The areas for CSR activities are promoting education, healthcare and woman economic empowerment, providing disaster relief and undertaking rural development projects.',
+    totalCurrent: 0, // Not applicable; shown as a disclosure table
+    totalPrevious: 0,
+    content: [
+      {
+        key: 'note27-1',
+        label: '(a) Gross amount required to be spent by the company during the year ',
+        valueCurrent: grossAmount.current,
+        valuePrevious: grossAmount.previous,
+        
+      },
+      {
+        key: 'note27-2',
+        label: '(b) Amount spent during the year ',
+        valueCurrent: amountSpent.current,
+        valuePrevious:amountSpent.previous,
+        
+      },
+      {
+        key: 'note27-3',
+        label: '(c) shortfall at the end of the year, ',
+        valueCurrent: 0,
+        valuePrevious: 122.41,
+        
+      },
+      {
+        key: 'note27-4',
+        label: '(d) total of previous years shortfall ',
+        valueCurrent: 0,
+        valuePrevious: 122.41,
+        
+      },
+      {
+        key: 'note27-5',
+        label: '(e) reason for shortfall',
+        valueCurrent:null,
+        valuePrevious: null,
+        
+      },
+
+
+      
+      {
+        type: "table",
+        headers: [
+          "31 March 2024",
+          "In cash",
+          "Yet  to be paid in cash",
+          "Total"
+        ],
+        rows: [
+          
+          [
+            "(i) Construction/acquisition of any asset",
+            format(construction.incash),
+            format(construction.ytp),
+            format(construction.incash + construction.ytp),
+          ],
+          [
+            "(ii) On purposes other than (i) above ",
+            format(others.incash),
+            format(others.ytp),
+            format(others.incash + others.ytp),
+          ],
+          [
+            "Total",
+            format(construction.incash+others.incash),
+            format(construction.ytp+others.ytp),
+            format(construction.ytp+others.ytp + construction.incash + others.incash),
+          ],
+          
+          
+        ]
+      },
+      
+      {
+        type: "table",
+        headers: [
+          "'31 March 2023",
+          "In cash",
+          "Yet  to be paid in cash",
+          "Total"
+        ],
+        rows: [
+          
+          [
+            "(i) Construction/acquisition of any asset",
+            format(construction.preincash),
+            format(construction.preytp),
+            format(construction.preincash + construction.preytp),
+          ],
+          [
+            "(ii) On purposes other than (i) above ",
+            format(others.preincash),
+            format(others.preytp),
+            format(others.preincash + others.preytp),
+          ],
+          [
+            "Total",
+            format(construction.preincash+others.preincash),
+            format(construction.preytp+others.preytp),
+            format(construction.preytp+others.preytp + construction.preincash + others.preincash),
+          ],
+          
+          
+        ]
+      }
+              
+      
+
+      
+      
+      ],
+      footer:"(a) Gross amount required to be spent by the company during the year is ₹ 191.43 lakhs (Previous year is ₹ 122.41 lakhs).\n(b) Amount spent during the year is ₹ 191.43 lakhs ( Previous year is ₹ 122.41 lakhs)\n(c)  Amount donated towards promotion of education and eradication of hunger."
+};
 };
 
 
@@ -2490,7 +4005,6 @@ const calculateNote30 = (): FinancialNote => {
   };
 };
 
-
 const calculateNote32 = (): FinancialNote => {
   const netProfit = {
     current: 22560.10,
@@ -2661,11 +4175,18 @@ const calculateNote33 = (): FinancialNote => {
     const note17 = calculateNote17();
     const note18 = calculateNote18();
     const note19 = calculateNote19();
+    const note20 = calculateNote20();
+    const note21 = calculateNote21();
+    const note22 = calculateNote22();
+    const note23 = calculateNote23();
+    const note24 = calculateNote24();
+    const note25 = calculateNote25();
     const note26 = calculateNote26();
+    const note27 = calculateNote27();
     const note30 = calculateNote30();
     const note32 = calculateNote32();
     const note33 = calculateNote33();
-    const allNotes = [note5,note6,note7,note8,note9,note10,note11,note12,note13,note14,note15,note16,note17,note18,note19,note26,note30,note32,note33]; // [FIX] Add all calculated notes
+    const allNotes = [note5,note6,note7,note8,note9,note10,note11,note12,note13,note14,note15,note16,note17,note18,note19,note20,note21,note22,note23,note24,note25,note26,note27,note30,note32,note33]; // [FIX] Add all calculated notes
 
     const processNode = (node: TemplateItem,enrichedData: MappedRow[],getAmount: (
     year: 'amountCurrent' | 'amountPrevious',
@@ -2780,7 +4301,58 @@ else if (node.key === 'is-other-inc') {
     valueCurrent = inc.valueCurrent??0;
     valuePrevious = inc.valuePrevious??0;
   }
+  }
+  else if (node.key === 'is-exp-mat') {
+  const inc = note20.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note20-cogs');
+  if (inc) {
+    valueCurrent = inc.valueCurrent??0;
+    valuePrevious = inc.valuePrevious??0;
+  }
 }
+else if (node.key === 'is-exp-pur') {
+  const inc = note20.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note20-purchase-traded-goods');
+  if (inc) {
+    valueCurrent = inc.valueCurrent??0;
+    valuePrevious = inc.valuePrevious??0;
+  }
+}
+
+else if (node.key === 'is-exp-inv') {
+  const inc = note20.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note20-changes-in-inventories');
+  if (inc) {
+    valueCurrent = inc.valueCurrent??0;
+    valuePrevious = inc.valuePrevious??0;
+  }
+}
+else if (node.key === 'is-exp-emp') {
+  const inc = note21.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note21-total');
+  if (inc) {
+    valueCurrent = inc.valueCurrent??0;
+    valuePrevious = inc.valuePrevious??0;
+  }
+}
+else if (node.key === 'is-exp-fin') {
+  const inc = note22.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note22-total');
+  if (inc) {
+    valueCurrent = inc.valueCurrent??0;
+    valuePrevious = inc.valuePrevious??0;
+  }
+}
+else if (node.key === 'is-exp-dep') {
+  const inc = note23.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note23-total');
+  if (inc) {
+    valueCurrent = inc.valueCurrent??0;
+    valuePrevious = inc.valuePrevious??0;
+  }
+}
+else if (node.key === 'is-exp-oth') {
+  const inc = note24.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note24-total');
+  if (inc) {
+    valueCurrent = inc.valueCurrent??0;
+    valuePrevious = inc.valuePrevious??0;
+  }
+}
+
 else if (node.key === 'bs-assets-nc-fin-income') {
   const incAst = note7.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note7-asset-section');
   if (incAst) {
@@ -2853,34 +4425,7 @@ else if (node.key === 'bs-assets-nc-cwip') {
         valueCurrent = 38879.35;
         valuePrevious = 26935.59;
       }
-else if (node.key === 'is-exp-mat') {
-        valueCurrent = 64638.09;
-        valuePrevious = 53900.63;
-      }
-      else if (node.key === 'is-exp-pur') {
-        valueCurrent = 50087.71;
-        valuePrevious = 30082.82;
-      }
-      else if (node.key === 'is-exp-inv') {
-        valueCurrent = 1897.71;
-        valuePrevious = -3724.12;
-      }
-      else if (node.key === 'is-exp-emp') {
-        valueCurrent = 31528.33;
-        valuePrevious = 25011.56;
-      }
-      else if (node.key === 'is-exp-fin') {
-        valueCurrent = 243.20;
-        valuePrevious = 260.43;
-      }
-      else if (node.key === 'is-exp-dep') {
-        valueCurrent = 2020.57;
-        valuePrevious = 1130.64;
-      }
-      else if (node.key === 'is-exp-oth') {
-        valueCurrent = 38905.27;
-        valuePrevious = 24447.36;
-      }
+
       else if (node.key === 'is-pbeit') {
         valueCurrent = 16512.80;
         valuePrevious = 11794.02;
