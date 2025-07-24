@@ -1,4 +1,4 @@
-import React, { useState, useMemo, Fragment, useEffect } from 'react';
+import React, { useState, useMemo, Fragment, useEffect, Children } from 'react';
 import {
   Box,
   Typography,
@@ -171,12 +171,12 @@ const BALANCE_SHEET_STRUCTURE: TemplateItem[] = [
       ]},
     { key: 'bs-liab-nc', label: 'Non-current liabilities', isSubtotal: true, children: [
         { key: 'bs-liab-nc-fin', label: 'Financial Liabilities', isSubtotal: true, children: [
-          { key: 'bs-liab-nc-fin-borrow', label: 'Lease Liabilities', note: 29, keywords: ['other non current financial liabilities'] },
+          { key: 'bs-liab-nc-fin-borrow', label: 'Lease Liabilities', note: 29 },
         ]},
         { key: 'bs-liab-nc-prov', label: 'Provisions', note: 17}]},
     { key: 'bs-liab-c', label: 'Current liabilities', isSubtotal: true, children: [
         { key: 'bs-liab-c-fin', label: 'Financial Liabilities', isSubtotal: true, children: [
-          { key: 'bs-liab-c-fin-liability', label: 'Lease Liabilities', note: 29, keywords: ['other current financial liabilities'] },
+          { key: 'bs-liab-c-fin-liability', label: 'Lease Liabilities', note: 29,},
           { key: 'bs-liab-c-fin-tp', label: 'Trade payables',isSubtotal: true, children: [
             { key: 'bs-liab-c-fin-enterprises', label: ' Total outstanding dues of micro enterprises and small enterprises', note: 14},
             { key: 'bs-liab-c-fin-creators', label: ' Total outstanding dues of creditors other than micro enterprises and small enterprises', note: 14},
@@ -211,8 +211,8 @@ const INCOME_STATEMENT_STRUCTURE: TemplateItem[] = [
   { key: 'is-except', label: 'Exceptional Income', id: 'exceptional', keywords: ['exceptional items'], note: 44 },
   { key: 'is-pbt', label: 'PROFIT BEFORE TAX', id: 'pbt', isSubtotal: true, formula: ['pbeit', '+', 'exceptional'] },
   { key: 'is-tax', label: 'TAX EXPENSE:', id: 'totalTax', isSubtotal: true, children: [
-      { key: 'is-tax-curr', label: 'Current tax', keywords: ['tax expense'], note: 34 },
-      { key: 'is-tax-def', label: 'Deferred tax', keywords: ['deferred tax'], note: 34 },
+      { key: 'is-tax-curr', label: 'Current tax', note: 34 },
+      { key: 'is-tax-def', label: 'Deferred tax', note: 34 },
     ]
   },
   { key: 'is-pat', label: 'PROFIT FOR THE YEAR', id: 'pat', isGrandTotal: true, formula: ['pbt', '-', 'totalTax'] },
@@ -3712,6 +3712,411 @@ const calculateNote27 = (): FinancialNote => {
       footer:"(a) Gross amount required to be spent by the company during the year is ₹ 191.43 lakhs (Previous year is ₹ 122.41 lakhs).\n(b) Amount spent during the year is ₹ 191.43 lakhs ( Previous year is ₹ 122.41 lakhs)\n(c)  Amount donated towards promotion of education and eradication of hunger."
 };
 };
+const calculateNote29 = (): FinancialNote => {
+  const rou = {
+    current: 3041.87,
+    previous: 1580.65,
+  };
+
+  const long = {
+    current: 2264.28,
+    previous: 1000.49,
+  };
+
+  const short = {
+    current: 855.63,
+    previous: 685.66,
+  };
+
+  const dep = {
+    current: 805.15,
+    previous: 479.54,
+  };
+
+  const financecost = {
+    current: 203.14,
+    previous: 139.74,
+  };
+
+  const interest = {
+    current: 203.14,
+    previous: 139.74,
+  };
+
+    const open = {
+    current: 1686.15,
+    previous: 1516.95,
+  };
+  const add = {
+    current: 2266.37,
+    previous: 871.32,
+  }
+  const payments = {
+    current: -1035.75,
+    previous: -841.86,
+  }
+
+  const year = {
+    current: Number((855.63045).toFixed(2)),
+    previous: Number((685.66).toFixed(2)),
+  }
+  const year5 = {
+    current: Number((1949.07284).toFixed(2)),
+    previous: Number((909.55).toFixed(2)),
+  }
+  
+    const years = {
+    current: Number((1176.10644).toFixed(2)),
+    previous: Number((1176.10644).toFixed(2)),
+  }
+
+  const nonlease = {
+    current : 1947.93,
+    previous: 0
+  }
+    const lease = {
+    current : 673.04,
+    previous: 0
+  }
+  const yr5 = {
+    current : 407.07,
+    previous: 0
+  }
+    const rectotal = {
+    current : lease.current+lease.current+lease.current+lease.current+yr5.current,
+    previous: 0
+  }
+  const less = {
+    current : 478.26,
+    previous: 0
+  }
+    const after = {
+    current : lease.current+lease.current+lease.current+lease.current+yr5.current,
+    previous: 0
+  }
+    const within = {
+    current : lease.current,
+    previous: 0
+  }
+  const afterlease = {
+    current : 1947.93,
+    previous: 0
+  }
+  const withinlease = {
+    current : 673.04,
+    previous: 0
+  }
+  const profitselling = {
+    current : 331.32,
+    previous: 0
+  }
+  const profitfinance = {
+    current : 126.74,
+    previous: 0
+  }
+  return {
+    noteNumber: 29,
+    title: 'Leases',
+    subtitle: "Rental expenses recorded for short term leases was ₹ 847.12 lakhs (31 March 2023 - ₹ 853.60 lakhs ) for the year ended on 31 March 2024.",
+    totalCurrent: null,
+    totalPrevious: null,
+    footer:'The Company entered into finance leasing arrangements as a lessor for certain equipment to its customer. The term of finance leases entered into is 5 years. These lease contracts do not include extension or early termination options. The average effective interest rate contracted approximates 7.61% (2022-23: Nil) per annum. The net investment in lease is secured by bank guarantee issued by customers bank.',
+    content: [
+      {
+        key: 'note29-balance',
+        label: 'Amounts recognized in Balance Sheet were as follows:',
+        isSubtotal: true,
+        valueCurrent: long.current,
+        valuePrevious: long.previous,
+        children: [
+          {
+            key: 'note29-balance-rou',
+            label: 'ROU Assets',
+            valueCurrent: rou.current,
+            valuePrevious: rou.previous,
+          },
+          {
+            key: 'note29-balance-long',
+            label: 'Operating lease liabilities',
+            valueCurrent: null,
+            valuePrevious: null,
+            children: [
+              {
+                key: 'note29-balance-long-term',
+                label: '        - Long Term liabilities',
+                valueCurrent: long.current,
+                valuePrevious: long.previous,
+              },
+              {
+                key: 'note29-balance-short',
+                label: '        - Short Term liabilities',
+                valueCurrent: short.current,
+                valuePrevious: short.previous,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        key: 'note29-pl',
+        label: 'Amounts recognized in profit and loss were as follows:',
+        isSubtotal: true,
+        valueCurrent: null,
+        valuePrevious: null,
+        children: [
+          {
+            key: 'note29-pl-depreciation',
+            label: 'Depreciation Expenditure',
+            valueCurrent: dep.current,
+            valuePrevious: dep.previous,
+          },
+          {
+            key: 'note29-pl-finance',
+            label: 'Finance Cost on Lease Liabilities',
+            valueCurrent: financecost.current,
+            valuePrevious: financecost.previous,
+          },
+          {
+            key: 'note29-pl-impact',
+            label: 'Impact on the statement of profit and loss for the year ended',
+            valueCurrent: dep.current + financecost.current,
+            valuePrevious: dep.previous + financecost.previous,
+          },
+        ],
+      },
+      {
+        key: 'note29-movement',
+        label: 'Movement in Lease Liability ',
+        isSubtotal: true,
+        valueCurrent: null,
+        valuePrevious: null,
+        children: [
+          {
+            key: 'note29-pl-open',
+            label: 'Opening Balance',
+            valueCurrent: open.current,
+            valuePrevious: open.previous,
+          },
+          {
+            key: 'note29-pl-add',
+            label: 'Additions during the year',
+            valueCurrent: add.current,
+            valuePrevious: add.previous,
+          },
+          {
+            key: 'note29-pl-interest',
+            label: 'Interest Expense',
+            valueCurrent: interest.current,
+            valuePrevious: interest.previous,
+          },
+          {
+            key: 'note29-pl-payments',
+            label: 'Payments made during the year',
+            valueCurrent: payments.current,
+            valuePrevious: payments.previous,
+          },
+          {
+            key: 'note29-pl-close',
+            label: 'Closing Balance',
+            valueCurrent: open.current + add.current + interest.current - payments.current,
+            valuePrevious: open.previous + add.previous + interest.previous - payments.previous,
+          },
+        ],
+      },
+    {
+        key: 'note29-movement',
+        label: ' Supplemental cash flow information related to leases was as follows :',
+        isSubtotal: true,
+        valueCurrent: null,
+        valuePrevious: null,
+        children: [
+          {
+            key: 'note29-pl-leases',
+            label: 'Total cash outflow for leases   ',
+            valueCurrent: - payments.current,
+            valuePrevious:- payments.previous,
+          },
+        ],
+      },
+      {
+        key: 'note29-maturities',
+        label: ' Maturities of lease liabilities were as follows (Undiscounted lease payments to be paid)',
+        isSubtotal: true,
+        valueCurrent: null,
+        valuePrevious: null,
+        children: [
+          {
+            key: 'note29-pl-1',
+            label: 'Not later than 1 year',
+            valueCurrent: year.current,
+            valuePrevious:year.previous,
+          },
+          {
+            key: 'note29-pl-5',
+            label: 'Later than 1 year and not later than 5 years',
+            valueCurrent: year5.current,
+            valuePrevious:year5.previous,
+          },
+          {
+            key: 'note29-pl-years',
+            label: 'Later than 5 years',
+            valueCurrent: years.current,
+            valuePrevious:years.previous,
+          },
+          {
+            key: 'note29-pl-totallease',
+            label: 'Total Lease Payments',
+            valueCurrent: year.current + year5.current + years.current,
+            valuePrevious:year.previous + year5.previous + years.previous,
+          },
+        ],
+      },
+     {
+  key: 'note29a-finance-lease',
+  label: 'Note 29A: Finance lease receivables',
+  isSubtotal: true,
+  valueCurrent: null,
+  valuePrevious: null,
+  children: [
+    {
+      key: 'note29a-bs-recognized',
+      label: 'Amounts recognized in Balance Sheet were as follows',
+      isSubtotal: true,
+      valueCurrent: null,
+      valuePrevious: null,
+      children: [
+        {
+          key: 'note29a-lease',
+          label: 'Net Investment in Lease',
+          valueCurrent: null,
+          valuePrevious: null,
+          children: [
+        {
+          key: 'note29a-lease-noncurrent',
+          label: '     - Non-current',
+          valueCurrent: nonlease.current,
+          valuePrevious: nonlease.previous,
+        },
+        {
+          key: 'note29a-lease-current',
+          label: '     - current',
+          valueCurrent: lease.current,
+          valuePrevious: lease.previous,
+        },
+          ],
+        },
+      ],
+    },
+    {
+      key: 'note29a-under-lease',
+      label: 'Amounts receivable under finance lease',
+      isSubtotal: true,
+      valueCurrent: null,
+      valuePrevious: null,
+      children: [
+        { key: 'note29a-year1', label: 'Year 1', valueCurrent: lease.current, valuePrevious: lease.previous },
+        { key: 'note29a-year2', label: 'Year 2', valueCurrent: lease.current, valuePrevious: lease.previous },
+        { key: 'note29a-year3', label: 'Year 3', valueCurrent: lease.current, valuePrevious: lease.previous },
+        { key: 'note29a-year4', label: 'Year 4', valueCurrent: lease.current, valuePrevious: lease.previous },
+        { key: 'note29a-year5', label: 'Year 5', valueCurrent: yr5.current, valuePrevious: yr5.previous },
+        { key: 'note29a-year6plus', label: 'Year 6 onwards', valueCurrent: 0, valuePrevious: 0 },
+        {
+          key: 'note29a-total',
+          label: 'Total',
+          isGrandTotal:true,
+          valueCurrent: rectotal.current,
+          valuePrevious: rectotal.previous,
+        },
+        {
+          key: 'note29a-unearned',
+          label: 'Less: unearned finance income',
+          valueCurrent: less.current,
+          valuePrevious: less.previous,
+        },
+        {
+          key: 'note29a-net-investment',
+          label: 'Present value of lease payments receivable / Net Investment in Lease',
+          valueCurrent: rectotal.current - less.current,
+          valuePrevious: rectotal.previous - less.previous,
+        },
+      ],
+    },
+    {
+          key: 'note29a-net-analysed',
+          label: 'Undiscounted lease payments analysed as:',
+          valueCurrent: null,
+          valuePrevious: null,
+          isSubtotal: true,
+          children: [
+        {
+          key: 'note29a-after',
+          label: '-     Recoverable after 12 months',
+          valueCurrent: after.current,
+          valuePrevious: after.previous,
+        },
+        {
+          key: 'note29a-within',
+          label: '-     Recoverable within 12 months',
+          valueCurrent: within.current,
+          valuePrevious: within.previous,
+        },
+          ],
+        },
+        {
+          key: 'note29a-net-lease-investment',
+          label: 'Net investment in the lease analysed as:',
+          valueCurrent: null,
+          valuePrevious: null,
+          isSubtotal: true,
+          children: [
+        {
+          key: 'note29a-after-lease',
+          label: '-     Recoverable after 12 months',
+          valueCurrent: afterlease.current,
+          valuePrevious: afterlease.previous,
+        },
+        {
+          key: 'note29a-within-lease',
+          label: '-     Recoverable within 12 months',
+          valueCurrent: withinlease.current,
+          valuePrevious: withinlease.previous,
+        },
+          ],
+        },
+        {
+          key: 'note29a-profit',
+          label: 'The following table presents the amounts included in profit or loss:',
+          valueCurrent: null,
+          valuePrevious: null,
+          children:[
+        {
+          key: 'note29a-profit-selling',
+          label: '- Selling profit/loss for finance leases',
+          valueCurrent: profitselling.current,
+          valuePrevious: profitselling.previous,
+        },
+        {
+          key: 'note29a-profit-finance',
+          label: '- Finance income on the net investment in finance leases',
+          valueCurrent: profitfinance.current,
+          valuePrevious: profitfinance.previous,
+        },
+        {
+          key: 'note29a-profit-finance',
+          label: '- Income relating to variable lease payments not included in the net investment in finance leases',
+          valueCurrent: 0,
+          valuePrevious: 0,
+        },
+          ]
+        },
+  ],
+}
+ 
+    ],
+  };
+};
+
+
 
 
 const format = (value: number): string => value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -4159,6 +4564,340 @@ const calculateNote33 = (): FinancialNote => {
   ],
 }
 };
+const calculateNote34 = (): FinancialNote => {
+  // --- Profit and Loss Section ---
+  const currentIncomeTax = 
+  {
+    current : 7227.51,
+    previous : 4540.22,
+  }
+    const relating = 
+  {
+    current : -1108.27,
+    previous : -204.21,
+  }
+      const benefits = 
+  {
+    current : 32.87,
+    previous : -2.36,
+  }
+    const opening = 
+  {
+    previous : 6775.22,
+  }
+    const closing = 
+  {
+    previous : opening.previous + benefits.previous -(-(relating).previous),
+    current : opening.previous + benefits.previous -(-(relating).previous) + benefits.current -(-(relating).current),
+  }
+  const account = 
+  {
+    current : 28679.34,
+    previous : 11794.02,
+  }
+  const enacted = 
+  {
+    current : 25.168,
+    previous : 25.168,
+  }
+  const short = 
+  {
+    current : -587.67,
+    previous : 220.78,
+  }
+
+  const expectedloss = 
+  {
+    current : 6119.24,
+    previous : 4336.01,
+  }
+    const liability = 
+  {
+    current : 0,
+    previous : 156.67,
+  }
+  const provision = 
+  {
+    current : 810.47,
+    previous : 236.73,
+  }
+  const difference = 
+  {
+    current : 402.67,
+    previous : 0,
+  }
+    const debts = 
+  {
+    current : 1834.74,
+    previous : 1159.87,
+  }
+    const servicetax = 
+  {
+    current : 386.49,
+    previous : 396.51,
+  }
+    const loss = 
+  {
+    current : 3781.80,
+    previous : 3040.74,
+  }
+  const others = 
+  {
+    current : 902.04,
+    previous : 2299.89,
+  }
+  return {
+    noteNumber: 34,
+    title: 'Income Tax',
+    subtitle:'The major components of income tax expense are:',
+    content: [
+      {
+        key: 'note34-income-tax',
+        label: 'Current income tax:',
+        isSubtotal: true,
+        valueCurrent: null,
+        valuePrevious: null,
+      },
+          {
+            key: 'note34-pl-current-tax',
+            label: 'Current income tax charge',
+            valueCurrent: currentIncomeTax.current,
+            valuePrevious: currentIncomeTax.previous,
+          },
+          {
+            key: 'note34-pl-deferred-tax',
+            label: 'Deferred tax charge / (credit)',
+            isSubtotal:true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+      {
+        key: 'note34-oci',
+        label: 'Relating to the origination and reversal of temporary differences',
+        valueCurrent: relating.current,
+        valuePrevious: relating.previous
+      },
+          {
+            key: 'note34-oci-dbt',
+            label: 'Income tax expense reported in Statement of Profit and Loss',
+            isSubtotal:true,
+            valueCurrent: currentIncomeTax.current + relating.current,
+            valuePrevious: currentIncomeTax.previous + relating.previous,
+          },
+      {
+        key: 'note34-recon',
+        label: 'Deferred tax related to items recognised in other comprehensive income',
+        isSubtotal: true,
+        valueCurrent: null,
+        valuePrevious: null
+      },
+          {
+            key: 'note34-benefit',
+            label: 'Income tax relating to re-measurement gains on defined benefit plans',
+            valueCurrent: benefits.current,
+            valuePrevious: benefits.previous,
+          },
+          {
+            key: 'note34-recon-oci-movement',
+            label: 'Income tax expense reported in other comprehensive income',
+            valueCurrent: benefits.current,
+            valuePrevious: benefits.previous,
+          },
+          {
+            key: 'note34-reconciliation',
+            label: 'Reconciliation of deferred tax(net)',
+            valueCurrent: null,
+            valuePrevious: null,
+            isSubtotal: true
+          },
+          {
+            key: 'note34-reconciliation-open',
+            label: 'Opening balance',
+            valueCurrent: closing.previous,
+            valuePrevious: opening.previous
+          },
+          {
+            key: 'note34-reconciliation-tax-credit',
+            label: 'Tax credit/ (expense) during the year recognized in statement of profit and loss',
+            valueCurrent: -relating.current,
+            valuePrevious: -relating.previous
+          },
+          {
+            key: 'note34-reconciliation-tax-expense',
+            label: 'Tax expense during the year recognised in other comprehensive income',
+            valueCurrent: benefits.current,
+            valuePrevious: benefits.previous
+          },
+          {
+            key: 'note34-reconciliation-closing',
+            label: 'Closing balance',
+            valueCurrent: closing.current,
+            valuePrevious: closing.previous
+          },
+          {
+            key: 'note34-reconciliation-v2',
+            label: 'Reconciliation of tax expense and the accounting profit multiplied by Indias domestic tax rate',
+            valueCurrent: null,
+            valuePrevious: null,
+            isSubtotal:true
+          },
+          {
+            key: 'note34-reconciliation-v3',
+            label: 'Accounting profit before tax and exceptional item',
+            valueCurrent: account.current,
+            valuePrevious: account.previous
+          },
+          {
+            key: 'note34-reconciliation-v4',
+            label: 'Enacted income tax rate in India',
+            valueCurrent: enacted.current  ,
+            valuePrevious: enacted.previous
+          },
+          {
+            key: 'note34-reconciliation-tax',
+            label: 'Tax on accounting profit at statutory income tax rate 25.168% (in FY 2022-23 25.168%)',
+            valueCurrent: account.current * (enacted.current/100),
+            valuePrevious: account.previous * (enacted.previous/100)
+          },
+          {
+            key: 'note34-reconciliation-taxable',
+            label: 'Tax effects of amounts which are not deductible (taxable) in calculating taxable income',
+            valueCurrent: -(account.current * (enacted.current/100)) + expectedloss.current -short.current,
+            valuePrevious: -(account.current * (enacted.previous/100))+ expectedloss.previous-short.previous
+          },
+          {
+            key: 'note34-reconciliation-taxliability',
+            label: 'Tax effect of items constituting deferred tax liability (Refer below for details)',
+            valueCurrent: 0,
+            valuePrevious: 0
+          },
+          {
+            key: 'note34-reconciliation-taxasset',
+            label: 'Tax effect of items constituting deferred tax assets (Refer below for details)',
+            valueCurrent: 0,
+            valuePrevious: 0
+          },
+          {
+            key: 'note34-reconciliation-taxprofit',
+            label: 'Tax effect on items that will not be reclassified to Profit & Loss Account',
+            valueCurrent: 0,
+            valuePrevious: 0
+          },
+          {
+            key: 'note34-reconciliation-disallowances',
+            label: 'Other disallowances',
+            valueCurrent: 0,
+            valuePrevious: 0
+          },
+          {
+            key: 'note34-reconciliation-short',
+            label: 'Short/ (excess) provision for previous year',
+            valueCurrent: short.current,
+            valuePrevious: short.previous
+          },
+          {
+            key: 'note34-reconciliation-expected',
+            label: 'Expected income tax expense',
+            valueCurrent: (account.current * (enacted.current/100)) + (-(account.current * (enacted.current/100)) + expectedloss.current -short.current) + short.current,
+            valuePrevious: (account.previous * (enacted.previous/100)) + (-(account.current * (enacted.current/100))+ expectedloss.previous-short.previous) + short.previous
+          },
+          {
+            key: 'note34-reconciliation-expectedloss',
+            label: 'Income tax expense reported in the statement of Profit and Loss',
+            valueCurrent: expectedloss.current,
+            valuePrevious: expectedloss.previous 
+          },
+          {
+            key: 'note34-Deferred',
+            label: 'Deferred tax (liability) / asset ',
+            valueCurrent: null,
+            valuePrevious: null,
+            isSubtotal:true
+          },
+          {
+            key: 'note34-Deferred-liability-main',
+            label: 'Tax effect of items constituting deferred tax liability',
+            valueCurrent: null,
+            valuePrevious: null 
+          }, 
+          {
+            key: 'note34-Deferred-assets',
+            label: 'On difference between book balance and tax balance of fixed assets',
+            valueCurrent: liability.current,
+            valuePrevious: liability.previous 
+          },   
+          {
+            key: 'note34-Deferred-liability',
+            label: 'Tax effect of items constituting deferred tax liability',
+            valueCurrent: liability.current,
+            valuePrevious: liability.previous 
+          }, 
+          {
+            key: 'note34-Deferred-asset-main',
+            label: 'Tax effect of items constituting deferred tax assets',
+            valueCurrent:null,
+            valuePrevious: null 
+          },  
+          {
+            key: 'note34-Deferred-asset-provision',
+            label: 'Provision for compensated absences, gratuity and other employee benefits',
+            valueCurrent:provision.current,
+            valuePrevious: provision.previous 
+          },
+          {
+            key: 'note34-Deferred-asset-difference',
+            label: 'On difference between book balance and tax balance of fixed assets',
+            valueCurrent:difference.current,
+            valuePrevious: difference.previous 
+          }, 
+          {
+            key: 'note34-Deferred-asset-debt',
+            label: 'Provision for doubtful debts/advances',
+            valueCurrent:debts.current,
+            valuePrevious: debts.previous 
+          },  
+          {
+            key: 'note34-Deferred-asset-servicetax',
+            label: 'Provision for  service tax',
+            valueCurrent:servicetax.current,
+            valuePrevious: servicetax.previous 
+          },  
+          {
+            key: 'note34-Deferred-asset-loss',
+            label: 'Provision for estimated loss on contract',
+            valueCurrent:loss.current,
+            valuePrevious: loss.previous 
+          },  
+          {
+            key: 'note34-Deferred-asset-Others',
+            label: 'Others',
+            valueCurrent:others.current,
+            valuePrevious: others.previous 
+          },   
+          {
+            key: 'note34-Deferred-asset-total',
+            label: '',
+            valueCurrent:provision.current+difference.current+debts.current+servicetax.current+loss.current+others.current,
+            valuePrevious: provision.previous+difference.previous+debts.previous+servicetax.previous+loss.previous+others.previous 
+          },   
+          {
+            key: 'note34-blank',
+            label: '',
+            valueCurrent:null,
+            valuePrevious: null 
+          }, 
+          {
+            key: 'note34-total',
+            label: 'Net deferred tax (liability) / asset',
+            valueCurrent:(provision.current+difference.current+debts.current+servicetax.current+loss.current+others.current) - liability.current,
+            valuePrevious: (provision.previous+difference.previous+debts.previous+servicetax.previous+loss.previous+others.previous) - liability.previous
+          },   
+        ],
+    totalCurrent: null,
+    totalPrevious: null,
+  };
+};
+
 
     const note5 = calculateNote5();
     const note6 = calculateNote6();
@@ -4183,10 +4922,12 @@ const calculateNote33 = (): FinancialNote => {
     const note25 = calculateNote25();
     const note26 = calculateNote26();
     const note27 = calculateNote27();
+    const note29 = calculateNote29();
     const note30 = calculateNote30();
     const note32 = calculateNote32();
     const note33 = calculateNote33();
-    const allNotes = [note5,note6,note7,note8,note9,note10,note11,note12,note13,note14,note15,note16,note17,note18,note19,note20,note21,note22,note23,note24,note25,note26,note27,note30,note32,note33]; // [FIX] Add all calculated notes
+    const note34 = calculateNote34();
+    const allNotes = [note5,note6,note7,note8,note9,note10,note11,note12,note13,note14,note15,note16,note17,note18,note19,note20,note21,note22,note23,note24,note25,note26,note27,note29,note30,note32,note33,note34]; // [FIX] Add all calculated notes
 
     const processNode = (node: TemplateItem,enrichedData: MappedRow[],getAmount: (
     year: 'amountCurrent' | 'amountPrevious',
@@ -4196,6 +4937,16 @@ const calculateNote33 = (): FinancialNote => {
       const children = node.children?.map(child => processNode(child, enrichedData, getAmount));
       let valueCurrent: number | null = 0;
       let valuePrevious: number | null = 0;
+
+      function findNestedItem(item: HierarchicalItem, path: string[]): HierarchicalItem | undefined {
+  let current: HierarchicalItem | undefined = item;
+  for (const key of path) {
+    current = current?.children?.find(child => child.key === key);
+    if (!current) break;
+  }
+  return current;
+}
+
       
       // [FIX] Map the totals from the calculated notes back to the main statements
 if (node.key === 'bs-assets-c-inv') {
@@ -4210,14 +4961,14 @@ else if (node.key === 'bs-assets-c-other') {
     valuePrevious = nonCurrent.valuePrevious;
   }
 }
-else if(node.key ==='bs-assets-nc-other'){
-        valueCurrent = note10.totalCurrent;
-        valuePrevious = note10.totalPrevious;
-      } 
+
 else if (node.key === 'bs-assets-c-fin-cce') {
           valueCurrent = note11.totalCurrent;
           valuePrevious = note11.totalPrevious;
-      }
+      }else if(node.key ==='bs-assets-nc-other'){
+        valueCurrent = note10.totalCurrent;
+        valuePrevious = note10.totalPrevious;
+      } 
 else if (node.key === 'bs-assets-c-fin-bank') {
   const banks = note11.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note10-bwb-group-other');
   if (banks) {
@@ -4389,16 +5140,53 @@ else if (node.key === 'bs-assets-c-fin-tr') {
   }
 }
 
-
-
-
 else if (node.key === 'bs-liab-nc-fin-borrow') {
-  const currentAmount = getAmount('amountCurrent', node.keywords!);
-  const previousAmount = getAmount('amountPrevious', node.keywords!);
+const borrow = note29.content.find(
+  (item): item is HierarchicalItem => 'key' in item && item.key === 'note29-balance'
+);
 
-  valueCurrent = Math.abs(currentAmount);
-  valuePrevious = Math.abs(previousAmount);
+const subchild = borrow ? findNestedItem(borrow, ['note29-balance-long', 'note29-balance-long-term']) : undefined;
+
+if (subchild) {
+  valueCurrent = subchild.valueCurrent ?? 0;
+  valuePrevious = subchild.valuePrevious ?? 0;
 }
+}
+else if (node.key === 'bs-liab-c-fin-liability') {
+  const yr = note29.content.find(
+    (item): item is HierarchicalItem => 'key' in item && item.key === 'note29-maturities'
+  );
+  const child = yr?.children?.find(child => child.key === 'note29-pl-1');
+  if (child) {
+    valueCurrent = child.valueCurrent ?? 0;
+    valuePrevious = child.valuePrevious ?? 0;
+  }
+}
+else if (node.key === 'is-tax-curr') {
+  const currenttax = note34.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note34-pl-current-tax');
+  if (currenttax) {
+    valueCurrent = currenttax.valueCurrent??0;
+    valuePrevious = currenttax.valuePrevious??0;
+  }
+}
+else if (node.key === 'is-tax-def') {
+  const deffered = note34.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note34-oci');
+  if (deffered) {
+    valueCurrent = deffered.valueCurrent??0;
+    valuePrevious = deffered.valuePrevious??0;
+  }
+}
+else if (node.key === 'is-oci-tax') {
+  const benefit = note34.content.find((item): item is HierarchicalItem => 'key' in item && item.key === 'note34-benefit');
+  if (benefit) {
+    valueCurrent = benefit.valueCurrent??0;
+    valuePrevious = benefit.valuePrevious??0;
+  }
+}
+
+
+
+
 
 else if (node.key === 'bs-liab-c-fin-liability') {
   const currentAmount = getAmount('amountCurrent',node.keywords,['short term lease obligation']);
@@ -4432,14 +5220,6 @@ else if (node.key === 'bs-assets-nc-cwip') {
       }
         else if (node.key === 'is-except') {
         valueCurrent = 12166.54;
-      }
-      else if (node.key === 'is-tax-curr') {
-        valueCurrent = 7227.51;
-        valuePrevious = 4540.22;
-      }
-      else if (node.key === 'is-tax-def') {
-        valueCurrent = -1108.27;
-        valuePrevious = -204.21;
       }
       else if (node.key === 'bs-liab-nc') {
         valueCurrent = 2647.07;
