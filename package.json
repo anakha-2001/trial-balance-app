@@ -16,10 +16,15 @@
     "@types/node": "^16.18.126",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "axios": "^1.10.0",
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
     "exceljs": "^4.4.0",
+    "express": "^5.1.0",
     "file-saver": "^2.0.5",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
+    "pg": "^8.16.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.2",
@@ -53,6 +58,8 @@
     ]
   },
   "devDependencies": {
-    "@types/file-saver": "^2.0.7"
+    "@types/cors": "^2.8.19",
+    "@types/file-saver": "^2.0.7",
+    "@types/pg": "^8.15.4"
   }
 }
