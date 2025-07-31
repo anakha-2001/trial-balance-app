@@ -126,8 +126,8 @@ const ColumnMapper: React.FC<Props> = ({ columns, rawData, onConfirm }) => {
         'Level 1 Desc': getValue('Level 1 Desc'),
         'Level 2 Desc': getValue('Level 2 Desc'),
         functionalArea: getValue('functionalArea'),
-        [amountCurrentKey]: cleanAmount(getValue('amountCurrent', 0)),
-        [amountPreviousKey]: cleanAmount(getValue('amountPrevious', 0)),
+        amountCurrent: cleanAmount(getValue('amountCurrent', 0)),
+        amountPrevious: cleanAmount(getValue('amountPrevious', 0)),
       };
     });
     console.log("FInal Mapped Data", mappedData);
