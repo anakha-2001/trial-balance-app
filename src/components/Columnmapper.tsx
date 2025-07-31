@@ -16,6 +16,7 @@ const UserForm = () => {
   const [columns, setColumns] = useState<string[]>([]);
   const [rawData, setRawData] = useState<any[]>([]);
   const [mappedData, setMappedData] = useState<any[]>([]);
+  
 
   
 
@@ -39,7 +40,7 @@ export type MappedRow = {
 type Props = {
   columns: string[];
   rawData: RawRow[];
-  onConfirm: (mappedData: MappedRow[]) => void;
+  onConfirm: (mappedData: MappedRow[],amountCurrentKey: string, amountPreviousKey: string) => void;
 };
 
 const periodTypes = ['Financial Year Ended (FYE)', 'Quarter Ended (QE)', 'Year to Date (YTD)', 'Calendar Year Ended (CYE)'] as const;
@@ -131,7 +132,7 @@ const ColumnMapper: React.FC<Props> = ({ columns, rawData, onConfirm }) => {
       };
     });
     console.log("FInal Mapped Data", mappedData);
-    onConfirm(mappedData);
+    onConfirm(mappedData, amountCurrentKey, amountPreviousKey);
     try {
       await fetch('http://localhost:5000/api/data', {
         method: 'POST',

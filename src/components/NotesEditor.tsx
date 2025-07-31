@@ -1,0 +1,279 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  Button,
+  Paper,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  TextField,
+  AppBar,
+  Toolbar,
+} from '@mui/material';
+import { FinancialNote, HierarchicalItem, TableContent } from './Financialstatement';
+import { formatCurrency } from './Financialstatement';
+import _ from 'lodash';
+
+interface NotesEditorProps {
+  notes: FinancialNote[];
+  onSave: (updatedNotes: FinancialNote[]) => void;
+  onClose: () => void;
+}
+
+// Recalculate totals for hierarchical items
+const recalculateTotals = (items: HierarchicalItem[]): HierarchicalItem[] => {
+  return items.map((item) => {
+    let currentItem = { ...item };
+
+    if (currentItem.children && currentItem.children.length > 0) {
+      const updatedChildren = recalculateTotals(currentItem.children);
+      currentItem.children = updatedChildren;
+
+      if (currentItem.isGrandTotal) {
+        currentItem = {
+          ...currentItem,
+          valueCurrent: currentItem.valueCurrent ?? 0,
+          valuePrevious: currentItem.valuePrevious ?? 0,
+        };
+      }
+    }
+
+    return currentItem;
+  });
+};
+
+const EditableNoteItem: React.FC<{
+  item: HierarchicalItem;
+  onValueChange: (path: string, field: 'valueCurrent' | 'valuePrevious', value: number) => void;
+  path: string;
+}> = ({ item, onValueChange, path }) => {
+  const handleInputChange = (field: 'valueCurrent' | 'valuePrevious', event: React.ChangeEvent<HTMLInputElement>) => {
+    const numericValue = parseFloat(event.target.value) || 0;
+    onValueChange(path, field, numericValue);
+  };
+
+  return (
+    <>
+      <TableRow key={item.key}>
+        <TableCell style={{ paddingLeft: `${item.children ? 20 : 40}px`, fontWeight: item.isSubtotal || item.isGrandTotal ? 'bold' : 'normal' }}>
+          {item.label}
+        </TableCell>
+        <TableCell align="right">
+          {item.isEditableRow && !item.isSubtotal && !item.isGrandTotal ? (
+            <TextField
+              type="number"
+              size="small"
+              variant="outlined"
+              value={item.valueCurrent ?? ''}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('valueCurrent', e)}
+              sx={{ width: '150px' }}
+            />
+          ) : (
+            formatCurrency(item.valueCurrent)
+          )}
+        </TableCell>
+        <TableCell align="right">
+          {item.isEditableRow && !item.isSubtotal && !item.isGrandTotal ? (
+            <TextField
+              type="number"
+              size="small"
+              variant="outlined"
+              value={item.valuePrevious ?? ''}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('valuePrevious', e)}
+              sx={{ width: '150px' }}
+            />
+          ) : (
+            formatCurrency(item.valuePrevious)
+          )}
+        </TableCell>
+      </TableRow>
+      {item.children?.map((child, index) => (
+        <EditableNoteItem
+          key={child.key}
+          item={child}
+          path={`${path}.children[${index}]`}
+          onValueChange={onValueChange}
+        />
+      ))}
+    </>
+  );
+};
+
+const RenderMuiNoteTable = ({ data }: { data: TableContent }) => (
+  <Table size="small" sx={{ mt: 2, mb: 2 }}>
+    <TableHead>
+      <TableRow>
+        {data.headers.map((header, index) => (
+          <TableCell key={index} align={index === 0 ? 'left' : 'right'} sx={{ fontWeight: 'bold' }}>
+            {header}
+          </TableCell>
+        ))}
+      </TableRow>
+    </TableHead>
+    <TableBody>
+      {data.rows.map((row, rowIndex) => (
+        <TableRow key={rowIndex}>
+          {row.map((cell, cellIndex) => (
+            <TableCell key={cellIndex} align={cellIndex === 0 ? 'left' : 'right'}>
+              {cell}
+            </TableCell>
+          ))}
+        </TableRow>
+      ))}
+    </TableBody>
+  </Table>
+);
+
+const NotesEditor: React.FC<NotesEditorProps> = ({ notes, onSave, onClose }) => {
+  const [editableNotes, setEditableNotes] = useState<FinancialNote[]>(() => _.cloneDeep(notes));
+
+  useEffect(() => {
+    setEditableNotes(_.cloneDeep(notes));
+  }, [notes]);
+
+  const handleValueChange = (noteIndex: number, path: string, field: 'valueCurrent' | 'valuePrevious', value: number) => {
+    setEditableNotes((prevNotes) => {
+      const newNotes = _.cloneDeep(prevNotes);
+      const noteToUpdate = newNotes[noteIndex];
+
+      _.set(noteToUpdate.content, `${path}.${field}`, value);
+
+      const hierarchicalContent = noteToUpdate.content.filter(
+        (c: HierarchicalItem | TableContent | string): c is HierarchicalItem => typeof c !== 'string' && 'key' in c
+      );
+      const recalculatedContent = recalculateTotals(hierarchicalContent);
+
+      noteToUpdate.totalCurrent = _.sumBy(
+        recalculatedContent.filter((i) => i.isSubtotal || !i.children),
+        (item: HierarchicalItem) => Number(item.valueCurrent ?? 0)
+      );
+      noteToUpdate.totalPrevious = _.sumBy(
+        recalculatedContent.filter((i) => i.isSubtotal || !i.children),
+        (item: HierarchicalItem) => Number(item.valuePrevious ?? 0)
+      );
+
+      let reconIdx = 0;
+      noteToUpdate.content = noteToUpdate.content.map((c: HierarchicalItem | TableContent | string) =>
+        typeof c !== 'string' && 'key' in c ? recalculatedContent[reconIdx++] : c
+      );
+
+      return newNotes;
+    });
+  };
+
+  const handleSave = () => {
+    const filteredNotes = editableNotes.map((note) => {
+      const filteredContent = note.content.map((item: HierarchicalItem | TableContent | string) => {
+        if (typeof item !== 'string' && 'key' in item) {
+          const filterItem = (hierarchicalItem: HierarchicalItem): HierarchicalItem => {
+            const newItem = { ...hierarchicalItem };
+            if (!newItem.isEditableRow || newItem.isSubtotal || newItem.isGrandTotal) {
+              newItem.valueCurrent = null;
+              newItem.valuePrevious = null;
+            }
+            if (newItem.children) {
+              newItem.children = newItem.children.map(filterItem);
+            }
+            return newItem;
+          };
+          return filterItem(item);
+        }
+        return item;
+      });
+
+      return {
+        ...note,
+        content: filteredContent,
+        totalCurrent: 0,
+        totalPrevious: 0,
+      };
+    });
+
+    console.log('filteredNotes', filteredNotes);
+    onSave(filteredNotes);
+  };
+
+  return (
+    <Box sx={{ p: 3 }}>
+      <AppBar position="sticky">
+        <Toolbar>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            Edit Financial Notes
+          </Typography>
+          <Button color="inherit" onClick={handleSave} variant="contained">
+            Save Changes
+          </Button>
+          <Button color="inherit" onClick={onClose} sx={{ ml: 2 }}>
+            Close
+          </Button>
+        </Toolbar>
+      </AppBar>
+      <Box sx={{ mt: 8 }}> {/* Offset for AppBar */}
+        {editableNotes.map((note, noteIndex) => (
+          <Paper key={note.noteNumber} sx={{ mb: 3, p: 2 }}>
+            <Typography variant="h5" gutterBottom>
+              Note {note.noteNumber}: {note.title}
+            </Typography>
+            {note.subtitle && (
+              <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+                {note.subtitle}
+              </Typography>
+            )}
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Particulars</TableCell>
+                  <TableCell align="right">Current Year</TableCell>
+                  <TableCell align="right">Previous Year</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {note.content.map((item: HierarchicalItem | TableContent | string, itemIndex) => {
+                  if (typeof item === 'string') {
+                    return (
+                      <TableRow key={`string-${itemIndex}`}>
+                        <TableCell colSpan={3}>
+                          <Typography variant="caption" color="text.secondary">
+                            {item}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  } else if ('type' in item && item.type === 'table') {
+                    return (
+                      <TableRow key={`table-${itemIndex}`}>
+                        <TableCell colSpan={3} sx={{ p: 0 }}>
+                          <RenderMuiNoteTable data={item as TableContent} />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  } else if ('key' in item) {
+                    return (
+                      <EditableNoteItem
+                        key={item.key}
+                        item={item}
+                        path={`${itemIndex}`}
+                        onValueChange={(path, field, value) => handleValueChange(noteIndex, path, field, value)}
+                      />
+                    );
+                  }
+                  return null;
+                })}
+              </TableBody>
+            </Table>
+            {note.footer && (
+              <Typography variant="caption" sx={{ mt: 2, display: 'block' }}>
+                {note.footer}
+              </Typography>
+            )}
+          </Paper>
+        ))}
+      </Box>
+    </Box>
+  );
+};
+
+export default NotesEditor;
