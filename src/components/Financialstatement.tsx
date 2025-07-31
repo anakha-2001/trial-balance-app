@@ -18,6 +18,9 @@ import {
 import { saveAs } from 'file-saver';
 import ExcelJS, { Worksheet, Border, Fill } from 'exceljs';
 import { PDFViewer, Page, Text, View, Document, StyleSheet, PDFDownloadLink, Link } from '@react-pdf/renderer';
+import NotesEditor from './NotesEditor';
+import { createPortal } from 'react-dom';
+import { on } from 'events';
 
 // --- 1. TYPE DEFINITIONS (FIXED) ---
 
@@ -30,7 +33,7 @@ interface MappedRow {
   amountPrevious?: number;
 }
 // Represents a table within a policy note.
-interface TableContent {
+export interface TableContent {
   type: 'table';
   headers: string[];
   rows: string[][];
@@ -53,13 +56,14 @@ interface TemplateItem {
   id?: string;
 }
 // Represents the final, processed item with calculated values.
-interface HierarchicalItem extends TemplateItem {
+export interface HierarchicalItem extends TemplateItem {
   valueCurrent: number | null;
   valuePrevious: number | null;
+  isEditableRow?: boolean;
   footer?: string;
   children?: HierarchicalItem[];
 }
-interface FinancialNote {
+export interface FinancialNote {
     noteNumber: number;
     title: string;
     subtitle?: string;
@@ -81,7 +85,7 @@ interface FinancialData {
   accountingPolicies: AccountingPolicy[];
 }
 // --- 2. STYLING & FORMATTING HELPERS ---
-const formatCurrency = (amount: number | null) => {
+export const formatCurrency = (amount: number | null) => {
   if (amount === null || typeof amount === 'undefined' || isNaN(amount)) {
     return '';
   }
@@ -524,7 +528,7 @@ const ACCOUNTING_POLICIES_CONTENT: AccountingPolicy[] = [
     },
 ];
 // --- 4. CORE DATA PROCESSING HOOK (FIXED) ---
-const useFinancialData = (rawData: MappedRow[]): FinancialData => {
+const useFinancialData = (rawData: MappedRow[], editedNotes: FinancialNote[] | null): FinancialData => {
   return useMemo(() => {
     const enrichedData = rawData.map(row => ({ ...row, amountCurrent: row.amountCurrent || 0, amountPrevious: row.amountPrevious || 0 }));
 
@@ -554,7 +558,38 @@ const getAmount = (
 
     return sum;
   }, 0);
+  
 };
+
+
+const getValueForKey = (
+  noteKey: number,
+  itemKey: string
+): { valueCurrent: number | null; valuePrevious: number | null } => {
+  const editedNote = editedNotes?.find((n) => n.noteNumber === noteKey);
+  if (!editedNote) return { valueCurrent: null, valuePrevious: null };
+
+  const findItem = (items: (HierarchicalItem | TableContent | string)[]): { valueCurrent: number | null; valuePrevious: number | null } => {
+    for (const item of items) {
+      if (typeof item !== 'string' && 'key' in item && item.key === itemKey) {
+        return {
+          valueCurrent: item.valueCurrent != null ? Number(item.valueCurrent) : null,
+          valuePrevious: item.valuePrevious != null ? Number(item.valuePrevious) : null,
+        };
+      }
+      if (typeof item !== 'string' && 'children' in item && item.children) {
+        const childValue = findItem(item.children);
+        if (childValue.valueCurrent !== null || childValue.valuePrevious !== null) {
+          return childValue;
+        }
+      }
+    }
+    return { valueCurrent: null, valuePrevious: null };
+  };
+
+  return findItem(editedNote.content);
+};
+
 
   const totals = new Map<string, { current: number, previous: number }>();
 
@@ -997,16 +1032,10 @@ inCOMTAS2.push(calculateRowTotal(inCOMTAS2));
   };
 };
 const calculateNote5 = (): FinancialNote => {
-
-  const nonCurrentTotal = {
-    current: 3.79,
-    previous: 6.36,
-  };
-
-  const currentTotal = {
-    current: 6.39,
-    previous: 2.73,
-  };
+  const note5_1 = getValueForKey(5, 'note5-nc-emp');
+  const note5_2 = getValueForKey(5, 'note5-c-emp');
+  const nonCurrentTotal = { current: note5_1.valueCurrent??0, previous: note5_1.valuePrevious??0 };
+  const currentTotal = { current:note5_2.valueCurrent??0, previous:note5_2.valuePrevious??0 };
 
   return {
     noteNumber: 5,
@@ -1038,7 +1067,7 @@ const calculateNote5 = (): FinancialNote => {
             key: 'note5-nc-emp',
             label: '  - Loans to employees',
             valueCurrent: nonCurrentTotal.current,
-            valuePrevious: nonCurrentTotal.previous,
+            valuePrevious: nonCurrentTotal.previous,isEditableRow: true 
           },
           {
             key: 'note5-nc-emp-total',
@@ -1066,7 +1095,7 @@ const calculateNote5 = (): FinancialNote => {
             key: 'note5-c-emp',
             label: '  - Loans to employees',
             valueCurrent: currentTotal.current,
-            valuePrevious: currentTotal.previous,
+            valuePrevious: currentTotal.previous,isEditableRow: true 
           },
           {
             key: 'note5-c-emp-total',
@@ -1203,27 +1232,23 @@ const calculateNote6 = (): FinancialNote => {
   };
 };
 const calculateNote7 = (): FinancialNote => {
-  // --- Calculations remain the same ---
-  const taxPaidUnderProtest = {
-    current: 837.77,
-    previous: 837.77,
-  };
-  const advanceTaxAndTDSLiab = {
-    current: 7174.68,
-    previous: 7174.68,
-  };
-  const provisionForTaxLiab = {
-    current: 9868.96,
-    previous: 9868.96,
-  };
-  const advanceTaxAndTDS = {
-    current: 46724.73,
-    previous:38257.70, 
-  };
-  const provisionForTaxAsset = {
-    current: 38604.49,
-    previous: 31376.99,
-  };
+  const note7_1 = getValueForKey(7, 'note7-under-protest');
+  const note7_2 = getValueForKey(7, 'note7a-adv-tds');
+  const note7_3 = getValueForKey(7, 'note7a-provision');
+  const note7_4 = getValueForKey(7, 'note7-adv-tax');
+  const note7_5 = getValueForKey(7, 'note7-provision');
+
+
+
+  const taxPaidUnderProtest = { current:note7_1.valueCurrent?? 0, previous:note7_1.valuePrevious?? 0 };
+  const advanceTaxAndTDSLiab = { current:note7_2.valueCurrent?? 0, previous:note7_2.valuePrevious?? 0 };
+  const provisionForTaxLiab = { current:note7_3.valueCurrent?? 0, previous:note7_3.valuePrevious?? 0 };
+  const advanceTaxAndTDS = { current:note7_4.valueCurrent?? 0, previous:note7_4.valuePrevious?? 0 };
+  const provisionForTaxAsset = { current:note7_5.valueCurrent?? 0, previous:note7_5.valuePrevious?? 0 };
+
+
+
+  
   const netTaxAsset = {
     current: advanceTaxAndTDS.current - provisionForTaxAsset.current,
     previous: advanceTaxAndTDS.previous - provisionForTaxAsset.previous,
@@ -1259,6 +1284,7 @@ const calculateNote7 = (): FinancialNote => {
                 label: 'Income tax paid under protest',
                 valueCurrent: taxPaidUnderProtest.current,
                 valuePrevious: taxPaidUnderProtest.previous,
+                isEditableRow: true
               },
               {
             key: 'note7-under-protest-total',
@@ -1280,12 +1306,14 @@ const calculateNote7 = (): FinancialNote => {
                 label: 'Advance tax and TDS',
                 valueCurrent: advanceTaxAndTDS.current,
                 valuePrevious: advanceTaxAndTDS.previous,
+                isEditableRow: true
               },
               {
                 key: 'note7-provision',
                 label: 'Less: Provision for tax',
                 valueCurrent: provisionForTaxAsset.current,
                 valuePrevious: provisionForTaxAsset.previous,
+                isEditableRow: true
               },
               {
             key: 'note7-breakup-total',
@@ -1331,12 +1359,14 @@ const calculateNote7 = (): FinancialNote => {
                 label: 'Provision for tax',
                 valueCurrent: provisionForTaxLiab.current,
                 valuePrevious: provisionForTaxLiab.previous,
+                isEditableRow: true
               },
               {
                 key: 'note7a-adv-tds',
                 label: 'Less: Advance tax and TDS',
                 valueCurrent: advanceTaxAndTDSLiab.current,
                 valuePrevious: advanceTaxAndTDSLiab.previous,
+                isEditableRow: true
               },
               {
             key: 'note7a-breakup-total',
@@ -7348,7 +7378,7 @@ else if (node.key==='cf-cce-total'){
       notes: allNotes,
       accountingPolicies: ACCOUNTING_POLICIES_CONTENT,
     };
-  }, [rawData]);
+  }, [rawData,editedNotes]);
 };
 // --- 5. UI COMPONENTS ---
 const DrillDownTable = ({ title, data, expandedKeys, onToggleRow }: { title: string; data: HierarchicalItem[]; expandedKeys: Set<string>; onToggleRow: (key: string) => void; }) => {
@@ -7930,13 +7960,109 @@ const getAllExpandableKeys = (items: HierarchicalItem[]): string[] => {
   });
   return keys;
 };
+
+
+interface ManualJE {
+  id: number;
+  glAccount: string;
+  "Financial Year Ended (FYE) 2023-03-31": string;
+  "Financial Year Ended (FYE) 2024-03-31": string;
+}
+
+interface RenamedData {
+  Level1Desc: string;
+  Level2Desc: string;
+  accountType: string;
+  amountCurrent: number;
+  amountPrevious: number;
+  createdby: string;
+  functionalArea: string;
+  glAccount: number;  
+}
+
+
+
+
+export const joinManualJEAndRenamedData = (
+  manualJE: ManualJE[],
+  renamedData: RenamedData[]
+): RenamedData[] => {
+  return renamedData.map((row) => {
+    // Find matching manualJE record
+    const je = manualJE.find((je) => je.glAccount === row.glAccount.toString());
+    
+    // If no match, return original row
+    if (!je) {
+      return row;
+    }
+
+    // Apply adjustments from manualJE
+    const currentAdjustment = parseFloat(je["Financial Year Ended (FYE) 2024-03-31"]) || 0;
+    const previousAdjustment = parseFloat(je["Financial Year Ended (FYE) 2023-03-31"]) || 0;
+
+    return {
+      ...row,
+      amountCurrent: row.amountCurrent + currentAdjustment,
+      amountPrevious: row.amountPrevious + previousAdjustment,
+    };
+  });
+};
 // --- 7. MAIN APPLICATION COMPONENT ---
-const FinancialStatements: React.FC<{ data: MappedRow[] }> = ({ data }) => {
+interface FinancialStatementsProps {
+  data: MappedRow[];
+  amountKeys: { amountCurrentKey: string; amountPreviousKey: string };
+}
+const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, amountKeys }) => {
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [isPdfModalOpen, setPdfModalOpen] = useState(false);
   const [isExcelConfirmOpen, setExcelConfirmOpen] = useState(false);
-  const financialData = useFinancialData(data);
-  console.log("mappedData",data)
+  const [editedNotes, setEditedNotes] = useState<FinancialNote[]>([]); // Initialize as empty array
+  const [isNotesEditorOpen, setNotesEditorOpen] = useState(false);
+  const [editorContainer, setEditorContainer] = useState<HTMLElement | null>(null);
+  const [manualJE, setManualJE] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchJEs = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/journal/updated');
+        const data = await response.json();
+        setManualJE(data);
+      } catch (error) {
+        console.error('Error fetching journal entry:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJEs();
+  }, []);
+console.log("manualJE",manualJE)
+
+  // Move hooks to top level
+  const renamedData = data.map(row => {
+    const currentValue = row[amountKeys.amountCurrentKey];
+    const previousValue = row[amountKeys.amountPreviousKey];
+    const amountCurrent = typeof currentValue === 'string' || typeof currentValue === 'number'
+      ? parseFloat(currentValue as string)
+      : 0;
+    const amountPrevious = typeof previousValue === 'string' || typeof previousValue === 'number'
+      ? parseFloat(previousValue as string)
+      : 0;
+
+    const { [amountKeys.amountCurrentKey]: _, [amountKeys.amountPreviousKey]: __, ...rest } = row;
+
+    return {
+      ...rest,
+      amountCurrent: isNaN(amountCurrent) ? 0 : amountCurrent,
+      amountPrevious: isNaN(amountPrevious) ? 0 : amountPrevious,
+    };
+  });
+
+  
+
+  console.log('renamedData', renamedData);
+  const financialData = useFinancialData(renamedData, editedNotes);
 
   const allExpandableKeys = useMemo(() => {
     const bsKeys = getAllExpandableKeys(financialData.balanceSheet);
@@ -7944,6 +8070,11 @@ const FinancialStatements: React.FC<{ data: MappedRow[] }> = ({ data }) => {
     const cfKeys = getAllExpandableKeys(financialData.cashFlow);
     return [...bsKeys, ...isKeys, ...cfKeys];
   }, [financialData]);
+
+  // Render loading state in JSX
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   const handleToggleRow = (key: string) => {
     setExpandedKeys(prev => {
@@ -7966,6 +8097,48 @@ const FinancialStatements: React.FC<{ data: MappedRow[] }> = ({ data }) => {
     }
   };
 
+  const handleEditNotes = () => {
+    const newWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+    if (newWindow) {
+      newWindow.document.title = 'Edit Financial Notes';
+      const container = newWindow.document.createElement('div');
+      newWindow.document.body.appendChild(container);
+      newWindow.document.body.style.margin = '0';
+
+      const styles = Array.from(document.getElementsByTagName('style'));
+      styles.forEach(style => {
+        newWindow.document.head.appendChild(style.cloneNode(true));
+      });
+      const links = Array.from(document.getElementsByTagName('link'));
+      links.forEach(link => {
+        if (link.rel === 'stylesheet') {
+          newWindow.document.head.appendChild(link.cloneNode(true));
+        }
+      });
+
+      setEditorContainer(container);
+      setNotesEditorOpen(true);
+
+      newWindow.addEventListener('beforeunload', () => {
+        setNotesEditorOpen(false);
+        setEditorContainer(null);
+      });
+    }
+  };
+
+  const handleCloseEditor = () => {
+    if (editorContainer) {
+      const editorWindow = editorContainer.ownerDocument.defaultView;
+      editorWindow?.close();
+    }
+    setNotesEditorOpen(false);
+    setEditorContainer(null);
+  };
+
+  const handleSaveChanges = (updatedNotes: FinancialNote[]) => {
+    setEditedNotes(updatedNotes);
+    handleCloseEditor();
+  };
 
   return (
     <Box sx={{ p: 2 }}>
@@ -7978,10 +8151,23 @@ const FinancialStatements: React.FC<{ data: MappedRow[] }> = ({ data }) => {
         >
           {expandedKeys.size === allExpandableKeys.length ? 'Collapse All' : 'Expand All'}
         </Button>
+        <Button variant="contained" color="info" onClick={handleEditNotes}>
+          Edit Notes
+        </Button>
       </Box>
+      {isNotesEditorOpen && editorContainer && (
+        createPortal(
+          <NotesEditor
+            notes={financialData.notes}
+            onSave={handleSaveChanges}
+            onClose={handleCloseEditor}
+          />,
+          editorContainer
+        )
+      )}
 
       <DrillDownTable title="Balance Sheet" data={financialData.balanceSheet} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} />
-      <DrillDownTable title="Statement of Profit and Loss" data={financialData.incomeStatement} expandedKeys={expandedKeys} onToggleRow={handleToggleRow}/>
+      <DrillDownTable title="Statement of Profit and Loss" data={financialData.incomeStatement} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} />
       <DrillDownTable title="Cash Flow Statement" data={financialData.cashFlow} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} />
 
       <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'center' }}>
@@ -8001,4 +8187,5 @@ const FinancialStatements: React.FC<{ data: MappedRow[] }> = ({ data }) => {
     </Box>
   );
 };
+
 export default FinancialStatements;

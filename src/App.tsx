@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ExcelUpload from './components/Excelupload';
-import ColumnMapper from './components/Columnmapper';
+import ColumnMapper, { MappedRow } from './components/Columnmapper';
 import FinancialStatements from './components/Financialstatement';
 import AdjustmentJournalPage from './components/AdjustmentJournalPage';   
 import {
@@ -28,7 +28,10 @@ const App: React.FC = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [currentPage, setCurrentPage] = useState<'main' | 'adjustment'>('main');
-
+  const [amountKeys, setAmountKeys] = useState<{ amountCurrentKey: string; amountPreviousKey: string }>({
+    amountCurrentKey: '',
+    amountPreviousKey: '',
+  });
 
   const columns = excelData.length > 0 ? Object.keys(excelData[0]) : [];
 
@@ -40,6 +43,15 @@ const App: React.FC = () => {
   const handleThemeToggle = () => {
     setDarkMode((prev) => !prev);
   };
+
+  const handleConfirm = (
+  mappedData: MappedRow[],
+  amountCurrentKey: string,
+  amountPreviousKey: string
+) => {
+  setMappedData(mappedData);
+  setAmountKeys({ amountCurrentKey, amountPreviousKey });
+};
 
   const appTheme = createTheme({
     palette: {
@@ -178,7 +190,7 @@ const App: React.FC = () => {
               <ColumnMapper
                 columns={columns}
                 rawData={excelData}
-                onConfirm={setMappedData}
+                onConfirm={handleConfirm}
               />
             </Paper>
           )}
@@ -195,7 +207,7 @@ const App: React.FC = () => {
           {/* Financial Statements Output */}
           {mappedData.length > 0 && (
             <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-              <FinancialStatements data={mappedData} />
+              <FinancialStatements data={mappedData} amountKeys={amountKeys} />
             </Paper>
           )}
         </Box>
