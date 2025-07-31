@@ -1,8 +1,12 @@
-// Represents a single row the user has added to the UI
+// New type for the data fetched from the backend
+export interface GLAccountInfo {
+  glAccount: string;
+  glName: string;
+}
+
 export interface JournalRow {
-  id: string; // Unique ID for React key
+  id: string; 
   selectedGlAccount: string | null;
   transactionType: 'Debit' | 'Credit';
-  // The amounts keyed by the period name, e.g., { "January": 100, "February": 250 }
   amounts: Record<string, number | string>; 
 }

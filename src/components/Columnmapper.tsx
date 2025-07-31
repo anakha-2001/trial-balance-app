@@ -26,7 +26,7 @@ type RawRow = Record<string, any>;
 
 // The final, clean data structure expected by the financial statements component.
 export type MappedRow = {
-  createdby: string;
+  glName: string;
   glAccount: string;
   accountType: string;
   'Level 1 Desc': string;
@@ -58,7 +58,7 @@ const ColumnMapper: React.FC<Props> = ({ columns, rawData, onConfirm }) => {
   // --- UPDATED: Fields are now configured with aliases from your specific file ---
   const fields: { key: keyof MappedRow; label: string; aliases: string[] }[] = [
     { key: 'glAccount', label: 'G/L Account', aliases: ['Account Code', 'G/L Account', 'G/L Acct'] },
-    { key: 'createdby', label: 'GL Description', aliases: ['Name', 'Created by'] },
+    { key: 'glName', label: 'GL Description', aliases: ['Name', 'Created by'] },
     { key: 'Level 1 Desc', label: 'Level 1 Description', aliases: ['Level 1 grouping', 'Level 1 Desc'] },
     { key: 'Level 2 Desc', label: 'Level 2 Description', aliases: ['Level 2 grouping', 'Level 2 Desc'] },
     { key: 'accountType', label: 'Account Type', aliases: ['Nature', 'P&L Statement Acct Type'] },
@@ -120,7 +120,7 @@ const ColumnMapper: React.FC<Props> = ({ columns, rawData, onConfirm }) => {
       };
 
       return {
-        createdby: getValue('createdby'),
+        glName: getValue('glName'),
         glAccount: getValue('glAccount'),
         accountType: getValue('accountType'),
         'Level 1 Desc': getValue('Level 1 Desc'),
