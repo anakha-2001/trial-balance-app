@@ -21,6 +21,7 @@ import { PDFViewer, Page, Text, View, Document, StyleSheet, PDFDownloadLink, Lin
 import NotesEditor from './NotesEditor';
 import { createPortal } from 'react-dom';
 import { on } from 'events';
+import { useNavigate } from 'react-router-dom';
 
 // --- 1. TYPE DEFINITIONS (FIXED) ---
 
@@ -7381,15 +7382,21 @@ else if (node.key==='cf-cce-total'){
   }, [rawData,editedNotes]);
 };
 // --- 5. UI COMPONENTS ---
-const DrillDownTable = ({ title, data, expandedKeys, onToggleRow }: { title: string; data: HierarchicalItem[]; expandedKeys: Set<string>; onToggleRow: (key: string) => void; }) => {
-    const renderRow = (row: HierarchicalItem, depth: number) => {
+const DrillDownTable = ({ title, data, expandedKeys, onToggleRow,handleEditNotes, }: {
+  title: string;
+  data: HierarchicalItem[];
+  expandedKeys: Set<string>;
+  onToggleRow: (key: string) => void;
+  handleEditNotes: (note?: number | string) => void; // Pass note number if needed
+}) => {
+  const navigate = useNavigate();  
+  const renderRow = (row: HierarchicalItem, depth: number) => {
       const hasChildren = row.children && row.children.length > 0;
       const rowStyles: any = {};
       const cellStyles: any = {
         fontWeight: depth === 0 || row.isSubtotal || row.isGrandTotal ? 'bold' : 'normal',
         verticalAlign: 'middle',
       };
-
       if (depth === 0) {
         rowStyles.backgroundColor = '#f0f0f0';
         cellStyles.borderTop = `1px solid #ccc`;
@@ -7403,6 +7410,7 @@ const DrillDownTable = ({ title, data, expandedKeys, onToggleRow }: { title: str
         cellStyles.borderTop = `2px solid #333`;
         cellStyles.borderBottom = `2px solid #333`;
       }
+      
 
       return (
         <Fragment key={row.key}>
@@ -7415,7 +7423,19 @@ const DrillDownTable = ({ title, data, expandedKeys, onToggleRow }: { title: str
                         {row.label}
                     </Box>
                 </TableCell>
-                <TableCell align="center" sx={cellStyles}>{row.note}</TableCell>
+                <TableCell
+  align="center"
+  sx={{
+    ...cellStyles,
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    color: 'primary.main',
+  }}
+  onClick={() => handleEditNotes(row.note)}
+>
+  {row.note}
+</TableCell>
+
                 <TableCell align="right" sx={cellStyles}>{formatCurrency(row.valueCurrent)}</TableCell>
                 <TableCell align="right" sx={cellStyles}>{formatCurrency(row.valuePrevious)}</TableCell>
             </TableRow>
@@ -8021,6 +8041,7 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, amountK
   const [editorContainer, setEditorContainer] = useState<HTMLElement | null>(null);
   const [manualJE, setManualJE] = useState([]);
   const [loading, setLoading] = useState(true);
+  
 
   useEffect(() => {
     const fetchJEs = async () => {
@@ -8097,34 +8118,49 @@ console.log("manualJE",manualJE)
     }
   };
 
-  const handleEditNotes = () => {
-    const newWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-    if (newWindow) {
-      newWindow.document.title = 'Edit Financial Notes';
-      const container = newWindow.document.createElement('div');
-      newWindow.document.body.appendChild(container);
-      newWindow.document.body.style.margin = '0';
+const handleEditNotes = (noteId?: number | string) => {
+  const newWindow = window.open('', '_blank', 'width=1400,height=800,scrollbars=yes,resizable=yes');
 
-      const styles = Array.from(document.getElementsByTagName('style'));
-      styles.forEach(style => {
-        newWindow.document.head.appendChild(style.cloneNode(true));
-      });
-      const links = Array.from(document.getElementsByTagName('link'));
-      links.forEach(link => {
-        if (link.rel === 'stylesheet') {
-          newWindow.document.head.appendChild(link.cloneNode(true));
-        }
-      });
+  if (newWindow) {
+    newWindow.document.title = 'Edit Financial Notes';
 
-      setEditorContainer(container);
-      setNotesEditorOpen(true);
+    const container = newWindow.document.createElement('div');
+    newWindow.document.body.appendChild(container);
+    newWindow.document.body.style.margin = '0';
 
-      newWindow.addEventListener('beforeunload', () => {
-        setNotesEditorOpen(false);
-        setEditorContainer(null);
-      });
+    // Clone styles and links
+    const styles = Array.from(document.getElementsByTagName('style'));
+    styles.forEach(style => {
+      newWindow.document.head.appendChild(style.cloneNode(true));
+    });
+
+    const links = Array.from(document.getElementsByTagName('link'));
+    links.forEach(link => {
+      if (link.rel === 'stylesheet') {
+        newWindow.document.head.appendChild(link.cloneNode(true));
+      }
+    });
+
+    // Set container and open editor
+    setEditorContainer(container);
+    setNotesEditorOpen(true);
+
+    // Pass selected note to global state or storage
+    if (noteId) {
+      localStorage.setItem('selectedNoteId', noteId.toString());
+    } else {
+      localStorage.removeItem('selectedNoteId');
     }
-  };
+
+    // Handle cleanup
+    newWindow.addEventListener('beforeunload', () => {
+      setNotesEditorOpen(false);
+      setEditorContainer(null);
+      localStorage.removeItem('selectedNoteId');
+    });
+  }
+};
+
 
   const handleCloseEditor = () => {
     if (editorContainer) {
@@ -8151,7 +8187,7 @@ console.log("manualJE",manualJE)
         >
           {expandedKeys.size === allExpandableKeys.length ? 'Collapse All' : 'Expand All'}
         </Button>
-        <Button variant="contained" color="info" onClick={handleEditNotes}>
+        <Button variant="contained" color="info" onClick={() => handleEditNotes()}>
           Edit Notes
         </Button>
       </Box>
@@ -8166,9 +8202,9 @@ console.log("manualJE",manualJE)
         )
       )}
 
-      <DrillDownTable title="Balance Sheet" data={financialData.balanceSheet} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} />
-      <DrillDownTable title="Statement of Profit and Loss" data={financialData.incomeStatement} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} />
-      <DrillDownTable title="Cash Flow Statement" data={financialData.cashFlow} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} />
+      <DrillDownTable title="Balance Sheet" data={financialData.balanceSheet} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} handleEditNotes={handleEditNotes}/>
+      <DrillDownTable title="Statement of Profit and Loss" data={financialData.incomeStatement} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} handleEditNotes={handleEditNotes} />
+      <DrillDownTable title="Cash Flow Statement" data={financialData.cashFlow} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} handleEditNotes={handleEditNotes}/>
 
       <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'center' }}>
         <Button variant="contained" color="primary" onClick={() => setExcelConfirmOpen(true)}>

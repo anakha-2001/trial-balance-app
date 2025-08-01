@@ -4,9 +4,10 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
-// MUI Theme
 import { ThemeProvider, CssBaseline } from '@mui/material';
-import theme from './Theme'; // ✅ Make sure this file exists
+import theme from './Theme';
+
+import { BrowserRouter } from 'react-router-dom'; // ✅ Import this
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -14,10 +15,12 @@ const root = ReactDOM.createRoot(
 
 root.render(
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <App />
-    </ThemeProvider>
+    <BrowserRouter> {/* ✅ Wrap the entire app */}
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <App />
+      </ThemeProvider>
+    </BrowserRouter>
   </React.StrictMode>
 );
 

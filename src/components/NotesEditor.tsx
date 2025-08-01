@@ -17,6 +17,7 @@ import { FinancialNote, HierarchicalItem, TableContent } from './Financialstatem
 import { formatCurrency } from './Financialstatement';
 import _ from 'lodash';
 
+
 interface NotesEditorProps {
   notes: FinancialNote[];
   onSave: (updatedNotes: FinancialNote[]) => void;
@@ -129,9 +130,24 @@ const RenderMuiNoteTable = ({ data }: { data: TableContent }) => (
 
 const NotesEditor: React.FC<NotesEditorProps> = ({ notes, onSave, onClose }) => {
   const [editableNotes, setEditableNotes] = useState<FinancialNote[]>(() => _.cloneDeep(notes));
+   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  
 
   useEffect(() => {
     setEditableNotes(_.cloneDeep(notes));
+    
+    const noteId = localStorage.getItem('selectedNoteId');
+    setSelectedNoteId(noteId); // ← store for filtering
+    if (noteId) {
+      // Scroll to it after rendering
+      setTimeout(() => {
+        const el = document.querySelector(`[data-note-id="${noteId}"]`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+          el.classList.add('highlight');
+        }
+      }, 300);
+    }
   }, [notes]);
 
   const handleValueChange = (noteIndex: number, path: string, field: 'valueCurrent' | 'valuePrevious', value: number) => {
@@ -212,8 +228,8 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ notes, onSave, onClose }) => 
         </Toolbar>
       </AppBar>
       <Box sx={{ mt: 8 }}> {/* Offset for AppBar */}
-        {editableNotes.map((note, noteIndex) => (
-          <Paper key={note.noteNumber} sx={{ mb: 3, p: 2 }}>
+        {editableNotes .filter(note => !selectedNoteId || String(note.noteNumber) === selectedNoteId) .map((note, noteIndex) => (
+          <Paper key={note.noteNumber} sx={{ mb: 3, p: 2 }} data-note-id={note.noteNumber}>
             <Typography variant="h5" gutterBottom>
               Note {note.noteNumber}: {note.title}
             </Typography>
