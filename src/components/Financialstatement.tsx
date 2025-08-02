@@ -7424,17 +7424,17 @@ const DrillDownTable = ({ title, data, expandedKeys, onToggleRow,handleEditNotes
                     </Box>
                 </TableCell>
                 <TableCell
-  align="center"
-  sx={{
-    ...cellStyles,
-    cursor: 'pointer',
-    textDecoration: 'underline',
-    color: 'primary.main',
-  }}
-  onClick={() => handleEditNotes(row.note)}
->
-  {row.note}
-</TableCell>
+          align="center"
+          sx={{
+            ...cellStyles,
+            cursor: 'pointer',
+            textDecoration: 'underline',
+            color: 'primary.main',
+          }}
+          onClick={() => handleEditNotes(row.note)}
+        >
+          {row.note}
+        </TableCell>
 
                 <TableCell align="right" sx={cellStyles}>{formatCurrency(row.valueCurrent)}</TableCell>
                 <TableCell align="right" sx={cellStyles}>{formatCurrency(row.valuePrevious)}</TableCell>
@@ -7983,33 +7983,23 @@ const getAllExpandableKeys = (items: HierarchicalItem[]): string[] => {
 
 
 interface ManualJE {
-  id: number;
   glAccount: string;
-  "Financial Year Ended (FYE) 2023-03-31": string;
-  "Financial Year Ended (FYE) 2024-03-31": string;
+  [key: string]: string | number;
 }
-
-interface RenamedData {
-  Level1Desc: string;
-  Level2Desc: string;
-  accountType: string;
-  amountCurrent: number;
-  amountPrevious: number;
-  createdby: string;
-  functionalArea: string;
-  glAccount: number;  
-}
-
-
-
 
 export const joinManualJEAndRenamedData = (
+  renamedData: MappedRow[],
   manualJE: ManualJE[],
-  renamedData: RenamedData[]
-): RenamedData[] => {
+  amountKeys: { amountCurrentKey: string; amountPreviousKey: string }
+): MappedRow[] => {
   return renamedData.map((row) => {
+    // Ensure glAccount exists
+    if (!row.glAccount) {
+      return row;
+    }
+
     // Find matching manualJE record
-    const je = manualJE.find((je) => je.glAccount === row.glAccount.toString());
+    const je = manualJE.find((je) => je.glAccount === row.glAccount?.toString());
     
     // If no match, return original row
     if (!je) {
@@ -8017,16 +8007,17 @@ export const joinManualJEAndRenamedData = (
     }
 
     // Apply adjustments from manualJE
-    const currentAdjustment = parseFloat(je["Financial Year Ended (FYE) 2024-03-31"]) || 0;
-    const previousAdjustment = parseFloat(je["Financial Year Ended (FYE) 2023-03-31"]) || 0;
+    const currentAdjustment = parseFloat(je[amountKeys.amountCurrentKey] as string) || 0;
+    const previousAdjustment = parseFloat(je[amountKeys.amountPreviousKey] as string) || 0;
 
     return {
       ...row,
-      amountCurrent: row.amountCurrent + currentAdjustment,
-      amountPrevious: row.amountPrevious + previousAdjustment,
+      amountCurrent: ((row.amountCurrent || 0) + currentAdjustment) as number | undefined,
+      amountPrevious: ((row.amountPrevious || 0) + previousAdjustment) as number | undefined,
     };
   });
 };
+
 // --- 7. MAIN APPLICATION COMPONENT ---
 interface FinancialStatementsProps {
   data: MappedRow[];
@@ -8080,9 +8071,9 @@ console.log("manualJE",manualJE)
     };
   });
 
-  
+  const renamedData1 = joinManualJEAndRenamedData(renamedData,manualJE,amountKeys)
 
-  console.log('renamedData', renamedData);
+  console.log('renamedData', renamedData1);
   const financialData = useFinancialData(renamedData, editedNotes);
 
   const allExpandableKeys = useMemo(() => {
