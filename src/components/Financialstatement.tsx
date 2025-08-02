@@ -202,7 +202,7 @@ const INCOME_STATEMENT_STRUCTURE: TemplateItem[] = [
     ]
   },
   { key: 'is-pbeit', label: 'PROFIT BEFORE EXCEPTIONAL ITEM & TAXES', id: 'pbeit', isSubtotal: true, formula: ['totalIncome', '-', 'totalExpenses'] },
-  { key: 'is-except', label: 'Exceptional Income', id: 'exceptional', keywords: ['Other income','Exceptional Income'], note: 44 },
+  { key: 'is-except', label: 'Exceptional Income', id: 'exceptional', keywords: ['Other income','Exceptional Income'],},
   { key: 'is-pbt', label: 'PROFIT BEFORE TAX', id: 'pbt', isSubtotal: true, formula: ['pbeit', '+', 'exceptional'] },
   { key: 'is-tax', label: 'TAX EXPENSE:', id: 'totalTax', isSubtotal: true, children: [
       { key: 'is-tax-curr', label: 'Current tax', note: 34 },
@@ -236,7 +236,7 @@ const CASH_FLOW_STRUCTURE: TemplateItem[] = [
       children: [
         { key: 'cf-op-sub-tax', label: 'Tax Expense',note:34,id:'tax' },
         { key: 'cf-op-sub-dep', label: 'Depreciation and amortisation', note:23 ,id:'dep'},
-        { key: 'cf-op-sub-prov', label: 'Provision/ Liabilities no longer required written back',note:44 ,id:'prov' },
+        { key: 'cf-op-sub-prov', label: 'Provision/ Liabilities no longer required written back',id:'prov' },
         { key: 'cf-op-sub-interest', label: 'Interest Income from bank deposits and financial assets',note:19 ,id:'in'},
         { key: 'cf-op-sub-interest-2', label: 'Interest Expense on lease liabilities',note:22,id:'in2' },
         { key: 'cf-op-sub-prov-2', label: 'Provision for doubtful trade receivables/(provision written back) (net)',note:24,id:'prov2' },
@@ -7410,7 +7410,11 @@ const DrillDownTable = ({ title, data, expandedKeys, onToggleRow,handleEditNotes
         cellStyles.borderTop = `2px solid #333`;
         cellStyles.borderBottom = `2px solid #333`;
       }
-      
+     const hasManualEntry = (row: HierarchicalItem): boolean => {
+  if (row.isEditableRow) return true;
+  return row.children?.some(hasManualEntry) || false;
+};
+ 
 
       return (
         <Fragment key={row.key}>
@@ -7423,18 +7427,20 @@ const DrillDownTable = ({ title, data, expandedKeys, onToggleRow,handleEditNotes
                         {row.label}
                     </Box>
                 </TableCell>
-                <TableCell
-          align="center"
-          sx={{
-            ...cellStyles,
-            cursor: 'pointer',
-            textDecoration: 'underline',
-            color: 'primary.main',
-          }}
-          onClick={() => handleEditNotes(row.note)}
-        >
-          {row.note}
-        </TableCell>
+<TableCell
+  align="center"
+  sx={{
+    ...cellStyles,
+    cursor: 'pointer',
+    textDecoration: 'none',
+    color: hasManualEntry(row) ? 'error.main' : 'primary.main', // 🔴 red if any manual entry exists
+  }}
+  onClick={() => handleEditNotes(row.note)}
+>
+  {row.note}
+</TableCell>
+
+
 
                 <TableCell align="right" sx={cellStyles}>{formatCurrency(row.valueCurrent)}</TableCell>
                 <TableCell align="right" sx={cellStyles}>{formatCurrency(row.valuePrevious)}</TableCell>

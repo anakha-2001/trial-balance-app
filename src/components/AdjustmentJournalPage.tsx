@@ -3,7 +3,23 @@ import axios from 'axios';
 import { JournalRow, GLAccountInfo } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 // ✅ 1. TextField is now used more, so it's a primary import
-import { Button, Autocomplete, TextField } from '@mui/material';
+import {
+  Box,
+  Button,
+  Autocomplete,
+  TextField,
+  Typography,
+  Paper,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Card,
+  CardContent
+} from '@mui/material';
 
 const API_URL = 'http://localhost:5000/api/journal';
 
@@ -20,6 +36,7 @@ const AdjustmentJournalPage: React.FC<AdjustmentJournalPageProps> = ({ onBack })
   const [isLoading, setIsLoading] = useState(true);
   const [isPosting, setIsPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autocompleteKey, setAutocompleteKey] = useState(0);
 
   // --- DATA FETCHING (No changes) ---
   useEffect(() => {
@@ -41,10 +58,12 @@ const AdjustmentJournalPage: React.FC<AdjustmentJournalPageProps> = ({ onBack })
   }, []);
 
   // --- HANDLERS (No changes) ---
+
   const handleAddRow = () => {
     const newRow: JournalRow = { id: uuidv4(), selectedGlAccount: null, transactionType: 'Debit', amounts: {} };
     setRows([...rows, newRow]);
   };
+
   const handleAddPeriod = (period: string) => {
     if (period && !selectedPeriods.includes(period)) {
       setSelectedPeriods([...selectedPeriods, period]);
@@ -88,112 +107,120 @@ const AdjustmentJournalPage: React.FC<AdjustmentJournalPageProps> = ({ onBack })
     }
   };
 
-  if (isLoading) return <div>Loading...</div>;
-  if (error && !isPosting) return <div style={{ color: 'red' }}>{error}</div>;
+   if (isLoading) return <Typography variant="h6">Loading...</Typography>;
+  if (error && !isPosting) return <Typography color="error">{error}</Typography>;
 
   const typeOptions: Array<'Debit' | 'Credit'> = ['Debit', 'Credit'];
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-      <h1>Adjustment Journal Entries</h1>
-      <Button variant="outlined" onClick={onBack} style={{ marginBottom: '15px' }}>← Back</Button>
+    <Box p={3}>
+      <Card elevation={3}>
+        <CardContent>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="h5" fontWeight="bold">Adjustment Journal Entries</Typography>
+            <Button variant="outlined" onClick={onBack}>← Back</Button>
+          </Stack>
 
-      {!showEntryControls && (
-        <Button variant="contained" onClick={() => setShowEntryControls(true)}>Add Journal Entry</Button>
-      )}
+          {!showEntryControls && (
+            <Button variant="contained" onClick={() => setShowEntryControls(true)}>Add Journal Entry</Button>
+          )}
 
-      {showEntryControls && (
-        <div style={{ margin: '20px 0', display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <Button variant="contained" size="small" onClick={handleAddRow}>Add General Ledger</Button>
-          
-          {/* ✅ 2. Replaced "Add Period" <select> with Autocomplete */}
-          <Autocomplete
-            value={null} // Controlled to act as a command palette; resets after selection
-            onChange={(event, newValue) => {
-              if (newValue) {
-                handleAddPeriod(newValue);
-              }
-            }}
-            options={allPeriods.filter(p => !selectedPeriods.includes(p))}
-            getOptionLabel={(option) => option}
-            renderInput={(params) => <TextField {...params} label="Add Period" size="small" />}
-            sx={{ width: 200 }}
-          />
-        </div>
-      )}
+          {showEntryControls && (
+            <Stack direction="row" spacing={2} alignItems="center" my={2}>
+              <Button variant="contained" size="small" onClick={handleAddRow}>
+                Add General Ledger
+              </Button>
+              <Autocomplete
+  key={autocompleteKey} // 🔁 Force rerender
+  value={null}
+  onChange={(event, newValue) => {
+    if (newValue) {
+      handleAddPeriod(newValue);
+      setAutocompleteKey(prev => prev + 1); // ✅ Force reset input after selection
+    }
+  }}
+  options={allPeriods.filter(p => !selectedPeriods.includes(p))}
+  getOptionLabel={(option) => option}
+  renderInput={(params) => <TextField {...params} label="Add Period" size="small" />}
+  sx={{ width: 200 }}
+/>
+            </Stack>
+          )}
 
-      {rows.length > 0 && (
-        <>
-          <table style={{ borderSpacing: '0 10px', borderCollapse: 'separate' }}>
-            <thead>
-              <tr>
-                <th style={{ width: '350px', textAlign: 'left' }}>General Ledger Account</th>
-                <th style={{ width: '170px', textAlign: 'left' }}>Type</th>
-                {selectedPeriods.map(period => (
-                  <th key={period} style={{ width: '170px', textAlign: 'left' }}>{period}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(row => (
-                <tr key={row.id}>
-                  <td>
-                    <Autocomplete
-                      value={allGlAccounts.find(acc => acc.glAccount === row.selectedGlAccount) || null}
-                      onChange={(event, newValue) => {
-                        handleRowChange(row.id, { selectedGlAccount: newValue?.glAccount || null });
-                      }}
-                      options={allGlAccounts}
-                      getOptionLabel={(option) => `${option.glAccount} - ${option.glName}`}
-                      isOptionEqualToValue={(option, value) => option.glAccount === value.glAccount}
-                      renderInput={(params) => <TextField {...params} label="Search GL Account" size="small" />}
-                      sx={{ width: 320 }}
-                    />
-                  </td>
-                  <td>
-                    {/* ✅ 3. Replaced "Type" <select> with Autocomplete */}
-                    <Autocomplete
-                      value={row.transactionType}
-                      onChange={(event, newValue) => {
-                        if (newValue) {
-                          handleRowChange(row.id, { transactionType: newValue });
-                        }
-                      }}
-                      options={typeOptions}
-                      disableClearable // User must select either Debit or Credit
-                      renderInput={(params) => <TextField {...params} label="Type" size="small" />}
-                      sx={{ width: 150 }}
-                    />
-                  </td>
-                  {selectedPeriods.map(period => (
-                    <td key={period}>
-                      {/* ✅ 4. Replaced amount <input> with TextField for consistent styling */}
-                      <TextField
-                        type="number"
-                        size="small"
-                        placeholder="0.00"
-                        value={row.amounts[period] || ''}
-                        onChange={e => handleAmountChange(row.id, period, e.target.value)}
-                        disabled={!row.selectedGlAccount}
-                        sx={{ width: 150 }}
-                        inputProps={{ style: { textAlign: 'right' } }} // Aligns the number to the right
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {rows.length > 0 && (
+            <>
+              <TableContainer component={Paper} sx={{ boxShadow: 2, borderRadius: 2 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 'bold', width: '350px' }}>General Ledger Account</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', width: '170px' }}>Type</TableCell>
+                      {selectedPeriods.map(period => (
+                        <TableCell key={period} sx={{ fontWeight: 'bold', width: '170px' }}>{period}</TableCell>
+                      ))}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {rows.map(row => (
+                      <TableRow key={row.id}>
+                        <TableCell>
+                          <Autocomplete
+                            value={allGlAccounts.find(acc => acc.glAccount === row.selectedGlAccount) || null}
+                            onChange={(event, newValue) => {
+                              handleRowChange(row.id, { selectedGlAccount: newValue?.glAccount || null });
+                            }}
+                            options={allGlAccounts}
+                            getOptionLabel={(option) => `${option.glAccount} - ${option.glName}`}
+                            isOptionEqualToValue={(option, value) => option.glAccount === value.glAccount}
+                            renderInput={(params) => <TextField {...params} label="GL Account" size="small" />}
+                            sx={{ width: 320 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Autocomplete
+                            value={row.transactionType}
+                            onChange={(event, newValue) => {
+                              if (newValue) {
+                                handleRowChange(row.id, { transactionType: newValue });
+                              }
+                            }}
+                            options={typeOptions}
+                            disableClearable
+                            renderInput={(params) => <TextField {...params} label="Type" size="small" />}
+                            sx={{ width: 150 }}
+                          />
+                        </TableCell>
+                        {selectedPeriods.map(period => (
+                          <TableCell key={period}>
+                            <TextField
+                              type="number"
+                              size="small"
+                              placeholder="0.00"
+                              value={row.amounts[period] || ''}
+                              onChange={e => handleAmountChange(row.id, period, e.target.value)}
+                              disabled={!row.selectedGlAccount}
+                              sx={{ width: 150 }}
+                              inputProps={{ style: { textAlign: 'right' } }}
+                            />
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
 
-          <div style={{ marginTop: '20px' }}>
-            <Button variant="contained" onClick={handlePostEntries} disabled={isPosting}>
-              {isPosting ? 'Posting...' : 'Post Entries'}
-            </Button>
-            {error && <span style={{ color: 'red', marginLeft: '10px' }}>{error}</span>}
-          </div>
-        </>
-      )}
-    </div>
+              <Stack direction="row" spacing={2} mt={3} alignItems="center">
+                <Button variant="contained" onClick={handlePostEntries} disabled={isPosting}>
+                  {isPosting ? 'Posting...' : 'Post Entries'}
+                </Button>
+                {error && <Typography color="error">{error}</Typography>}
+              </Stack>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </Box>
   );
 };
 
