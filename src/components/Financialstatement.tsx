@@ -22,6 +22,7 @@ import NotesEditor from './NotesEditor';
 import { createPortal } from 'react-dom';
 import { on } from 'events';
 import { useNavigate } from 'react-router-dom';
+import { FinancialRow } from './Columnmapper';
 
 // --- 1. TYPE DEFINITIONS (FIXED) ---
 
@@ -33,6 +34,12 @@ interface MappedRow {
   amountCurrent?: number;
   amountPrevious?: number;
 }
+export interface FinancialVarRow {
+  key: string; // ← a dynamic key (like 'sales', 'inventory', etc.)
+  amountCurrent?: number ;
+  amountPrevious?: number;
+}
+
 // Represents a table within a policy note.
 export interface TableContent {
   type: 'table';
@@ -202,7 +209,7 @@ const INCOME_STATEMENT_STRUCTURE: TemplateItem[] = [
     ]
   },
   { key: 'is-pbeit', label: 'PROFIT BEFORE EXCEPTIONAL ITEM & TAXES', id: 'pbeit', isSubtotal: true, formula: ['totalIncome', '-', 'totalExpenses'] },
-  { key: 'is-except', label: 'Exceptional Income', id: 'exceptional', keywords: ['Other income','Exceptional Income'], note: 44 },
+  { key: 'is-except', label: 'Exceptional Income', id: 'exceptional', keywords: ['Other income','Exceptional Income'],},
   { key: 'is-pbt', label: 'PROFIT BEFORE TAX', id: 'pbt', isSubtotal: true, formula: ['pbeit', '+', 'exceptional'] },
   { key: 'is-tax', label: 'TAX EXPENSE:', id: 'totalTax', isSubtotal: true, children: [
       { key: 'is-tax-curr', label: 'Current tax', note: 34 },
@@ -236,7 +243,7 @@ const CASH_FLOW_STRUCTURE: TemplateItem[] = [
       children: [
         { key: 'cf-op-sub-tax', label: 'Tax Expense',note:34,id:'tax' },
         { key: 'cf-op-sub-dep', label: 'Depreciation and amortisation', note:23 ,id:'dep'},
-        { key: 'cf-op-sub-prov', label: 'Provision/ Liabilities no longer required written back',note:44 ,id:'prov' },
+        { key: 'cf-op-sub-prov', label: 'Provision/ Liabilities no longer required written back',id:'prov' },
         { key: 'cf-op-sub-interest', label: 'Interest Income from bank deposits and financial assets',note:19 ,id:'in'},
         { key: 'cf-op-sub-interest-2', label: 'Interest Expense on lease liabilities',note:22,id:'in2' },
         { key: 'cf-op-sub-prov-2', label: 'Provision for doubtful trade receivables/(provision written back) (net)',note:24,id:'prov2' },
@@ -529,7 +536,7 @@ const ACCOUNTING_POLICIES_CONTENT: AccountingPolicy[] = [
     },
 ];
 // --- 4. CORE DATA PROCESSING HOOK (FIXED) ---
-const useFinancialData = (rawData: MappedRow[], editedNotes: FinancialNote[] | null): FinancialData => {
+const useFinancialData = (rawData: MappedRow[], financialVar2:FinancialVarRow[],editedNotes: FinancialNote[] | null): FinancialData => {
   return useMemo(() => {
     const enrichedData = rawData.map(row => ({ ...row, amountCurrent: row.amountCurrent || 0, amountPrevious: row.amountPrevious || 0 }));
 
@@ -1033,8 +1040,14 @@ inCOMTAS2.push(calculateRowTotal(inCOMTAS2));
   };
 };
 const calculateNote5 = (): FinancialNote => {
-  const note5_1 = getValueForKey(5, 'note5-nc-emp');
-  const note5_2 = getValueForKey(5, 'note5-c-emp');
+  const note5_1 = financialVar2.find(item => item.key === 'note5-nc-emp')
+  ? getValueForKey(5, 'note5-nc-emp')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+const note5_2 = financialVar2.find(item => item.key === 'note5-c-emp')
+  ? getValueForKey(5, 'note5-c-emp')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
   const nonCurrentTotal = { current: note5_1.valueCurrent??0, previous: note5_1.valuePrevious??0 };
   const currentTotal = { current:note5_2.valueCurrent??0, previous:note5_2.valuePrevious??0 };
 
@@ -1233,11 +1246,25 @@ const calculateNote6 = (): FinancialNote => {
   };
 };
 const calculateNote7 = (): FinancialNote => {
-  const note7_1 = getValueForKey(7, 'note7-under-protest');
-  const note7_2 = getValueForKey(7, 'note7a-adv-tds');
-  const note7_3 = getValueForKey(7, 'note7a-provision');
-  const note7_4 = getValueForKey(7, 'note7-adv-tax');
-  const note7_5 = getValueForKey(7, 'note7-provision');
+  const note7_1 = financialVar2.find(item => item.key === 'note7-under-protest')
+  ? getValueForKey(7, 'note7-under-protest')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note7_2 = financialVar2.find(item => item.key === 'note7a-adv-tds')
+   ? getValueForKey(7, 'note7a-adv-tds')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note7_3 = financialVar2.find(item => item.key === 'note7a-provision')
+  ? getValueForKey(7, 'note7a-provision')
+   : { valueCurrent: 0, valuePrevious: 0 }; 
+
+  const note7_4 =financialVar2.find(item => item.key === 'note7-adv-tax')
+  ? getValueForKey(7, 'note7-adv-tax')
+  : { valueCurrent: 0, valuePrevious: 0 };
+  
+  const note7_5 = financialVar2.find(item => item.key === 'note7-provision')
+  ? getValueForKey(7, 'note7-provision')
+  : { valueCurrent: 0, valuePrevious: 0 };
 
 
 
@@ -1247,9 +1274,6 @@ const calculateNote7 = (): FinancialNote => {
   const advanceTaxAndTDS = { current:note7_4.valueCurrent?? 0, previous:note7_4.valuePrevious?? 0 };
   const provisionForTaxAsset = { current:note7_5.valueCurrent?? 0, previous:note7_5.valuePrevious?? 0 };
 
-
-
-  
   const netTaxAsset = {
     current: advanceTaxAndTDS.current - provisionForTaxAsset.current,
     previous: advanceTaxAndTDS.previous - provisionForTaxAsset.previous,
@@ -1970,35 +1994,40 @@ const calculateNote12 = (): FinancialNote => {
   };
 };
 const calculateNote13 = (): FinancialNote => {
-  const retainedOpening = {
-    current: 31939.72,
-    previous: 24481.71,
-  };
+  const note13_1 =financialVar2.find(item => item.key === 'note13-opening')
+  ? getValueForKey(13, 'note13-opening')
+  : { valueCurrent: 0, valuePrevious: 0 };
 
-  const transferredProfit = {
-    current: 22560.10,
-    previous: 7458.01,
-  };
+  const note13_2 =financialVar2.find(item => item.key === 'note13-profit')
+  ? getValueForKey(13, 'note13-profit')
+  : { valueCurrent: 0, valuePrevious: 0 };
 
-  const dividendsPaid = {
-    current: 3729.65,
-    previous: 0,
-  };
+  const note13_3 = financialVar2.find(item => item.key ==='note13-dividends')
+  ? getValueForKey(13, 'note13-dividends')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+
+  const note13_4 = financialVar2.find(item => item.key === 'note13-oci')
+  ? getValueForKey(13, 'note13-oci')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+
+  const note13_5 =financialVar2.find(item => item.key === 'note13-reserve')
+  ? getValueForKey(13, 'note13-reserve')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const retainedOpening = { current:note13_1.valueCurrent?? 0, previous:note13_1.valuePrevious?? 0 };
+  const transferredProfit = { current:note13_2.valueCurrent?? 0, previous:note13_2.valuePrevious?? 0 };
+  const dividendsPaid = { current:note13_3.valueCurrent?? 0, previous:note13_3.valuePrevious?? 0 };
+  const oci = { current:note13_4.valueCurrent?? 0, previous:note13_4.valuePrevious?? 0 };
+  const generalReserve = { current:note13_5.valueCurrent?? 0, previous:note13_5.valuePrevious?? 0 };
 
   const retainedClosing = {
     current: Number((retainedOpening.current + transferredProfit.current - dividendsPaid.current).toFixed(2)),
     previous: Number((retainedOpening.previous + transferredProfit.previous - dividendsPaid.previous).toFixed(2)),
   };
 
-  const oci = {
-    current: 479.79,
-    previous: 577.54,
-  };
-
-  const generalReserve = {
-    current: 11911.35,
-    previous: 11911.35,
-  };
+  
 
   const total = {
     current: retainedClosing.current + oci.current + generalReserve.current-0.01,
@@ -2018,9 +2047,9 @@ const calculateNote13 = (): FinancialNote => {
         valueCurrent: null,
         valuePrevious: null,
         children: [
-          { key: 'note13-opening', label: 'Balance at the beginning of the year', valueCurrent: retainedOpening.current, valuePrevious: retainedOpening.previous },
-          { key: 'note13-profit', label: 'Add: Transferred from surplus in statement of profit and loss', valueCurrent: transferredProfit.current, valuePrevious: transferredProfit.previous },
-          { key: 'note13-dividends', label: 'Less: Dividends Paid', valueCurrent: -dividendsPaid.current, valuePrevious: 0 },
+          { key: 'note13-opening', label: 'Balance at the beginning of the year', valueCurrent: retainedOpening.current, valuePrevious: retainedOpening.previous,isEditableRow: true },
+          { key: 'note13-profit', label: 'Add: Transferred from surplus in statement of profit and loss', valueCurrent: transferredProfit.current, valuePrevious: transferredProfit.previous,isEditableRow: true },
+          { key: 'note13-dividends', label: 'Less: Dividends Paid', valueCurrent: -dividendsPaid.current, valuePrevious: 0,isEditableRow: true },
           { key: 'note13-closing', label: 'Balance at the end of year', valueCurrent: retainedClosing.current, valuePrevious: retainedClosing.previous },
         ]
       },
@@ -2028,13 +2057,13 @@ const calculateNote13 = (): FinancialNote => {
         key: 'note13-oci',
         label: 'b) Other Comprehensive Income#',
         valueCurrent: oci.current,
-        valuePrevious: oci.previous,
+        valuePrevious: oci.previous,isEditableRow: true
       },
       {
         key: 'note13-reserve',
         label: 'c) General reserve ^',
         valueCurrent: generalReserve.current,
-        valuePrevious: generalReserve.previous,
+        valuePrevious: generalReserve.previous,isEditableRow: true
       },
       {
         key: 'note13-total',
@@ -2469,40 +2498,88 @@ const calculateNote17 = (): FinancialNote => {
   };
 };
 const calculateNote18 = (): FinancialNote => {
-  // Section A.1 - Type of goods or services
+  const note18_1 =financialVar2.find(item => item.key === 'note18-process')
+  ? getValueForKey(18, 'note18-process')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note18_2 =financialVar2.find(item => item.key ==='note18-spares')
+  ? getValueForKey(18, 'note18-spares')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note18_3 = financialVar2.find(item => item.key === 'note18-products')
+  ? getValueForKey(18, 'note18-products')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note18_4 =financialVar2.find(item => item.key === 'note18-amc')
+  ? getValueForKey(18, 'note18-amc')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+
+  const note18_5 = financialVar2.find(item => item.key === 'note18-it')
+  ? getValueForKey(18, 'note18-it')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note18_6 = financialVar2.find(item => item.key === 'note18-time-point')
+  ? getValueForKey(18, 'note18-time-point')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note18_7 = financialVar2.find(item => item.key === 'note18-time-over')
+  ? getValueForKey(18, 'note18-time-over')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note18_8 = financialVar2.find(item => item.key === 'note18-out-india')
+  ? getValueForKey(18, 'note18-out-india')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note18_9= financialVar2.find(item => item.key === 'note18-india')
+  ? getValueForKey(18, 'note18-india')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note18_10= financialVar2.find(item => item.key ==='performance-within-1y')
+  ? getValueForKey(18, 'performance-within-1y')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note18_11 = financialVar2.find(item => item.key === 'performance-more-1y')
+  ? getValueForKey(18, 'performance-more-1y')
+  : { valueCurrent: 0, valuePrevious: 0 };
   
-const instrumentation = {
-  current: Number((99583.91383 + (1888837885 / 1e5)).toFixed(2)), // 1e5 = 100000
-  previous: Number((67930.9524654).toFixed(2)),
+
+
+  const instrumentation = { current:note18_1.valueCurrent?? 0, previous:note18_1.valuePrevious?? 0 };
+  const spares = { current:note18_2.valueCurrent?? 0, previous:note18_2.valuePrevious?? 0 };
+  const tradedGoods = { current:note18_3.valueCurrent?? 0, previous:note18_3.valuePrevious?? 0 };
+  const amcTraining = { current:note18_4.valueCurrent?? 0, previous:note18_4.valuePrevious?? 0 };
+  const itSupport = { current:note18_5.valueCurrent?? 0, previous:note18_5.valuePrevious?? 0 };
+  const pointInTime = { current:note18_6.valueCurrent?? 0, previous:note18_6.valuePrevious?? 0 };
+  const overTime = { current:note18_7.valueCurrent?? 0, previous:note18_7.valuePrevious?? 0 };
+  const outsideIndia = { current:note18_8.valueCurrent?? 0, previous:note18_8.valuePrevious?? 0 };
+  const india = { current:note18_9.valueCurrent?? 0, previous:note18_9.valuePrevious?? 0 };
+  const remainingPerformanceObligations = {
+  withinOneYear: {
+    current: note18_10.valueCurrent ?? 0,
+    previous: note18_10.valuePrevious ?? 0
+  },
+  moreThanOneYear: {
+    current: note18_11.valueCurrent ?? 0,
+    previous: note18_11.valuePrevious ?? 0
+  }
 };
 
 
-  const spares = {
-    current: Number((10855.38225).toFixed(2)),
-    previous: Number((7644.11264).toFixed(2)),
-  };
+  // Section A.1 - Type of goods or services
+  
+
  const constructionContracts = {
   current: instrumentation.current + spares.current,
   previous:instrumentation.previous + spares.previous
  }
 
-  const tradedGoods = {
-    current: 58074.91,
-    previous: Number((35641.39455).toFixed(2)),
-  };
+  
   const saleOfProducts = {
     current: tradedGoods.current+constructionContracts.current,
     previous: tradedGoods.previous+constructionContracts.previous,
   };
-  const amcTraining = {
-  current: Number((687043206/1e5).toFixed(2)), // 1e5 = 10^5
-  previous: Number((25309.67739).toFixed(2)),
-  };
-
-const itSupport = {
-  current: Number(((1006370313 / 1e5) + 0.42).toFixed(2)), // 1e5 = 10^5
-  previous: Number((5466.9400646).toFixed(2)),
-};
+  
 
   const saleOfServices = {
     current: amcTraining.current+itSupport.current,
@@ -2513,30 +2590,14 @@ const itSupport = {
     previous: Math.abs(getAmount('amountPrevious', ['other operating revenue '], ['sale of scrap'])),
   };
 
-  const pointInTime = {
-    current: Number((scrapSales.current+92351.5).toFixed(2)),
-    previous: Number((63719.72007).toFixed(2)),
-  };
-
-  const overTime = {
-    current: 111985.2,
-    previous: Number((78289.42704).toFixed(2)),
-  };
-
-  const outsideIndia = {
-    current: 42873.18,
-    previous: Number((32508.8549).toFixed(2)),
-  };
-
+  
+  
   const total = {
     current: saleOfProducts.current + saleOfServices.current + scrapSales.current,
     previous: saleOfProducts.previous + saleOfServices.previous + scrapSales.previous,
   };
 
-  const india = {
-    current: Number((total.current - 42873.18).toFixed(2)),
-    previous: Number((109500.29221).toFixed(2)),
-  };
+  
 
     const contractBalances = {
     tradeReceivables: {
@@ -2554,16 +2615,7 @@ const itSupport = {
   };
 
   // 18.2 Performance Obligations
-  const remainingPerformanceObligations = {
-    withinOneYear: {
-      current: 97323.14,
-      previous: Number((82011.2819964).toFixed(2)),
-    },
-    moreThanOneYear: {
-      current: 51225.86,
-      previous: Number((37225.1121871005).toFixed(2)),
-    },
-  };
+  
 
   return {
     noteNumber: 18,
@@ -2596,8 +2648,8 @@ const itSupport = {
         valuePrevious: null,
         children: [
         
-              { key: 'note18-process', label: 'Process control instrumentation systems', valueCurrent: instrumentation.current, valuePrevious: instrumentation.previous },
-              { key: 'note18-spares', label: 'Spares and others', valueCurrent: spares.current, valuePrevious: spares.previous },
+              { key: 'note18-process', label: 'Process control instrumentation systems', valueCurrent: instrumentation.current, valuePrevious: instrumentation.previous,isEditableRow: true },
+              { key: 'note18-spares', label: 'Spares and others', valueCurrent: spares.current, valuePrevious: spares.previous,isEditableRow: true},
               {
             key: 'note18-sale-products-group-total',
             label: 'Total - Revenue from construction contracts & others',
@@ -2613,7 +2665,7 @@ const itSupport = {
             valueCurrent: null,
             valuePrevious: null,
             children: [
-              { key: 'note18-products', label: 'Products and Accessories', valueCurrent: tradedGoods.current, valuePrevious: tradedGoods.previous },
+              { key: 'note18-products', label: 'Products and Accessories', valueCurrent: tradedGoods.current, valuePrevious: tradedGoods.previous,isEditableRow: true },
               {
             key: 'note18-traded-goods-total',
             label: 'Total - Sale of traded goods',
@@ -2637,8 +2689,8 @@ const itSupport = {
         valueCurrent: null,
         valuePrevious: null,
         children: [
-          { key: 'note18-amc', label: 'AMC, Training, etc.', valueCurrent: amcTraining.current, valuePrevious: amcTraining.previous },
-          { key: 'note18-it', label: 'IT support services', valueCurrent: itSupport.current, valuePrevious: itSupport.previous },
+          { key: 'note18-amc', label: 'AMC, Training, etc.', valueCurrent: amcTraining.current, valuePrevious: amcTraining.previous,isEditableRow: true},
+          { key: 'note18-it', label: 'IT support services', valueCurrent: itSupport.current, valuePrevious: itSupport.previous,isEditableRow: true },
            {
             key: 'note18-sale-services-total',
             label: 'Total - Sale of services',
@@ -2672,8 +2724,8 @@ const itSupport = {
         valueCurrent: null,
         valuePrevious: null,
         children: [
-          { key: 'note18-time-point', label: 'Goods transferred at a point in time', valueCurrent: pointInTime.current, valuePrevious: pointInTime.previous },
-          { key: 'note18-time-over', label: 'Services transferred over time', valueCurrent: overTime.current, valuePrevious: overTime.previous },
+          { key: 'note18-time-point', label: 'Goods transferred at a point in time', valueCurrent: pointInTime.current, valuePrevious: pointInTime.previous,isEditableRow: true },
+          { key: 'note18-time-over', label: 'Services transferred over time', valueCurrent: overTime.current, valuePrevious: overTime.previous,isEditableRow: true },
            {
             key: 'note18-timing-total',
             label: 'Total revenue from contracts with customers',
@@ -2689,8 +2741,8 @@ const itSupport = {
         valueCurrent: null,
         valuePrevious: null,
         children: [
-          { key: 'note18-india', label: 'India', valueCurrent: india.current, valuePrevious: india.previous },
-          { key: 'note18-out-india', label: 'Outside India', valueCurrent: outsideIndia.current, valuePrevious: outsideIndia.previous },
+          { key: 'note18-india', label: 'India', valueCurrent: india.current, valuePrevious: india.previous,isEditableRow: true },
+          { key: 'note18-out-india', label: 'Outside India', valueCurrent: outsideIndia.current, valuePrevious: outsideIndia.previous,isEditableRow: true },
           {
             key: 'note18-geo-total',
             label: 'Total revenue from contracts with customers',
@@ -2739,8 +2791,8 @@ const itSupport = {
         valueCurrent: null,
         valuePrevious: null,
         children: [
-          { key: 'performance-within-1y', label: 'Within one year', valueCurrent: remainingPerformanceObligations.withinOneYear.current, valuePrevious: remainingPerformanceObligations.withinOneYear.previous },
-          { key: 'performance-more-1y', label: 'More than one year', valueCurrent: remainingPerformanceObligations.moreThanOneYear.current, valuePrevious: remainingPerformanceObligations.moreThanOneYear.previous },
+          { key: 'performance-within-1y', label: 'Within one year', valueCurrent: remainingPerformanceObligations.withinOneYear.current, valuePrevious: remainingPerformanceObligations.withinOneYear.previous,isEditableRow: true },
+          { key: 'performance-more-1y', label: 'More than one year', valueCurrent: remainingPerformanceObligations.moreThanOneYear.current, valuePrevious: remainingPerformanceObligations.moreThanOneYear.previous,isEditableRow: true},
           {
             key: 'note18-performance-obligation-total',
             label: '',
@@ -2755,6 +2807,28 @@ const itSupport = {
   };
 };
 const calculateNote19 = (): FinancialNote => {
+  const note19_1 = financialVar2.find(item => item.key === 'note19-reimb')
+  ? getValueForKey(19, 'note19-reimb')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note19_2 = financialVar2.find(item => item.key === 'note19-bond')
+  ? getValueForKey(19, 'note19-bond')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note19_3 = financialVar2.find(item => item.key === 'note19-insurance')
+  ? getValueForKey(19, 'note19-insurance')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note19_4 = financialVar2.find(item => item.key === 'note19-others')
+  ? getValueForKey(19, 'note19-others')
+  : { valueCurrent: 0, valuePrevious: 0 };
+  
+
+  const reimbursements = { current:note19_1.valueCurrent?? 0, previous:note19_1.valuePrevious?? 0 };
+  const bondRecoveries = { current:note19_2.valueCurrent?? 0, previous:note19_2.valuePrevious?? 0 };
+  const insuranceRefund = { current:note19_3.valueCurrent?? 0, previous:note19_3.valuePrevious?? 0 };
+  const others = { current:note19_4.valueCurrent?? 0, previous:note19_4.valuePrevious?? 0 };
+
   const interestBank = {
     current: -(getAmount('amountCurrent', ['other income'], ['interest income'])),
     previous:-( getAmount('amountPrevious', ['other income'], ['interest income'])),
@@ -2770,25 +2844,7 @@ const calculateNote19 = (): FinancialNote => {
     previous: interestBank.previous + interestOther.previous,
   };
 
-  const reimbursements = {
-  current: Number(((834608.6 / 1e5)).toFixed(2)), // 1e5 = 100000
-  previous: Number((87.70922).toFixed(2)),
-  };
-
-  const bondRecoveries = {
-    current: 0,
-    previous: 4.46,
-  };
-
-  const insuranceRefund = {
-    current: 0,
-    previous: Number((2.21368).toFixed(2)),
-  };
-
-  const others = {
-    current: -(getAmount('amountCurrent', ['other income'], ['other non-operating income ']))-reimbursements.current,
-    previous: 33.08,
-  };
+  
 
   const totalMiscIncome = {
     current: reimbursements.current + bondRecoveries.current + insuranceRefund.current + others.current,
@@ -2859,10 +2915,10 @@ const calculateNote19 = (): FinancialNote => {
         valueCurrent: null,
         valuePrevious: null,
         children: [
-          { key: 'note19-reimb', label: '(a) Reimbursements from YHQ', valueCurrent: reimbursements.current, valuePrevious: reimbursements.previous },
-          { key: 'note19-bond', label: '(b) Bond Recoveries', valueCurrent: bondRecoveries.current, valuePrevious: bondRecoveries.previous },
-          { key: 'note19-insurance', label: '(c) Insurance Refund', valueCurrent: insuranceRefund.current, valuePrevious: insuranceRefund.previous },
-          { key: 'note19-others', label: '(d) Others', valueCurrent: others.current, valuePrevious: others.previous },
+          { key: 'note19-reimb', label: '(a) Reimbursements from YHQ', valueCurrent: reimbursements.current, valuePrevious: reimbursements.previous ,isEditableRow: true},
+          { key: 'note19-bond', label: '(b) Bond Recoveries', valueCurrent: bondRecoveries.current, valuePrevious: bondRecoveries.previous ,isEditableRow: true},
+          { key: 'note19-insurance', label: '(c) Insurance Refund', valueCurrent: insuranceRefund.current, valuePrevious: insuranceRefund.previous,isEditableRow: true },
+          { key: 'note19-others', label: '(d) Others', valueCurrent: others.current, valuePrevious: others.previous ,isEditableRow: true},
           {
             key: 'note19-misc-breakup-total',
             label: 'Total - Miscellaneous Income',
@@ -2876,6 +2932,30 @@ const calculateNote19 = (): FinancialNote => {
   };
 };
 const calculateNote20 = (): FinancialNote => {
+  const note20_1 = financialVar2.find(item => item.key === 'note20-openstock')
+  ? getValueForKey(20, 'note20-openstock')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note20_2 =financialVar2.find(item => item.key === 'note20-prod-access')
+  ? getValueForKey(20, 'note20-prod-access')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+
+  const note20_3 = financialVar2.find(item => item.key === 'note20-inventory-boy-wip')
+  ? getValueForKey(20, 'note20-inventory-boy-wip')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+
+  const note20_4 = financialVar2.find(item => item.key ==='note20-inventory-boy-sit')
+  ? getValueForKey(20, 'note20-inventory-boy-sit')
+  : { valueCurrent: 0, valuePrevious: 0 };
+  
+
+  const openStock = { current:note20_1.valueCurrent?? 0, previous:note20_1.valuePrevious?? 0 };
+  const produtAndAccessories = { current:note20_2.valueCurrent?? 0, previous:note20_2.valuePrevious?? 0 };
+  const workInProgressBOY = { current:note20_3.valueCurrent?? 0, previous:note20_3.valuePrevious?? 0 };
+  const stockInTradeBOY = { current:note20_4.valueCurrent?? 0, previous:note20_4.valuePrevious?? 0 };
+
       const allRawMaterials = {
         current: getAmount("amountCurrent", ["inventories"], ["raw material"]),
         previous: getAmount(
@@ -2890,10 +2970,7 @@ const calculateNote20 = (): FinancialNote => {
         previous: allRawMaterials.previous,
       };
 
-      const openStock = {
-        current: allRawMaterials.previous,
-        previous: 650.79,
-      };
+      
 
       const costOfMaterialsConsumed = {
         current: getAmount(
@@ -2908,10 +2985,7 @@ const calculateNote20 = (): FinancialNote => {
         ),
       };
 
-      const produtAndAccessories = {
-        current: 50087.71,
-        previous: 30082.82,
-      };
+     
 
       const workInProgress = {
         current: getAmount(
@@ -2957,14 +3031,7 @@ const calculateNote20 = (): FinancialNote => {
         previous: allStockInTrade.previous + goodsInTransitStock.previous,
       };
 
-      const workInProgressBOY = {
-        current: workInProgress.previous,
-        previous: 1431.0,
-      };
-      const stockInTradeBOY = {
-        current: stockInTradeSubTotal.previous,
-        previous: 3496.34,
-      };
+     
 
       const inventoryEOY = {
         current: stockInTradeSubTotal.current + workInProgress.current,
@@ -3017,7 +3084,7 @@ const calculateNote20 = (): FinancialNote => {
                 key: "note20-openstock",
                 label: "Opening stock",
                 valueCurrent: openStock.current,
-                valuePrevious: openStock.previous,
+                valuePrevious: openStock.previous,isEditableRow: true
               },
               {
                 key: "note20-purchase",
@@ -3059,7 +3126,7 @@ const calculateNote20 = (): FinancialNote => {
                 key: "note20-prod-access",
                 label: "Products and Accessories",
                 valueCurrent: produtAndAccessories.current,
-                valuePrevious: produtAndAccessories.previous,
+                valuePrevious: produtAndAccessories.previous,isEditableRow: true
               },
           {
             key: 'note20-purchase-traded-goods-total',
@@ -3118,13 +3185,13 @@ const calculateNote20 = (): FinancialNote => {
                     key: "note20-inventory-boy-wip",
                     label: "Work-in-progress",
                     valueCurrent: workInProgressBOY.current,
-                    valuePrevious: workInProgressBOY.previous,
+                    valuePrevious: workInProgressBOY.previous,isEditableRow: true
                   },
                   {
                     key: "note20-inventory-boy-sit",
                     label: "Stock-in-trade",
                     valueCurrent: stockInTradeBOY.current,
-                    valuePrevious: stockInTradeBOY.previous,
+                    valuePrevious: stockInTradeBOY.previous,isEditableRow: true
                   },
                   {
             key: 'note20-inventory-boy-total',
@@ -4155,30 +4222,27 @@ const calculateNote24 = (): FinancialNote => {
       };
     };
 const calculateNote25 = (): FinancialNote => {
- const incomeTax = {
-        current: 11114.10,
-        previous: 9455.42,
-        
-      };
-  const indirectTax = {
-          current: 638.94,
-          previous: 371.83,
-          
-        };
-  const epfo = {
-          current: 1416.55,
-          previous: 1416.55,
-          
-        };  
-        
-  const pop = {
-          current: 1532.61,
-          previous: 709.88,
-          
-        };
-     
+  const note25_1 =financialVar2.find(item => item.key === 'note25-3')
+  ? getValueForKey(25, 'note25-3')
+  : { valueCurrent: 0, valuePrevious: 0 };
 
+  const note25_2 =financialVar2.find(item => item.key ===  'note25-4')
+  ? getValueForKey(25, 'note25-4')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note25_3 = financialVar2.find(item => item.key === 'note25-5')
+  ? getValueForKey(25, 'note25-5')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note25_4 = financialVar2.find(item => item.key ===  'note25-8')
+  ? getValueForKey(25, 'note25-8')
+  : { valueCurrent: 0, valuePrevious: 0 };
   
+
+  const incomeTax = { current:note25_1.valueCurrent?? 0, previous:note25_1.valuePrevious?? 0 };
+  const indirectTax = { current:note25_2.valueCurrent?? 0, previous:note25_2.valuePrevious?? 0 };
+  const epfo = { current:note25_3.valueCurrent?? 0, previous:note25_3.valuePrevious?? 0 };
+  const pop = { current:note25_4.valueCurrent?? 0, previous:note25_4.valuePrevious?? 0 };
 
   return {
     noteNumber: 25,
@@ -4202,19 +4266,19 @@ const calculateNote25 = (): FinancialNote => {
                 key: 'note25-3',
                 label: '(i) Income tax matters in dispute (includes paid under protest ₹. 837.7 lakhs, as at 31 March 2023 ₹. 837.77 lakhs)',
                 valueCurrent: incomeTax.current,
-                valuePrevious: incomeTax.previous,
+                valuePrevious: incomeTax.previous,isEditableRow: true
               },
               {
                 key: 'note25-4',
                 label: '(ii) Indirect tax matters in dispute (includes paid under protest ₹.49.05 lakhs, as at 31 March 2023 ₹. 49.05 lakhs)',
                 valueCurrent: indirectTax.current,
-                valuePrevious:indirectTax.previous,
+                valuePrevious:indirectTax.previous,isEditableRow: true
               },
               {
                 key: 'note25-5',
                 label: "(iii) Employees' provident fund organisation (EPFO) matters of Yokogawa India Limited Employees Provident Fund in dispute (including paid under protest  ₹. 784.66 lakhs , as at 31 March 2023 ₹.784.66 lakhs)",
                 valueCurrent: epfo.current,
-                valuePrevious:epfo.previous,
+                valuePrevious:epfo.previous,isEditableRow: true
               },
               
             ],
@@ -4241,7 +4305,7 @@ const calculateNote25 = (): FinancialNote => {
                 key: 'note25-8',
                 label: "(a) Commitment towards procurement of property, plant and equipment",
                 valueCurrent: pop.current,
-                valuePrevious:pop.previous,
+                valuePrevious:pop.previous,isEditableRow: true
               },
         ],
       },
@@ -4278,25 +4342,33 @@ const calculateNote25 = (): FinancialNote => {
 };
 };
 const calculateNote26 = (): FinancialNote => {
+
+  const note26_1 =financialVar2.find(item => item.key === 'note26-2')
+  ? getValueForKey(26, 'note26-2')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note26_2 = financialVar2.find(item => item.key === 'note26-5')
+  ? getValueForKey(26, 'note26-5')
+  : { valueCurrent: 0, valuePrevious: 0 };
+  
+
+
+  const interestUnpaid = { current:note26_1.valueCurrent?? 0, previous:note26_1.valuePrevious?? 0 };
+  const interestAccruedUnpaid = { current:note26_2.valueCurrent?? 0, previous:note26_2.valuePrevious?? 0 };
+
   const principalUnpaid = {
     current: getAmount('amountCurrent', ['trade payables'], ['total outstanding dues of micro enterprises and small enterprises']),
     previous: getAmount('amountPrevious', ['trade payables'], ['total outstanding dues of micro enterprises and small enterprises']),
   };
 
-  const interestUnpaid = {
-    current: 89.91,
-    previous:61.58,
-  };
+  
 
   const interestDuePayable = {
     current: getAmount("amountCurrent",["finance cost"],["msme interest"]),
     previous: getAmount("amountPrevious",["finance cost"],["msme interest"]),
   };
 
-  const interestAccruedUnpaid = {
-    current: 89.91,
-    previous: 61.58,
-  };
+  
 
   return {
     noteNumber: 26,
@@ -4314,7 +4386,7 @@ const calculateNote26 = (): FinancialNote => {
         key: 'note26-2',
         label: '(ii) Interest due thereon remaining unpaid to any supplier as at the end of the accounting year',
         valueCurrent: interestUnpaid.current,
-        valuePrevious: interestUnpaid.previous,
+        valuePrevious: interestUnpaid.previous,isEditableRow: true
       },
       {
         key: 'note26-3',
@@ -4332,7 +4404,7 @@ const calculateNote26 = (): FinancialNote => {
         key: 'note26-5',
         label: '(v) The amount of interest accrued and remaining unpaid at the end of the accounting year',
         valueCurrent: interestAccruedUnpaid.current,
-        valuePrevious: interestAccruedUnpaid.previous,
+        valuePrevious: interestAccruedUnpaid.previous,isEditableRow: true
       },
       {
         key: 'note26-6',
@@ -4345,17 +4417,21 @@ const calculateNote26 = (): FinancialNote => {
   };
 };
 const calculateNote27 = (): FinancialNote => {
+  const note27_1 = financialVar2.find(item => item.key === 'note27-1')
+  ? getValueForKey(27, 'note27-1')
+  : { valueCurrent: 0, valuePrevious: 0 };
 
-  const grossAmount = {
-        current: 191.43,
-        previous: 122.41,
-        
-      };
-  const amountSpent = {
-        current: 191.43,
-        previous: 79.60,
-        
-      };
+  const note27_2 = financialVar2.find(item => item.key ==='note27-2')
+  ? getValueForKey(27, 'note27-2')
+  : { valueCurrent: 0, valuePrevious: 0 };
+  
+  
+
+  const grossAmount = { current:note27_1.valueCurrent?? 0, previous:note27_1.valuePrevious?? 0 };
+  const amountSpent = { current:note27_2.valueCurrent?? 0, previous:note27_2.valuePrevious?? 0 };
+
+
+  
 
   const construction = {
    incash:0,
@@ -4384,14 +4460,14 @@ const calculateNote27 = (): FinancialNote => {
         key: 'note27-1',
         label: '(a) Gross amount required to be spent by the company during the year ',
         valueCurrent: grossAmount.current,
-        valuePrevious: grossAmount.previous,
+        valuePrevious: grossAmount.previous,isEditableRow: true
         
       },
       {
         key: 'note27-2',
         label: '(b) Amount spent during the year ',
         valueCurrent: amountSpent.current,
-        valuePrevious:amountSpent.previous,
+        valuePrevious:amountSpent.previous,isEditableRow: true
         
       },
       {
@@ -4490,62 +4566,82 @@ const calculateNote27 = (): FinancialNote => {
 };
 };
 const calculateNote28 = (): FinancialNote => {
- const currentservice = {
-  current:310.60,
-  previous:246.45
- }
- const interest = {
-  current : 4.35,
-  previous: -4.51
- }
- const returnasset = {
-  current:8.86,
-  previous:0
- }
- const DBO = {
-  current:75.36,
-  previous:-53.76
- }
- const DBO2 = {
-  current:46.40,
-  previous:44.40
- }
- const benefit = {
-  current:3479.28,
-  previous: 3032.76
- }
- const fair = {
-  current:3096.49,
-  previous: 2974.55
- }
- const movementinterest = {
-  current: 226.42,
-  previous: 200.75
- }
- const benefitpayment = {
-  current:-212.26,
-  previous: -176.07
- }
- const plan = {
-  current:222.08,
-  previous:205.26
- }
- const openbenefit = {
-  current :120.99,
-  previous:112.14
- }
- const discount ={
-  current: 7.20,
-  previous: 7.45
- }
- const salary = {
-  current: 9.50,
-  previous:9.50
- }
- const attrition = {
-  current:5,
-  previous:5
- }
+  const note28_1 = financialVar2.find(item => item.key === 'note28-amount-current-service')
+  ? getValueForKey(28, 'note28-amount-current-service')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note28_2 = financialVar2.find(item => item.key === 'note28-amount-interest')
+  ? getValueForKey(28, 'note28-amount-interest')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note28_3 = financialVar2.find(item => item.key === 'note28-benefit-return')
+  ? getValueForKey(28, 'note28-benefit-return')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note28_4 = financialVar2.find(item => item.key === 'note28-benefit-DBO')
+  ? getValueForKey(28, 'note28-benefit-DBO')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note28_5 = financialVar2.find(item => item.key ==='note28-benefit-DBO2')
+  ? getValueForKey(28, 'note28-benefit-DBO2')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  
+  const note28_6 = financialVar2.find(item => item.key ==='note28-balancesheet-present')
+  ? getValueForKey(28, 'note28-balancesheet-present')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note28_7 = financialVar2.find(item => item.key ==='note28-balancesheet-fair')
+  ? getValueForKey(28, 'note28-balancesheet-fair')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note28_8 = financialVar2.find(item => item.key === 'note28-movement-interest')
+  ? getValueForKey(28, 'note28-movement-interest')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note28_9= financialVar2.find(item => item.key === 'note28-movement-payments')
+  ? getValueForKey(28, 'note28-movement-payments')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note28_10= financialVar2.find(item => item.key === 'note28-fairmovement-open-plan')
+  ? getValueForKey(28, 'note28-fairmovement-open-plan')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note28_11 = financialVar2.find(item => item.key === 'note28-fairmovement-open-benefit')
+  ? getValueForKey(28, 'note28-fairmovement-open-benefit')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note28_12 = financialVar2.find(item => item.key === 'note28-plan-assets-Actuarial-1')
+  ? getValueForKey(28, 'note28-plan-assets-Actuarial-1')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note28_13 = financialVar2.find(item => item.key === 'note28-plan-assets-Actuarial-3')
+  ? getValueForKey(28, 'note28-plan-assets-Actuarial-3')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note28_14 = financialVar2.find(item => item.key === 'note28-plan-assets-Actuarial-4')
+  ? getValueForKey(28, 'note28-plan-assets-Actuarial-4')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  
+
+
+  const currentservice = { current:note28_1.valueCurrent?? 0, previous:note28_1.valuePrevious?? 0 };
+  const interest = { current:note28_2.valueCurrent?? 0, previous:note28_2.valuePrevious?? 0 };
+  const returnasset = { current:note28_3.valueCurrent?? 0, previous:note28_3.valuePrevious?? 0 };
+  const DBO = { current:note28_4.valueCurrent?? 0, previous:note28_4.valuePrevious?? 0 };
+  const DBO2 = { current:note28_5.valueCurrent?? 0, previous:note28_5.valuePrevious?? 0 };
+  const benefit = { current:note28_6.valueCurrent?? 0, previous:note28_6.valuePrevious?? 0 };
+  const fair = { current:note28_7.valueCurrent?? 0, previous:note28_7.valuePrevious?? 0 };
+  const movementinterest = { current:note28_8.valueCurrent?? 0, previous:note28_8.valuePrevious?? 0 };
+  const benefitpayment = { current:note28_9.valueCurrent?? 0, previous:note28_9.valuePrevious?? 0 };
+  const plan = { current:note28_10.valueCurrent?? 0, previous:note28_10.valuePrevious?? 0 };
+  const openbenefit = { current:note28_11.valueCurrent?? 0, previous:note28_11.valuePrevious?? 0 };
+  const discount = { current:note28_12.valueCurrent?? 0, previous:note28_12.valuePrevious?? 0 };
+  const salary = { current:note28_13.valueCurrent?? 0, previous:note28_13.valuePrevious?? 0 };
+  const attrition = { current:note28_14.valueCurrent?? 0, previous:note28_14.valuePrevious?? 0 };
+
+ 
 
  const dis = ['3192.81','3811.28','2784.96','3318.87'];
  const growth =['3729.89','3232.65','3260.06','2810.23'];
@@ -4606,7 +4702,7 @@ const calculateNote28 = (): FinancialNote => {
                 key: 'note28-amount-current-service',
                 label: "Current service cost",
                 valueCurrent: currentservice.current,
-                valuePrevious: currentservice.previous,
+                valuePrevious: currentservice.previous,isEditableRow: true
               },
               {
                 key: 'note28-amount-past-service',
@@ -4618,7 +4714,7 @@ const calculateNote28 = (): FinancialNote => {
                 key: 'note28-amount-interest',
                 label: "Net interest expense/(income)",
                 valueCurrent: interest.current,
-                valuePrevious: interest.previous,
+                valuePrevious: interest.previous,isEditableRow: true
               },
               {
                 key: 'note28-amount-long',
@@ -4646,19 +4742,19 @@ const calculateNote28 = (): FinancialNote => {
                 key: 'note28-benefit-return',
                 label: "Return on plan assets (excluding amount included in net interest expense)",
                 valueCurrent: returnasset.current,
-                valuePrevious: returnasset.previous,
+                valuePrevious: returnasset.previous,isEditableRow: true
               },
               {
                 key: 'note28-benefit-DBO',
                 label: "Actuarial gains and loss arising from changes in financial assumptions in DBO",
                 valueCurrent: DBO.current,
-                valuePrevious: DBO.previous,
+                valuePrevious: DBO.previous,isEditableRow: true
               },
               {
                 key: 'note28-benefit-DBO2',
                 label: "Actuarial gains and loss arising from experience adjustments in DBO",
                 valueCurrent: DBO2.current,
-                valuePrevious: DBO2.previous,
+                valuePrevious: DBO2.previous,isEditableRow: true
               },
               {
                 key: 'note28-benefit-total',
@@ -4687,13 +4783,13 @@ const calculateNote28 = (): FinancialNote => {
                 key: 'note28-balancesheet-present',
                 label: "Present value of defined benefit obligation ",
                 valueCurrent: benefit.current,
-                valuePrevious: benefit.previous,
+                valuePrevious: benefit.previous,isEditableRow: true
               },
               {
                 key: 'note28-balancesheet-fair',
                 label: "Fair value of plan assets",
                 valueCurrent: fair.current,
-                valuePrevious: fair.previous,
+                valuePrevious: fair.previous,isEditableRow: true
               },
               {
                 key: 'note28-balancesheet-subtotal',
@@ -4750,7 +4846,7 @@ const calculateNote28 = (): FinancialNote => {
                 key: 'note28-movement-interest',
                 label: "-Interest expense (income)",
                 valueCurrent: movementinterest.current,
-                valuePrevious: movementinterest.previous,
+                valuePrevious: movementinterest.previous,isEditableRow: true
               },
               {
                 key: 'note28-movement-income',
@@ -4792,7 +4888,7 @@ const calculateNote28 = (): FinancialNote => {
                 key: 'note28-movement-payments',
                 label: "Benefit payments",
                 valueCurrent: benefitpayment.current,
-                valuePrevious: benefitpayment.previous,
+                valuePrevious: benefitpayment.previous,isEditableRow: true
               },
               {
                 key: 'note28-movement-close',
@@ -4826,7 +4922,7 @@ const calculateNote28 = (): FinancialNote => {
                 key: 'note28-fairmovement-open-plan',
                 label: "- Expected return on plan assets",
                 valueCurrent: plan.current,
-                valuePrevious: plan.previous,
+                valuePrevious: plan.previous,isEditableRow: true
               },
               {
                 key: 'note28-fairmovement-open-other',
@@ -4850,7 +4946,7 @@ const calculateNote28 = (): FinancialNote => {
                 key: 'note28-fairmovement-open-benefit',
                 label: "Contributions by employer (including benefit payments recoverable)",
                 valueCurrent: openbenefit.current,
-                valuePrevious: openbenefit.previous,
+                valuePrevious: openbenefit.previous,isEditableRow: true
               },
               {
                 key: 'note28-fairmovement-open-benefitpayment',
@@ -4891,7 +4987,7 @@ const calculateNote28 = (): FinancialNote => {
                 key: 'note28-plan-assets-Actuarial-1',
                 label: "1. Discount rate",
                 valueCurrent: discount.current,
-                valuePrevious: discount.previous,
+                valuePrevious: discount.previous,isEditableRow: true
               },
               {
                 key: 'note28-plan-assets-Actuarial-2',
@@ -4903,19 +4999,19 @@ const calculateNote28 = (): FinancialNote => {
                 key: 'note28-plan-assets-Actuarial-3',
                 label: "3. Salary escalation",
                 valueCurrent: salary.current,
-                valuePrevious: salary.previous,
+                valuePrevious: salary.previous,isEditableRow: true
               },
               {
                 key: 'note28-plan-assets-Actuarial-4',
                 label: "4. Attrition rate",
                 valueCurrent: attrition.current,
-                valuePrevious: attrition.previous,
+                valuePrevious: attrition.previous,isEditableRow: true
               },
               {
                 key: 'note28-plan-assets-Actuarial-4',
                 label: "4. Attrition rate",
                 valueCurrent: attrition.current,
-                valuePrevious: attrition.previous,
+                valuePrevious: attrition.previous,isEditableRow: true
               },
         ],
       },
@@ -4962,107 +5058,124 @@ const calculateNote28 = (): FinancialNote => {
 };
 };
 const calculateNote29 = (): FinancialNote => {
-  const rou = {
-    current: 3041.87,
-    previous: 1580.65,
-  };
+  const note29_1 =financialVar2.find(item => item.key === 'note29-balance-rou')
+  ? getValueForKey(29, 'note29-balance-rou')
+  : { valueCurrent: 0, valuePrevious: 0 };
 
-  const long = {
-    current: 2264.28,
-    previous: 1000.49,
-  };
+  const note29_2 = financialVar2.find(item => item.key === 'note29-balance-long-term')
+  ? getValueForKey(29, 'note29-balance-long-term')
+  : { valueCurrent: 0, valuePrevious: 0 };
 
-  const short = {
-    current: 855.63,
-    previous: 685.66,
-  };
-
-  const dep = {
-    current: 805.15,
-    previous: 479.54,
-  };
-
-  const financecost = {
-    current: 203.14,
-    previous: 139.74,
-  };
-
-  const interest = {
-    current: 203.14,
-    previous: 139.74,
-  };
-
-    const open = {
-    current: 1686.15,
-    previous: 1516.95,
-  };
-  const add = {
-    current: 2266.37,
-    previous: 871.32,
-  }
-  const payments = {
-    current: -1035.75,
-    previous: -841.86,
-  }
-
-  const year = {
-    current: Number((855.63045).toFixed(2)),
-    previous: Number((685.66).toFixed(2)),
-  }
-  const year5 = {
-    current: Number((1949.07284).toFixed(2)),
-    previous: Number((909.55).toFixed(2)),
-  }
+  const note29_3 = financialVar2.find(item => item.key === 'note29-balance-short')
+  ? getValueForKey(29, 'note29-balance-short')
+  : { valueCurrent: 0, valuePrevious: 0 };
   
-    const years = {
-    current: Number((1176.10644).toFixed(2)),
-    previous: Number((1176.10644).toFixed(2)),
-  }
+  const note29_4 = financialVar2.find(item => item.key ===  'note29-pl-depreciation')
+  ? getValueForKey(29, 'note29-pl-depreciation')
+  : { valueCurrent: 0, valuePrevious: 0 };
 
-  const nonlease = {
-    current : 1947.93,
-    previous: 0
-  }
-    const lease = {
-    current : 673.04,
-    previous: 0
-  }
-  const yr5 = {
-    current : 407.07,
-    previous: 0
-  }
-    const rectotal = {
-    current : lease.current+lease.current+lease.current+lease.current+yr5.current,
-    previous: 0
-  }
-  const less = {
-    current : 478.26,
-    previous: 0
-  }
-    const after = {
-    current : lease.current+lease.current+lease.current+lease.current+yr5.current,
-    previous: 0
-  }
-    const within = {
-    current : lease.current,
-    previous: 0
-  }
-  const afterlease = {
-    current : 1947.93,
-    previous: 0
-  }
-  const withinlease = {
-    current : 673.04,
-    previous: 0
-  }
-  const profitselling = {
-    current : 331.32,
-    previous: 0
-  }
-  const profitfinance = {
-    current : 126.74,
-    previous: 0
-  }
+  const note29_5 = financialVar2.find(item => item.key ===  'note29-pl-finance')
+  ? getValueForKey(29, 'note29-pl-finance')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note29_6 = financialVar2.find(item => item.key ===  'note29-pl-interest')
+  ? getValueForKey(29, 'note29-pl-interest')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note29_7 = financialVar2.find(item => item.key ===  'note29-pl-open')
+  ? getValueForKey(29, 'note29-pl-open')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note29_8 =financialVar2.find(item => item.key ===  'note29-pl-add')
+  ? getValueForKey(29, 'note29-pl-add')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note29_9= financialVar2.find(item => item.key ===  'note29-pl-payments')
+  ? getValueForKey(29, 'note29-pl-payments')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note29_10= financialVar2.find(item => item.key === 'note29-pl-1')
+  ? getValueForKey(29, 'note29-pl-1')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note29_11 = financialVar2.find(item => item.key ===  'note29-pl-5')
+  ? getValueForKey(29, 'note29-pl-5')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note29_12 = financialVar2.find(item => item.key ===  'note29-pl-years')
+  ? getValueForKey(29, 'note29-pl-years')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note29_13 = financialVar2.find(item => item.key ===  'note29a-lease-noncurrent')
+  ? getValueForKey(29, 'note29a-lease-noncurrent')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note29_14 = financialVar2.find(item => item.key ===  'note29a-lease-current')
+  ? getValueForKey(29, 'note29a-lease-current')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note29_15 = financialVar2.find(item => item.key ===  'note29a-year5')
+  ? getValueForKey(29, 'note29a-year5')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note29_16= financialVar2.find(item => item.key ===  'note29a-total')
+  ? getValueForKey(29, 'note29a-total')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note29_17= financialVar2.find(item => item.key ===  'note29a-unearned')
+  ? getValueForKey(29, 'note29a-unearned')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note29_18= financialVar2.find(item => item.key ===  'note29a-after')
+  ? getValueForKey(29, 'note29a-after')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note29_19= financialVar2.find(item => item.key ===  'note29a-within')
+  ? getValueForKey(29, 'note29a-within')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note29_20= financialVar2.find(item => item.key === 'note29a-after-lease')
+  ? getValueForKey(29, 'note29a-after-lease')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note29_21= financialVar2.find(item => item.key ===  'note29a-within-lease')
+  ? getValueForKey(29, 'note29a-within-lease')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note29_22= financialVar2.find(item => item.key ===  'note29a-profit-selling')
+  ? getValueForKey(29, 'note29a-profit-selling')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note29_23= financialVar2.find(item => item.key ===  'note29a-profit-finance')
+  ? getValueForKey(29, 'note29a-profit-finance')
+  : { valueCurrent: 0, valuePrevious: 0 };
+  
+
+
+  const rou = { current:note29_1.valueCurrent?? 0, previous:note29_1.valuePrevious?? 0 };
+  const long = { current:note29_2.valueCurrent?? 0, previous:note29_2.valuePrevious?? 0 };
+  const short = { current:note29_3.valueCurrent?? 0, previous:note29_3.valuePrevious?? 0 };
+  const dep = { current:note29_4.valueCurrent?? 0, previous:note29_4.valuePrevious?? 0 };
+  const financecost = { current:note29_5.valueCurrent?? 0, previous:note29_5.valuePrevious?? 0 };
+  const interest = { current:note29_6.valueCurrent?? 0, previous:note29_6.valuePrevious?? 0 };
+  const open = { current:note29_7.valueCurrent?? 0, previous:note29_7.valuePrevious?? 0 };
+  const add = { current:note29_8.valueCurrent?? 0, previous:note29_8.valuePrevious?? 0 };
+  const payments = { current:note29_9.valueCurrent?? 0, previous:note29_9.valuePrevious?? 0 };
+  const year = { current:note29_10.valueCurrent?? 0, previous:note29_10.valuePrevious?? 0 };
+  const year5 = { current:note29_11.valueCurrent?? 0, previous:note29_11.valuePrevious?? 0 };
+  const years = { current:note29_12.valueCurrent?? 0, previous:note29_12.valuePrevious?? 0 };
+  const nonlease = { current:note29_13.valueCurrent?? 0, previous:note29_13.valuePrevious?? 0 };
+  const lease = { current:note29_14.valueCurrent?? 0, previous:note29_14.valuePrevious?? 0 };
+  const yr5 = { current:note29_15.valueCurrent?? 0, previous:note29_15.valuePrevious?? 0 };
+  const rectotal = { current:note29_16.valueCurrent?? 0, previous:note29_16.valuePrevious?? 0 };
+  const less = { current:note29_17.valueCurrent?? 0, previous:note29_17.valuePrevious?? 0 };
+  const after = { current:note29_18.valueCurrent?? 0, previous:note29_18.valuePrevious?? 0 };
+  const within = { current:note29_19.valueCurrent?? 0, previous:note29_19.valuePrevious?? 0 };
+  const afterlease = { current:note29_20.valueCurrent?? 0, previous:note29_20.valuePrevious?? 0 };
+  const withinlease = { current:note29_21.valueCurrent?? 0, previous:note29_21.valuePrevious?? 0 };
+  const profitselling = { current:note29_22.valueCurrent?? 0, previous:note29_22.valuePrevious?? 0 };
+  const profitfinance = { current:note29_23.valueCurrent?? 0, previous:note29_23.valuePrevious?? 0 };
+  
   return {
     noteNumber: 29,
     title: 'Leases',
@@ -5081,7 +5194,7 @@ const calculateNote29 = (): FinancialNote => {
             key: 'note29-balance-rou',
             label: 'ROU Assets',
             valueCurrent: rou.current,
-            valuePrevious: rou.previous,
+            valuePrevious: rou.previous,isEditableRow: true
           },
           {
             key: 'note29-balance-long',
@@ -5093,13 +5206,13 @@ const calculateNote29 = (): FinancialNote => {
                 key: 'note29-balance-long-term',
                 label: '        - Long Term liabilities',
                 valueCurrent: long.current,
-                valuePrevious: long.previous,
+                valuePrevious: long.previous,isEditableRow: true
               },
               {
                 key: 'note29-balance-short',
                 label: '        - Short Term liabilities',
                 valueCurrent: short.current,
-                valuePrevious: short.previous,
+                valuePrevious: short.previous,isEditableRow: true
               },
             ],
           },
@@ -5116,13 +5229,13 @@ const calculateNote29 = (): FinancialNote => {
             key: 'note29-pl-depreciation',
             label: 'Depreciation Expenditure',
             valueCurrent: dep.current,
-            valuePrevious: dep.previous,
+            valuePrevious: dep.previous,isEditableRow: true
           },
           {
             key: 'note29-pl-finance',
             label: 'Finance Cost on Lease Liabilities',
             valueCurrent: financecost.current,
-            valuePrevious: financecost.previous,
+            valuePrevious: financecost.previous,isEditableRow: true
           },
           {
             key: 'note29-pl-impact',
@@ -5144,25 +5257,25 @@ const calculateNote29 = (): FinancialNote => {
             key: 'note29-pl-open',
             label: 'Opening Balance',
             valueCurrent: open.current,
-            valuePrevious: open.previous,
+            valuePrevious: open.previous,isEditableRow: true
           },
           {
             key: 'note29-pl-add',
             label: 'Additions during the year',
             valueCurrent: add.current,
-            valuePrevious: add.previous,
+            valuePrevious: add.previous,isEditableRow: true
           },
           {
             key: 'note29-pl-interest',
             label: 'Interest Expense',
             valueCurrent: interest.current,
-            valuePrevious: interest.previous,
+            valuePrevious: interest.previous,isEditableRow: true
           },
           {
             key: 'note29-pl-payments',
             label: 'Payments made during the year',
             valueCurrent: payments.current,
-            valuePrevious: payments.previous,
+            valuePrevious: payments.previous,isEditableRow: true
           },
           {
             key: 'note29-pl-close',
@@ -5198,19 +5311,19 @@ const calculateNote29 = (): FinancialNote => {
             key: 'note29-pl-1',
             label: 'Not later than 1 year',
             valueCurrent: year.current,
-            valuePrevious:year.previous,
+            valuePrevious:year.previous,isEditableRow: true
           },
           {
             key: 'note29-pl-5',
             label: 'Later than 1 year and not later than 5 years',
             valueCurrent: year5.current,
-            valuePrevious:year5.previous,
+            valuePrevious:year5.previous,isEditableRow: true
           },
           {
             key: 'note29-pl-years',
             label: 'Later than 5 years',
             valueCurrent: years.current,
-            valuePrevious:years.previous,
+            valuePrevious:years.previous,isEditableRow: true
           },
           {
             key: 'note29-pl-totallease',
@@ -5245,13 +5358,13 @@ const calculateNote29 = (): FinancialNote => {
           key: 'note29a-lease-noncurrent',
           label: '     - Non-current',
           valueCurrent: nonlease.current,
-          valuePrevious: nonlease.previous,
+          valuePrevious: nonlease.previous,isEditableRow: true
         },
         {
           key: 'note29a-lease-current',
           label: '     - current',
           valueCurrent: lease.current,
-          valuePrevious: lease.previous,
+          valuePrevious: lease.previous,isEditableRow: true
         },
           ],
         },
@@ -5268,20 +5381,20 @@ const calculateNote29 = (): FinancialNote => {
         { key: 'note29a-year2', label: 'Year 2', valueCurrent: lease.current, valuePrevious: lease.previous },
         { key: 'note29a-year3', label: 'Year 3', valueCurrent: lease.current, valuePrevious: lease.previous },
         { key: 'note29a-year4', label: 'Year 4', valueCurrent: lease.current, valuePrevious: lease.previous },
-        { key: 'note29a-year5', label: 'Year 5', valueCurrent: yr5.current, valuePrevious: yr5.previous },
+        { key: 'note29a-year5', label: 'Year 5', valueCurrent: yr5.current, valuePrevious: yr5.previous ,isEditableRow: true},
         { key: 'note29a-year6plus', label: 'Year 6 onwards', valueCurrent: 0, valuePrevious: 0 },
         {
           key: 'note29a-total',
           label: 'Total',
           isGrandTotal:true,
           valueCurrent: rectotal.current,
-          valuePrevious: rectotal.previous,
+          valuePrevious: rectotal.previous,isEditableRow: true
         },
         {
           key: 'note29a-unearned',
           label: 'Less: unearned finance income',
           valueCurrent: less.current,
-          valuePrevious: less.previous,
+          valuePrevious: less.previous,isEditableRow: true
         },
         {
           key: 'note29a-net-investment',
@@ -5303,13 +5416,13 @@ const calculateNote29 = (): FinancialNote => {
           key: 'note29a-after',
           label: '-     Recoverable after 12 months',
           valueCurrent: after.current,
-          valuePrevious: after.previous,
+          valuePrevious: after.previous,isEditableRow: true
         },
         {
           key: 'note29a-within',
           label: '-     Recoverable within 12 months',
           valueCurrent: within.current,
-          valuePrevious: within.previous,
+          valuePrevious: within.previous,isEditableRow: true
         },
           ],
         },
@@ -5324,13 +5437,13 @@ const calculateNote29 = (): FinancialNote => {
           key: 'note29a-after-lease',
           label: '-     Recoverable after 12 months',
           valueCurrent: afterlease.current,
-          valuePrevious: afterlease.previous,
+          valuePrevious: afterlease.previous,isEditableRow: true
         },
         {
           key: 'note29a-within-lease',
           label: '-     Recoverable within 12 months',
           valueCurrent: withinlease.current,
-          valuePrevious: withinlease.previous,
+          valuePrevious: withinlease.previous,isEditableRow: true
         },
           ],
         },
@@ -5347,13 +5460,13 @@ const calculateNote29 = (): FinancialNote => {
           key: 'note29a-profit-selling',
           label: '- Selling profit/loss for finance leases',
           valueCurrent: profitselling.current,
-          valuePrevious: profitselling.previous,
+          valuePrevious: profitselling.previous,isEditableRow: true
         },
         {
           key: 'note29a-profit-finance',
           label: '- Finance income on the net investment in finance leases',
           valueCurrent: profitfinance.current,
-          valuePrevious: profitfinance.previous,
+          valuePrevious: profitfinance.previous,isEditableRow: true
         },
         {
           key: 'note29a-profit-finance',
@@ -5658,18 +5771,25 @@ The Company has identified geographic segments as operating and reportable segme
   };
 };
 const calculateNote32 = (): FinancialNote => {
-  const netProfit = {
-    current: 22560.10,
-    previous: 7458.01,
-  };
+  const note32_1 = financialVar2.find(item => item.key === 'note32-netprofit')
+  ? getValueForKey(32, 'note32-netprofit')
+  : { valueCurrent: 0, valuePrevious: 0 };
 
-  const weightedAvgShares = {
-    current: 8505469,
-    previous: 8505469,
-  };
+  const note32_2 = financialVar2.find(item => item.key ==='note32-shares')
+  ? getValueForKey(32, 'note32-shares')
+  : { valueCurrent: 0, valuePrevious: 0 };
 
-  const faceValue = 10.0;
+  const note32_3 = financialVar2.find(item => item.key === 'note32-face')
+  ? getValueForKey(32, 'note32-face')
+  : { valueCurrent: 0, valuePrevious: 0 };
 
+  
+  const netProfit = { current:note32_1.valueCurrent?? 0, previous:note32_1.valuePrevious?? 0 };
+  const weightedAvgShares = { current:note32_2.valueCurrent?? 0, previous:note32_2.valuePrevious?? 0 };
+  const faceValue = { current:note32_3.valueCurrent?? 0, previous:note32_3.valuePrevious?? 0 };
+
+  
+  
   const earningsPerShare = {
     current: Number(((netProfit.current *1e5)/weightedAvgShares.current).toFixed(2)),
     previous: Number(((netProfit.previous *1e5)/weightedAvgShares.previous).toFixed(2)),
@@ -5686,19 +5806,19 @@ const calculateNote32 = (): FinancialNote => {
         key: 'note32-netprofit',
         label: 'Net profit for the year',
         valueCurrent: netProfit.current,
-        valuePrevious: netProfit.previous,
+        valuePrevious: netProfit.previous,isEditableRow: true
       },
       {
         key: 'note32-shares',
         label: 'Weighted average number of equity shares',
         valueCurrent: weightedAvgShares.current,
-        valuePrevious: weightedAvgShares.previous,
+        valuePrevious: weightedAvgShares.previous,isEditableRow: true
       },
       {
         key: 'note32-face',
         label: 'Par value per share (in Rs.)',
-        valueCurrent: faceValue,
-        valuePrevious: faceValue,
+        valueCurrent: faceValue.current,
+        valuePrevious: faceValue.previous,isEditableRow: true
       },
       {
         key: 'note32-eps',
@@ -5819,87 +5939,92 @@ const calculateNote33 = (): FinancialNote => {
 }
 };
 const calculateNote34 = (): FinancialNote => {
+  const note34_1 =financialVar2.find(item => item.key === 'note34-pl-current-tax')
+  ? getValueForKey(34, 'note34-pl-current-tax')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note34_2 = financialVar2.find(item => item.key === 'note34-oci')
+  ? getValueForKey(34, 'note34-oci')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note34_3 = financialVar2.find(item => item.key === 'note34-benefit')
+  ? getValueForKey(34, 'note34-benefit')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note34_4 = financialVar2.find(item => item.key === 'note34-reconciliation-open')
+  ? getValueForKey(34, 'note34-reconciliation-open')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note34_5 = financialVar2.find(item => item.key === 'note34-reconciliation-v3')
+  ? getValueForKey(34, 'note34-reconciliation-v3')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note34_6 = financialVar2.find(item => item.key === 'note34-reconciliation-v4')
+  ? getValueForKey(34, 'note34-reconciliation-v4')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note34_7 =financialVar2.find(item => item.key === 'note34-reconciliation-short')
+  ? getValueForKey(34, 'note34-reconciliation-short')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note34_8 = financialVar2.find(item => item.key === 'note34-reconciliation-expectedloss')
+  ? getValueForKey(34, 'note34-reconciliation-expectedloss')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note34_9= financialVar2.find(item => item.key === 'note34-Deferred-liability')
+  ? getValueForKey(34, 'note34-Deferred-liability')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note34_10=financialVar2.find(item => item.key === 'note34-Deferred-asset-provision')
+  ? getValueForKey(34, 'note34-Deferred-asset-provision')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note34_11 = financialVar2.find(item => item.key === 'note34-Deferred-asset-difference')
+  ? getValueForKey(34, 'note34-Deferred-asset-difference')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note34_12 = financialVar2.find(item => item.key === 'note34-Deferred-asset-debt')
+  ? getValueForKey(34, 'note34-Deferred-asset-debt')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note34_13 = financialVar2.find(item => item.key === 'note34-Deferred-asset-servicetax')
+  ? getValueForKey(34, 'note34-Deferred-asset-servicetax')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note34_14 = financialVar2.find(item => item.key === 'note34-Deferred-asset-loss')
+  ? getValueForKey(34, 'note34-Deferred-asset-loss')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note34_15 = financialVar2.find(item => item.key === 'note34-Deferred-asset-Others')
+  ? getValueForKey(34, 'note34-Deferred-asset-Others')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  
+
+
+  const currentIncomeTax = { current:note34_1.valueCurrent?? 0, previous:note34_1.valuePrevious?? 0 };
+  const relating = { current:note34_2.valueCurrent?? 0, previous:note34_2.valuePrevious?? 0 };
+  const benefits = { current:note34_3.valueCurrent?? 0, previous:note34_3.valuePrevious?? 0 };
+  const opening = { current:note34_4.valueCurrent?? 0, previous:note34_4.valuePrevious?? 0 };
+  const account = { current:note34_5.valueCurrent?? 0, previous:note34_5.valuePrevious?? 0 };
+  const enacted = { current:note34_6.valueCurrent?? 0, previous:note34_6.valuePrevious?? 0 };
+  const short = { current:note34_7.valueCurrent?? 0, previous:note34_7.valuePrevious?? 0 };
+  const expectedloss = { current:note34_8.valueCurrent?? 0, previous:note34_8.valuePrevious?? 0 };
+  const liability = { current:note34_9.valueCurrent?? 0, previous:note34_9.valuePrevious?? 0 };
+  const provision = { current:note34_10.valueCurrent?? 0, previous:note34_10.valuePrevious?? 0 };
+  const difference = { current:note34_11.valueCurrent?? 0, previous:note34_11.valuePrevious?? 0 };
+  const debts = { current:note34_12.valueCurrent?? 0, previous:note34_12.valuePrevious?? 0 };
+  const servicetax = { current:note34_13.valueCurrent?? 0, previous:note34_13.valuePrevious?? 0 };
+  const loss = { current:note34_14.valueCurrent?? 0, previous:note34_14.valuePrevious?? 0 };
+  const others = { current:note34_15.valueCurrent?? 0, previous:note34_15.valuePrevious?? 0 };
   // --- Profit and Loss Section ---
-  const currentIncomeTax = 
-  {
-    current : 7227.51,
-    previous : 4540.22,
-  }
-    const relating = 
-  {
-    current : -1108.27,
-    previous : -204.21,
-  }
-      const benefits = 
-  {
-    current : 32.87,
-    previous : -2.36,
-  }
-    const opening = 
-  {
-    previous : 6775.22,
-  }
+ 
     const closing = 
   {
     previous : opening.previous + benefits.previous -(-(relating).previous),
     current : opening.previous + benefits.previous -(-(relating).previous) + benefits.current -(-(relating).current),
   }
-  const account = 
-  {
-    current : 28679.34,
-    previous : 11794.02,
-  }
-  const enacted = 
-  {
-    current : 25.168,
-    previous : 25.168,
-  }
-  const short = 
-  {
-    current : -587.67,
-    previous : 220.78,
-  }
-
-  const expectedloss = 
-  {
-    current : 6119.24,
-    previous : 4336.01,
-  }
-    const liability = 
-  {
-    current : 0,
-    previous : 156.67,
-  }
-  const provision = 
-  {
-    current : 810.47,
-    previous : 236.73,
-  }
-  const difference = 
-  {
-    current : 402.67,
-    previous : 0,
-  }
-    const debts = 
-  {
-    current : 1834.74,
-    previous : 1159.87,
-  }
-    const servicetax = 
-  {
-    current : 386.49,
-    previous : 396.51,
-  }
-    const loss = 
-  {
-    current : 3781.80,
-    previous : 3040.74,
-  }
-  const others = 
-  {
-    current : 902.04,
-    previous : 2299.89,
-  }
+  
   return {
     noteNumber: 34,
     title: 'Income Tax',
@@ -5916,7 +6041,7 @@ const calculateNote34 = (): FinancialNote => {
             key: 'note34-pl-current-tax',
             label: 'Current income tax charge',
             valueCurrent: currentIncomeTax.current,
-            valuePrevious: currentIncomeTax.previous,
+            valuePrevious: currentIncomeTax.previous,isEditableRow: true
           },
           {
             key: 'note34-pl-deferred-tax',
@@ -5929,7 +6054,7 @@ const calculateNote34 = (): FinancialNote => {
         key: 'note34-oci',
         label: 'Relating to the origination and reversal of temporary differences',
         valueCurrent: relating.current,
-        valuePrevious: relating.previous
+        valuePrevious: relating.previous,isEditableRow: true
       },
           {
             key: 'note34-oci-dbt',
@@ -5949,7 +6074,7 @@ const calculateNote34 = (): FinancialNote => {
             key: 'note34-benefit',
             label: 'Income tax relating to re-measurement gains on defined benefit plans',
             valueCurrent: benefits.current,
-            valuePrevious: benefits.previous,
+            valuePrevious: benefits.previous,isEditableRow: true
           },
           {
             key: 'note34-recon-oci-movement',
@@ -5968,7 +6093,7 @@ const calculateNote34 = (): FinancialNote => {
             key: 'note34-reconciliation-open',
             label: 'Opening balance',
             valueCurrent: closing.previous,
-            valuePrevious: opening.previous
+            valuePrevious: opening.previous,isEditableRow: true
           },
           {
             key: 'note34-reconciliation-tax-credit',
@@ -6000,13 +6125,13 @@ const calculateNote34 = (): FinancialNote => {
             key: 'note34-reconciliation-v3',
             label: 'Accounting profit before tax and exceptional item',
             valueCurrent: account.current,
-            valuePrevious: account.previous
+            valuePrevious: account.previous,isEditableRow: true
           },
           {
             key: 'note34-reconciliation-v4',
             label: 'Enacted income tax rate in India',
             valueCurrent: enacted.current  ,
-            valuePrevious: enacted.previous
+            valuePrevious: enacted.previous,isEditableRow: true
           },
           {
             key: 'note34-reconciliation-tax',
@@ -6048,7 +6173,7 @@ const calculateNote34 = (): FinancialNote => {
             key: 'note34-reconciliation-short',
             label: 'Short/ (excess) provision for previous year',
             valueCurrent: short.current,
-            valuePrevious: short.previous
+            valuePrevious: short.previous,isEditableRow: true
           },
           {
             key: 'note34-reconciliation-expected',
@@ -6060,7 +6185,7 @@ const calculateNote34 = (): FinancialNote => {
             key: 'note34-reconciliation-expectedloss',
             label: 'Income tax expense reported in the statement of Profit and Loss',
             valueCurrent: expectedloss.current,
-            valuePrevious: expectedloss.previous 
+            valuePrevious: expectedloss.previous ,isEditableRow: true
           },
           {
             key: 'note34-Deferred',
@@ -6085,7 +6210,7 @@ const calculateNote34 = (): FinancialNote => {
             key: 'note34-Deferred-liability',
             label: 'Tax effect of items constituting deferred tax liability',
             valueCurrent: liability.current,
-            valuePrevious: liability.previous 
+            valuePrevious: liability.previous ,isEditableRow: true
           }, 
           {
             key: 'note34-Deferred-asset-main',
@@ -6097,37 +6222,37 @@ const calculateNote34 = (): FinancialNote => {
             key: 'note34-Deferred-asset-provision',
             label: 'Provision for compensated absences, gratuity and other employee benefits',
             valueCurrent:provision.current,
-            valuePrevious: provision.previous 
+            valuePrevious: provision.previous ,isEditableRow: true
           },
           {
             key: 'note34-Deferred-asset-difference',
             label: 'On difference between book balance and tax balance of fixed assets',
             valueCurrent:difference.current,
-            valuePrevious: difference.previous 
+            valuePrevious: difference.previous ,isEditableRow: true
           }, 
           {
             key: 'note34-Deferred-asset-debt',
             label: 'Provision for doubtful debts/advances',
             valueCurrent:debts.current,
-            valuePrevious: debts.previous 
+            valuePrevious: debts.previous ,isEditableRow: true
           },  
           {
             key: 'note34-Deferred-asset-servicetax',
             label: 'Provision for  service tax',
             valueCurrent:servicetax.current,
-            valuePrevious: servicetax.previous 
+            valuePrevious: servicetax.previous ,isEditableRow: true
           },  
           {
             key: 'note34-Deferred-asset-loss',
             label: 'Provision for estimated loss on contract',
             valueCurrent:loss.current,
-            valuePrevious: loss.previous 
+            valuePrevious: loss.previous ,isEditableRow: true
           },  
           {
             key: 'note34-Deferred-asset-Others',
             label: 'Others',
             valueCurrent:others.current,
-            valuePrevious: others.previous 
+            valuePrevious: others.previous ,isEditableRow: true
           },   
           {
             key: 'note34-Deferred-asset-total',
@@ -6153,6 +6278,52 @@ const calculateNote34 = (): FinancialNote => {
   };
 };
 const calculateNote35 = (): FinancialNote => {
+  const note35_1 = financialVar2.find(item => item.key === 'note35-capital-table')
+  ? getValueForKey(35, 'note35-capital-table')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note35_2 = financialVar2.find(item => item.key === 'note35-capital-table1')
+  ? getValueForKey(35, 'note35-capital-table1')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note35_3 =financialVar2.find(item => item.key === 'note35-financialrisk-BOY')
+  ? getValueForKey(35, 'note35-financialrisk-BOY')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note35_4 = financialVar2.find(item => item.key ==='note35-financialrisk-creditloss')
+  ? getValueForKey(35, 'note35-financialrisk-creditloss')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note35_5 = financialVar2.find(item => item.key === 'note35-financialrisk-creditloss-reverse')
+  ? getValueForKey(35, 'note35-financialrisk-creditloss-reverse')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note35_6 = financialVar2.find(item => item.key === 'note35-revenue')
+  ? getValueForKey(35, 'note35-revenue')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note35_7 = financialVar2.find(item => item.key === 'note35-revenue-top')
+  ? getValueForKey(35, 'note35-revenue-top')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note35_8 = financialVar2.find(item => item.key === 'note35-geo-india')
+  ? getValueForKey(35, 'note35-geo-india')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+  const note35_9= financialVar2.find(item => item.key === 'note35-geo-rest')
+  ? getValueForKey(35, 'note35-geo-rest')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+
+  const equity = { current:note35_1.valueCurrent?? 0, previous:note35_1.valuePrevious?? 0 };
+  const per = { current:note35_2.valueCurrent?? 0, previous:note35_2.valuePrevious?? 0 };
+  const BOY = { current:note35_3.valueCurrent?? 0, previous:note35_3.valuePrevious?? 0 };
+  const creditloss = { current:note35_4.valueCurrent?? 0, previous:note35_4.valuePrevious?? 0 };
+  const creditreverse = { current:note35_5.valueCurrent?? 0, previous:note35_5.valuePrevious?? 0 };
+  const top5 = { current:note35_6.valueCurrent?? 0, previous:note35_6.valuePrevious?? 0 };
+  const top = { current:note35_7.valueCurrent?? 0, previous:note35_7.valuePrevious?? 0 };
+  const india = { current:note35_8.valueCurrent?? 0, previous:note35_8.valuePrevious?? 0 };
+  const rest = { current:note35_9.valueCurrent?? 0, previous:note35_9.valuePrevious?? 0 };
   const calculateBalance = (rows: string[][]): string[] => {
     const parseNum = (val: string | undefined): number => {
   if (!val) return 0;
@@ -6175,14 +6346,7 @@ const calculateNote35 = (): FinancialNote => {
   return sum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-const equity = {
-current:64011.86,
-previous:45279.16,
-}
-const per= {
-current:100,
-previous:100
-}
+
 const total= {
 current:equity.current,
 previous:equity.previous
@@ -6200,31 +6364,7 @@ const lease =['3119.91','1686.15','3119.91','1686.15'];
 const otherpay = ['502.76','454.57','502.76','454.57'];
 const totalliability =calculateBalance([pay,lease, otherpay]);
 
-const BOY =  3030.3;
-const creditloss = {
-  current :3974.25,
-  previous:1651.28
-}
-const creditreverse = {
-  current:-1531.85,
-  previous:-73.07
-}
-const top5 = {
-  current:39885.05,
-  previous:27914.35
-}
-const top = {
-  current :11125.15,
-  previous:8227.11
-}
-const india ={
-  current:52275.12,
-  previous:51807.57
-}
-const rest = {
-  current :10427.68,
-  previous:3965.00
-}
+
 const  trade = ['50544.58','',''];
 trade.push(calculateRowTotal(trade));
 const leaseliabilities = ['855.63','1203.70','1060.58'];
@@ -6329,13 +6469,13 @@ const PHP ='-0.01'
             key: 'note35-capital-table',
             label: 'Total equity attributable to the equity shareholders of the company ',
             valueCurrent: equity.current,
-            valuePrevious: equity.previous,
+            valuePrevious: equity.previous,isEditableRow: true
           },
           {
             key: 'note35-capital-table1',
             label: 'As a percentage of total capital',
             valueCurrent: per.current,
-            valuePrevious: per.previous,
+            valuePrevious: per.previous,isEditableRow: true
           },
           {
             key: 'note35-capital-table2',
@@ -6426,38 +6566,38 @@ Trade receivables are typically unsecured and are derived from revenue earned fr
 {
             key: 'note35-financialrisk-BOY',
             label: 'Balance at the beginning',
-            valueCurrent: BOY + creditloss.previous + creditloss.previous,
-            valuePrevious: BOY,
+            valueCurrent: BOY.current+ creditloss.previous + creditloss.previous,
+            valuePrevious: BOY.previous,isEditableRow: true
           },
           {
             key: 'note35-financialrisk-creditloss',
             label: 'Expected Credit Loss recognized',
             valueCurrent: creditloss.current,
-            valuePrevious: creditloss.previous,
+            valuePrevious: creditloss.previous,isEditableRow: true
           },
           {
             key: 'note35-financialrisk-creditloss-reverse',
             label: 'Expected Credit Loss reversed',
             valueCurrent: creditreverse.current,
-            valuePrevious: creditloss.previous,
+            valuePrevious: creditloss.previous,isEditableRow: true
           },
           {
             key: 'note35-financialrisk-BEY',
             label: 'Balance at the end',
-            valueCurrent:  BOY + creditloss.previous + creditloss.previous+ creditloss.current +creditreverse.current,
-            valuePrevious: BOY + creditloss.previous + creditloss.previous,
+            valueCurrent:  BOY.current + creditloss.previous + creditloss.previous+ creditloss.current +creditreverse.current,
+            valuePrevious: BOY.previous + creditloss.previous + creditloss.previous,
           },
           {
             key: 'note35-revenue',
             label: 'Revenue from top 5 customers',
             valueCurrent: top5.current,
-            valuePrevious: top5.previous,
+            valuePrevious: top5.previous,isEditableRow: true
           },
           {
             key: 'note35-revenue-top',
             label: 'Revenue from top customer',
             valueCurrent: top.current,
-            valuePrevious: top.previous,
+            valuePrevious: top.previous,isEditableRow: true
           },
           {
             key: 'note35-geo',
@@ -6471,13 +6611,13 @@ Trade receivables are typically unsecured and are derived from revenue earned fr
             key: 'note35-geo-india',
             label: 'India',
             valueCurrent: india.current,
-            valuePrevious: india.previous,
+            valuePrevious: india.previous,isEditableRow: true
           },
           {
             key: 'note35-geo-rest',
             label: 'Rest of the world',
             valueCurrent: rest.current,
-            valuePrevious: rest.previous,
+            valuePrevious: rest.previous,isEditableRow: true
           },
           `Geographical concentration of the credit risk is allocated based on the location of the customers.`,
           {
@@ -7410,7 +7550,11 @@ const DrillDownTable = ({ title, data, expandedKeys, onToggleRow,handleEditNotes
         cellStyles.borderTop = `2px solid #333`;
         cellStyles.borderBottom = `2px solid #333`;
       }
-      
+     const hasManualEntry = (row: HierarchicalItem): boolean => {
+  if (row.isEditableRow) return true;
+  return row.children?.some(hasManualEntry) || false;
+};
+ 
 
       return (
         <Fragment key={row.key}>
@@ -7423,18 +7567,20 @@ const DrillDownTable = ({ title, data, expandedKeys, onToggleRow,handleEditNotes
                         {row.label}
                     </Box>
                 </TableCell>
-                <TableCell
+<TableCell
   align="center"
   sx={{
     ...cellStyles,
     cursor: 'pointer',
-    textDecoration: 'underline',
-    color: 'primary.main',
+    textDecoration: 'none',
+    color: hasManualEntry(row) ? 'error.main' : 'primary.main', // 🔴 red if any manual entry exists
   }}
   onClick={() => handleEditNotes(row.note)}
 >
   {row.note}
 </TableCell>
+
+
 
                 <TableCell align="right" sx={cellStyles}>{formatCurrency(row.valueCurrent)}</TableCell>
                 <TableCell align="right" sx={cellStyles}>{formatCurrency(row.valuePrevious)}</TableCell>
@@ -7983,33 +8129,23 @@ const getAllExpandableKeys = (items: HierarchicalItem[]): string[] => {
 
 
 interface ManualJE {
-  id: number;
   glAccount: string;
-  "Financial Year Ended (FYE) 2023-03-31": string;
-  "Financial Year Ended (FYE) 2024-03-31": string;
+  [key: string]: string | number;
 }
-
-interface RenamedData {
-  Level1Desc: string;
-  Level2Desc: string;
-  accountType: string;
-  amountCurrent: number;
-  amountPrevious: number;
-  createdby: string;
-  functionalArea: string;
-  glAccount: number;  
-}
-
-
-
 
 export const joinManualJEAndRenamedData = (
+  renamedData: MappedRow[],
   manualJE: ManualJE[],
-  renamedData: RenamedData[]
-): RenamedData[] => {
+  amountKeys: { amountCurrentKey: string; amountPreviousKey: string }
+): MappedRow[] => {
   return renamedData.map((row) => {
+    // Ensure glAccount exists
+    if (!row.glAccount) {
+      return row;
+    }
+
     // Find matching manualJE record
-    const je = manualJE.find((je) => je.glAccount === row.glAccount.toString());
+    const je = manualJE.find((je) => je.glAccount === row.glAccount?.toString());
     
     // If no match, return original row
     if (!je) {
@@ -8017,18 +8153,19 @@ export const joinManualJEAndRenamedData = (
     }
 
     // Apply adjustments from manualJE
-    const currentAdjustment = parseFloat(je["Financial Year Ended (FYE) 2024-03-31"]) || 0;
-    const previousAdjustment = parseFloat(je["Financial Year Ended (FYE) 2023-03-31"]) || 0;
+    const currentAdjustment = parseFloat(je[amountKeys.amountCurrentKey] as string) || 0;
+    const previousAdjustment = parseFloat(je[amountKeys.amountPreviousKey] as string) || 0;
 
     return {
       ...row,
-      amountCurrent: row.amountCurrent + currentAdjustment,
-      amountPrevious: row.amountPrevious + previousAdjustment,
+      amountCurrent: ((row.amountCurrent || 0) + currentAdjustment) as number | undefined,
+      amountPrevious: ((row.amountPrevious || 0) + previousAdjustment) as number | undefined,
     };
   });
 };
+
 // --- 7. MAIN APPLICATION COMPONENT ---
-interface FinancialStatementsProps {
+export interface FinancialStatementsProps {
   data: MappedRow[];
   amountKeys: { amountCurrentKey: string; amountPreviousKey: string };
 }
@@ -8040,6 +8177,7 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, amountK
   const [isNotesEditorOpen, setNotesEditorOpen] = useState(false);
   const [editorContainer, setEditorContainer] = useState<HTMLElement | null>(null);
   const [manualJE, setManualJE] = useState([]);
+  const [financialVar, setFinancialVar] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
 
@@ -8049,8 +8187,11 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, amountK
         const response = await fetch('http://localhost:5000/api/journal/updated');
         const data = await response.json();
         setManualJE(data);
+        const response1 = await fetch('http://localhost:5000/api/financial_variables');
+        const data1 = await response1.json();
+        setFinancialVar(data1);
       } catch (error) {
-        console.error('Error fetching journal entry:', error);
+        console.error('Error fetching journal entry and :', error);
       } finally {
         setLoading(false);
       }
@@ -8080,10 +8221,40 @@ console.log("manualJE",manualJE)
     };
   });
 
-  
+  const renamedData1 = joinManualJEAndRenamedData(renamedData,manualJE,amountKeys)
 
-  console.log('renamedData', renamedData);
-  const financialData = useFinancialData(renamedData, editedNotes);
+  const columnsToKeep = ['key', amountKeys.amountCurrentKey,amountKeys.amountPreviousKey ];
+
+  const financialVar1 = financialVar.map((item: Record<string, any>) => {
+    const filteredItem: Record<string, any> = {};
+    columnsToKeep.forEach((col) => {
+      filteredItem[col] = item[col];
+    });
+    return filteredItem;
+  });
+
+  const financialVar2 = financialVar1.map(row => {
+    const currentValue = row[amountKeys.amountCurrentKey];
+    const previousValue = row[amountKeys.amountPreviousKey];
+    const amountCurrent = typeof currentValue === 'string' || typeof currentValue === 'number'
+      ? parseFloat(currentValue as string)
+      : 0;
+    const amountPrevious = typeof previousValue === 'string' || typeof previousValue === 'number'
+      ? parseFloat(previousValue as string)
+      : 0;
+
+    const { [amountKeys.amountCurrentKey]: _, [amountKeys.amountPreviousKey]: __, key } = row;
+
+    return {
+      key,
+      amountCurrent: isNaN(amountCurrent) ? 0 : amountCurrent,
+      amountPrevious: isNaN(amountPrevious) ? 0 : amountPrevious,
+    };
+  });
+
+  console.log("financialVar2",financialVar2)
+  console.log('renamedData', renamedData1);
+  const financialData = useFinancialData(renamedData, financialVar2, editedNotes);
 
   const allExpandableKeys = useMemo(() => {
     const bsKeys = getAllExpandableKeys(financialData.balanceSheet);
@@ -8173,6 +8344,49 @@ const handleEditNotes = (noteId?: number | string) => {
 
   const handleSaveChanges = (updatedNotes: FinancialNote[]) => {
     setEditedNotes(updatedNotes);
+
+
+    const getEditedValueByKey = (
+        key: string
+      ): { valueCurrent: number | null; valuePrevious: number | null } => {
+        if (!editedNotes) return { valueCurrent: null, valuePrevious: null };
+
+        for (const note of editedNotes) {
+          const result = findInContent(note.content, key);
+          if (result) return result;
+        }
+
+        return { valueCurrent: null, valuePrevious: null };
+      };
+
+      const findInContent = (
+        items: (HierarchicalItem | TableContent | string)[],
+        key: string
+      ): { valueCurrent: number | null; valuePrevious: number | null } | null => {
+        for (const item of items) {
+          if (typeof item !== 'string' && 'key' in item && item.key === key) {
+            return {
+              valueCurrent: item.valueCurrent ?? null,
+              valuePrevious: item.valuePrevious ?? null,
+            };
+          }
+
+          if (typeof item !== 'string' && 'children' in item && item.children) {
+            const result = findInContent(item.children, key);
+            if (result) return result;
+          }
+        }
+        return null;
+      };
+
+
+
+
+
+
+
+
+
     handleCloseEditor();
   };
 
@@ -8194,6 +8408,8 @@ const handleEditNotes = (noteId?: number | string) => {
       {isNotesEditorOpen && editorContainer && (
         createPortal(
           <NotesEditor
+            financialVariable={financialVar2}
+            amountKeys={amountKeys}
             notes={financialData.notes}
             onSave={handleSaveChanges}
             onClose={handleCloseEditor}

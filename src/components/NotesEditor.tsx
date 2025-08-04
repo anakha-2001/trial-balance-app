@@ -13,13 +13,18 @@ import {
   AppBar,
   Toolbar,
 } from '@mui/material';
-import { FinancialNote, HierarchicalItem, TableContent } from './Financialstatement';
+import { FinancialNote, FinancialVarRow, HierarchicalItem, TableContent } from './Financialstatement';
 import { formatCurrency } from './Financialstatement';
 import _ from 'lodash';
 
+const API_URL = 'http://localhost:5000/api/journal';
+
 
 interface NotesEditorProps {
+  
   notes: FinancialNote[];
+  financialVariable: FinancialVarRow[];
+  amountKeys: { amountCurrentKey: string; amountPreviousKey: string }
   onSave: (updatedNotes: FinancialNote[]) => void;
   onClose: () => void;
 }
@@ -128,11 +133,11 @@ const RenderMuiNoteTable = ({ data }: { data: TableContent }) => (
   </Table>
 );
 
-const NotesEditor: React.FC<NotesEditorProps> = ({ notes, onSave, onClose }) => {
+const NotesEditor: React.FC<NotesEditorProps> = ({ financialVariable,amountKeys,notes, onSave, onClose }) => {
   const [editableNotes, setEditableNotes] = useState<FinancialNote[]>(() => _.cloneDeep(notes));
    const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
-  
 
+   
   useEffect(() => {
     setEditableNotes(_.cloneDeep(notes));
     
@@ -150,35 +155,45 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ notes, onSave, onClose }) => 
     }
   }, [notes]);
 
-  const handleValueChange = (noteIndex: number, path: string, field: 'valueCurrent' | 'valuePrevious', value: number) => {
-    setEditableNotes((prevNotes) => {
-      const newNotes = _.cloneDeep(prevNotes);
-      const noteToUpdate = newNotes[noteIndex];
+const handleValueChange = (
+  noteNumber: number,
+  path: string,
+  field: 'valueCurrent' | 'valuePrevious',
+  value: number
+) => {
+  setEditableNotes((prevNotes) => {
+    const newNotes = _.cloneDeep(prevNotes);
+    const noteToUpdateIndex = newNotes.findIndex(n => n.noteNumber === noteNumber);
+    if (noteToUpdateIndex === -1) return newNotes;
 
-      _.set(noteToUpdate.content, `${path}.${field}`, value);
+    const noteToUpdate = newNotes[noteToUpdateIndex];
+    _.set(noteToUpdate.content, `${path}.${field}`, value);
 
-      const hierarchicalContent = noteToUpdate.content.filter(
-        (c: HierarchicalItem | TableContent | string): c is HierarchicalItem => typeof c !== 'string' && 'key' in c
-      );
-      const recalculatedContent = recalculateTotals(hierarchicalContent);
+    // Recalculate totals
+    const hierarchicalContent = noteToUpdate.content.filter(
+      (c: HierarchicalItem | TableContent | string): c is HierarchicalItem =>
+        typeof c !== 'string' && 'key' in c
+    );
+    const recalculatedContent = recalculateTotals(hierarchicalContent);
 
-      noteToUpdate.totalCurrent = _.sumBy(
-        recalculatedContent.filter((i) => i.isSubtotal || !i.children),
-        (item: HierarchicalItem) => Number(item.valueCurrent ?? 0)
-      );
-      noteToUpdate.totalPrevious = _.sumBy(
-        recalculatedContent.filter((i) => i.isSubtotal || !i.children),
-        (item: HierarchicalItem) => Number(item.valuePrevious ?? 0)
-      );
+    noteToUpdate.totalCurrent = _.sumBy(
+      recalculatedContent.filter(i => i.isSubtotal || !i.children),
+      i => Number(i.valueCurrent ?? 0)
+    );
+    noteToUpdate.totalPrevious = _.sumBy(
+      recalculatedContent.filter(i => i.isSubtotal || !i.children),
+      i => Number(i.valuePrevious ?? 0)
+    );
 
-      let reconIdx = 0;
-      noteToUpdate.content = noteToUpdate.content.map((c: HierarchicalItem | TableContent | string) =>
-        typeof c !== 'string' && 'key' in c ? recalculatedContent[reconIdx++] : c
-      );
+    let reconIdx = 0;
+    noteToUpdate.content = noteToUpdate.content.map(c =>
+      typeof c !== 'string' && 'key' in c ? recalculatedContent[reconIdx++] : c
+    );
 
-      return newNotes;
-    });
-  };
+    return newNotes;
+  });
+};
+
 
   const handleSave = () => {
     const filteredNotes = editableNotes.map((note) => {
@@ -272,7 +287,7 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ notes, onSave, onClose }) => 
                         key={item.key}
                         item={item}
                         path={`${itemIndex}`}
-                        onValueChange={(path, field, value) => handleValueChange(noteIndex, path, field, value)}
+                        onValueChange={(path, field, value) => handleValueChange(note.noteNumber, path, field, value)}
                       />
                     );
                   }

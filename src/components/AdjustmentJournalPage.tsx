@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { JournalRow, GLAccountInfo } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+// ✅ 1. TextField is now used more, so it's a primary import
 import { Button, Autocomplete, TextField } from '@mui/material';
 
 const API_URL = 'http://localhost:5000/api/journal';
@@ -20,11 +21,7 @@ const AdjustmentJournalPage: React.FC<AdjustmentJournalPageProps> = ({ onBack })
   const [isPosting, setIsPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [showEntriesDialog, setShowEntriesDialog] = useState(false);
-  const [entryPeriods, setEntryPeriods] = useState<string[]>([]);
-  const [selectedEntryPeriod, setSelectedEntryPeriod] = useState<string | null>(null);
-  const [entryList, setEntryList] = useState<any[]>([]);
-
+  // --- DATA FETCHING (No changes) ---
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
@@ -40,36 +37,26 @@ const AdjustmentJournalPage: React.FC<AdjustmentJournalPageProps> = ({ onBack })
         setIsLoading(false);
       }
     };
-
-    const fetchEntryPeriods = async () => {
-      const res = await axios.get(`${API_URL}/entries`);
-      setEntryPeriods(res.data.periods || []);
-    };
-
     fetchMetadata();
-    fetchEntryPeriods();
   }, []);
 
+  // --- HANDLERS (No changes) ---
   const handleAddRow = () => {
     const newRow: JournalRow = { id: uuidv4(), selectedGlAccount: null, transactionType: 'Debit', amounts: {} };
     setRows([...rows, newRow]);
   };
-
   const handleAddPeriod = (period: string) => {
     if (period && !selectedPeriods.includes(period)) {
       setSelectedPeriods([...selectedPeriods, period]);
     }
   };
-
   const handleRowChange = (id: string, updatedValues: Partial<JournalRow>) => {
     setRows(rows.map(row => (row.id === id ? { ...row, ...updatedValues } : row)));
   };
-
   const handleAmountChange = (rowId: string, period: string, value: string) => {
     const newAmount = value === '' ? '' : parseFloat(value);
     setRows(rows.map(row => (row.id === rowId ? { ...row, amounts: { ...row.amounts, [period]: newAmount } } : row)));
   };
-
   const handlePostEntries = async () => {
     setIsPosting(true);
     setError(null);
@@ -118,9 +105,10 @@ const AdjustmentJournalPage: React.FC<AdjustmentJournalPageProps> = ({ onBack })
       {showEntryControls && (
         <div style={{ margin: '20px 0', display: 'flex', gap: '10px', alignItems: 'center' }}>
           <Button variant="contained" size="small" onClick={handleAddRow}>Add General Ledger</Button>
-
+          
+          {/* ✅ 2. Replaced "Add Period" <select> with Autocomplete */}
           <Autocomplete
-            value={null}
+            value={null} // Controlled to act as a command palette; resets after selection
             onChange={(event, newValue) => {
               if (newValue) {
                 handleAddPeriod(newValue);
@@ -163,6 +151,7 @@ const AdjustmentJournalPage: React.FC<AdjustmentJournalPageProps> = ({ onBack })
                     />
                   </td>
                   <td>
+                    {/* ✅ 3. Replaced "Type" <select> with Autocomplete */}
                     <Autocomplete
                       value={row.transactionType}
                       onChange={(event, newValue) => {
@@ -171,13 +160,14 @@ const AdjustmentJournalPage: React.FC<AdjustmentJournalPageProps> = ({ onBack })
                         }
                       }}
                       options={typeOptions}
-                      disableClearable
+                      disableClearable // User must select either Debit or Credit
                       renderInput={(params) => <TextField {...params} label="Type" size="small" />}
                       sx={{ width: 150 }}
                     />
                   </td>
                   {selectedPeriods.map(period => (
                     <td key={period}>
+                      {/* ✅ 4. Replaced amount <input> with TextField for consistent styling */}
                       <TextField
                         type="number"
                         size="small"
@@ -186,7 +176,7 @@ const AdjustmentJournalPage: React.FC<AdjustmentJournalPageProps> = ({ onBack })
                         onChange={e => handleAmountChange(row.id, period, e.target.value)}
                         disabled={!row.selectedGlAccount}
                         sx={{ width: 150 }}
-                        inputProps={{ style: { textAlign: 'right' } }}
+                        inputProps={{ style: { textAlign: 'right' } }} // Aligns the number to the right
                       />
                     </td>
                   ))}
@@ -199,66 +189,9 @@ const AdjustmentJournalPage: React.FC<AdjustmentJournalPageProps> = ({ onBack })
             <Button variant="contained" onClick={handlePostEntries} disabled={isPosting}>
               {isPosting ? 'Posting...' : 'Post Entries'}
             </Button>
-            <Button variant="outlined" onClick={() => setShowEntriesDialog(true)} style={{ marginLeft: '10px' }}>
-              View Entries
-            </Button>
             {error && <span style={{ color: 'red', marginLeft: '10px' }}>{error}</span>}
           </div>
         </>
-      )}
-
-      {showEntriesDialog && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-          <div style={{ background: 'white', padding: '20px', borderRadius: '8px', width: '600px' }}>
-            <h2>View Posted Entries</h2>
-
-            <Autocomplete
-              value={selectedEntryPeriod}
-              onChange={async (event, newValue) => {
-                setSelectedEntryPeriod(newValue);
-                if (newValue) {
-                  const res = await axios.get(`${API_URL}/entries?period=${newValue}`);
-                  setEntryList(res.data.entries || []);
-                }
-              }}
-              options={entryPeriods}
-              renderInput={(params) => <TextField {...params} label="Select Period" size="small" />}
-              sx={{ marginBottom: '15px' }}
-            />
-
-            {entryList.length > 0 && (
-              <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
-                <thead>
-                  <tr>
-                    <th>Hash</th>
-                    <th>GL Account</th>
-                    <th>GL Name</th>
-                    <th>Period</th>
-                    <th>Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {entryList.map((entry, idx) => (
-                    <tr key={idx}>
-                      <td>{entry.hash_val}</td>
-                      <td>{entry.glAccount}</td>
-                      <td>{entry.glName}</td>
-                      <td>{entry.period}</td>
-                      <td style={{ textAlign: 'right' }}>{entry.amount}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-
-            <div style={{ marginTop: '15px', textAlign: 'right' }}>
-              <Button variant="outlined" onClick={() => setShowEntriesDialog(false)}>Close</Button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
