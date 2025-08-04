@@ -13,13 +13,18 @@ import {
   AppBar,
   Toolbar,
 } from '@mui/material';
-import { FinancialNote, HierarchicalItem, TableContent } from './Financialstatement';
+import { FinancialNote, FinancialVarRow, HierarchicalItem, TableContent } from './Financialstatement';
 import { formatCurrency } from './Financialstatement';
 import _ from 'lodash';
 
+const API_URL = 'http://localhost:5000/api/journal';
+
 
 interface NotesEditorProps {
+  
   notes: FinancialNote[];
+  financialVariable: FinancialVarRow[];
+  amountKeys: { amountCurrentKey: string; amountPreviousKey: string }
   onSave: (updatedNotes: FinancialNote[]) => void;
   onClose: () => void;
 }
@@ -128,11 +133,11 @@ const RenderMuiNoteTable = ({ data }: { data: TableContent }) => (
   </Table>
 );
 
-const NotesEditor: React.FC<NotesEditorProps> = ({ notes, onSave, onClose }) => {
+const NotesEditor: React.FC<NotesEditorProps> = ({ financialVariable,amountKeys,notes, onSave, onClose }) => {
   const [editableNotes, setEditableNotes] = useState<FinancialNote[]>(() => _.cloneDeep(notes));
    const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
-  
 
+   
   useEffect(() => {
     setEditableNotes(_.cloneDeep(notes));
     

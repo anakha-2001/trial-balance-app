@@ -22,6 +22,7 @@ import NotesEditor from './NotesEditor';
 import { createPortal } from 'react-dom';
 import { on } from 'events';
 import { useNavigate } from 'react-router-dom';
+import { FinancialRow } from './Columnmapper';
 
 // --- 1. TYPE DEFINITIONS (FIXED) ---
 
@@ -33,6 +34,12 @@ interface MappedRow {
   amountCurrent?: number;
   amountPrevious?: number;
 }
+export interface FinancialVarRow {
+  key: string; // ← a dynamic key (like 'sales', 'inventory', etc.)
+  amountCurrent?: number ;
+  amountPrevious?: number;
+}
+
 // Represents a table within a policy note.
 export interface TableContent {
   type: 'table';
@@ -529,7 +536,7 @@ const ACCOUNTING_POLICIES_CONTENT: AccountingPolicy[] = [
     },
 ];
 // --- 4. CORE DATA PROCESSING HOOK (FIXED) ---
-const useFinancialData = (rawData: MappedRow[], editedNotes: FinancialNote[] | null): FinancialData => {
+const useFinancialData = (rawData: MappedRow[], financialVar2:FinancialVarRow[],editedNotes: FinancialNote[] | null): FinancialData => {
   return useMemo(() => {
     const enrichedData = rawData.map(row => ({ ...row, amountCurrent: row.amountCurrent || 0, amountPrevious: row.amountPrevious || 0 }));
 
@@ -1033,8 +1040,13 @@ inCOMTAS2.push(calculateRowTotal(inCOMTAS2));
   };
 };
 const calculateNote5 = (): FinancialNote => {
-  const note5_1 = getValueForKey(5, 'note5-nc-emp');
-  const note5_2 = getValueForKey(5, 'note5-c-emp');
+  const note5_1 = financialVar2.find(item => item.key === 'note5-nc-emp')
+  ? getValueForKey(5, 'note5-nc-emp')
+  : { valueCurrent: 0, valuePrevious: 0 };
+
+const note5_2 = financialVar2.find(item => item.key === 'note5-c-emp')
+  ? getValueForKey(5, 'note5-c-emp')
+  : { valueCurrent: 0, valuePrevious: 0 };
   const nonCurrentTotal = { current: note5_1.valueCurrent??0, previous: note5_1.valuePrevious??0 };
   const currentTotal = { current:note5_2.valueCurrent??0, previous:note5_2.valuePrevious??0 };
 
@@ -8025,7 +8037,7 @@ export const joinManualJEAndRenamedData = (
 };
 
 // --- 7. MAIN APPLICATION COMPONENT ---
-interface FinancialStatementsProps {
+export interface FinancialStatementsProps {
   data: MappedRow[];
   amountKeys: { amountCurrentKey: string; amountPreviousKey: string };
 }
@@ -8037,6 +8049,7 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, amountK
   const [isNotesEditorOpen, setNotesEditorOpen] = useState(false);
   const [editorContainer, setEditorContainer] = useState<HTMLElement | null>(null);
   const [manualJE, setManualJE] = useState([]);
+  const [financialVar, setFinancialVar] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
 
@@ -8046,8 +8059,11 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, amountK
         const response = await fetch('http://localhost:5000/api/journal/updated');
         const data = await response.json();
         setManualJE(data);
+        const response1 = await fetch('http://localhost:5000/api/financial_variables');
+        const data1 = await response1.json();
+        setFinancialVar(data1);
       } catch (error) {
-        console.error('Error fetching journal entry:', error);
+        console.error('Error fetching journal entry and :', error);
       } finally {
         setLoading(false);
       }
@@ -8079,8 +8095,38 @@ console.log("manualJE",manualJE)
 
   const renamedData1 = joinManualJEAndRenamedData(renamedData,manualJE,amountKeys)
 
+  const columnsToKeep = ['key', amountKeys.amountCurrentKey,amountKeys.amountPreviousKey ];
+
+  const financialVar1 = financialVar.map((item: Record<string, any>) => {
+    const filteredItem: Record<string, any> = {};
+    columnsToKeep.forEach((col) => {
+      filteredItem[col] = item[col];
+    });
+    return filteredItem;
+  });
+
+  const financialVar2 = financialVar1.map(row => {
+    const currentValue = row[amountKeys.amountCurrentKey];
+    const previousValue = row[amountKeys.amountPreviousKey];
+    const amountCurrent = typeof currentValue === 'string' || typeof currentValue === 'number'
+      ? parseFloat(currentValue as string)
+      : 0;
+    const amountPrevious = typeof previousValue === 'string' || typeof previousValue === 'number'
+      ? parseFloat(previousValue as string)
+      : 0;
+
+    const { [amountKeys.amountCurrentKey]: _, [amountKeys.amountPreviousKey]: __, key } = row;
+
+    return {
+      key,
+      amountCurrent: isNaN(amountCurrent) ? 0 : amountCurrent,
+      amountPrevious: isNaN(amountPrevious) ? 0 : amountPrevious,
+    };
+  });
+
+  console.log("financialVar2",financialVar2)
   console.log('renamedData', renamedData1);
-  const financialData = useFinancialData(renamedData, editedNotes);
+  const financialData = useFinancialData(renamedData, financialVar2, editedNotes);
 
   const allExpandableKeys = useMemo(() => {
     const bsKeys = getAllExpandableKeys(financialData.balanceSheet);
@@ -8170,6 +8216,49 @@ const handleEditNotes = (noteId?: number | string) => {
 
   const handleSaveChanges = (updatedNotes: FinancialNote[]) => {
     setEditedNotes(updatedNotes);
+
+
+    const getEditedValueByKey = (
+        key: string
+      ): { valueCurrent: number | null; valuePrevious: number | null } => {
+        if (!editedNotes) return { valueCurrent: null, valuePrevious: null };
+
+        for (const note of editedNotes) {
+          const result = findInContent(note.content, key);
+          if (result) return result;
+        }
+
+        return { valueCurrent: null, valuePrevious: null };
+      };
+
+      const findInContent = (
+        items: (HierarchicalItem | TableContent | string)[],
+        key: string
+      ): { valueCurrent: number | null; valuePrevious: number | null } | null => {
+        for (const item of items) {
+          if (typeof item !== 'string' && 'key' in item && item.key === key) {
+            return {
+              valueCurrent: item.valueCurrent ?? null,
+              valuePrevious: item.valuePrevious ?? null,
+            };
+          }
+
+          if (typeof item !== 'string' && 'children' in item && item.children) {
+            const result = findInContent(item.children, key);
+            if (result) return result;
+          }
+        }
+        return null;
+      };
+
+
+
+
+
+
+
+
+
     handleCloseEditor();
   };
 
@@ -8191,6 +8280,8 @@ const handleEditNotes = (noteId?: number | string) => {
       {isNotesEditorOpen && editorContainer && (
         createPortal(
           <NotesEditor
+            financialVariable={financialVar2}
+            amountKeys={amountKeys}
             notes={financialData.notes}
             onSave={handleSaveChanges}
             onClose={handleCloseEditor}
