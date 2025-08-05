@@ -16,9 +16,6 @@ const UserForm = () => {
   const [columns, setColumns] = useState<string[]>([]);
   const [rawData, setRawData] = useState<any[]>([]);
   const [mappedData, setMappedData] = useState<any[]>([]);
-  
-
-  
 
 }
 

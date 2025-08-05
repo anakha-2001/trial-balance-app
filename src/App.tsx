@@ -32,6 +32,7 @@ const App: React.FC = () => {
     amountCurrentKey: '',
     amountPreviousKey: '',
   });
+  const [useDatabase, setUseDatabase] = useState(false);
 
   const columns = excelData.length > 0 ? Object.keys(excelData[0]) : [];
 
@@ -153,8 +154,18 @@ const App: React.FC = () => {
             </Button>
           </Box>
 
-          {/* Pass Adjustment Entries Button */}
+          {/* Database Mode Toggle */}
           <Box textAlign="right" mb={2}>
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => setUseDatabase(!useDatabase)}
+              sx={{ mr: 2 }}
+            >
+              {useDatabase ? 'Switch to Excel Mode' : 'Switch to Database Mode'}
+            </Button>
+            
+            {/* Pass Adjustment Entries Button */}
             <Button
               variant="outlined"
               color="error"
@@ -179,13 +190,15 @@ const App: React.FC = () => {
             </DialogActions>
           </Dialog>
 
-          {/* Upload Section */}
-          <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-            <ExcelUpload onDataParsed={setExcelData} />
-          </Paper>
+          {/* Upload Section - Only show in Excel mode */}
+          {!useDatabase && (
+            <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
+              <ExcelUpload onDataParsed={setExcelData} />
+            </Paper>
+          )}
 
-          {/* Column Mapper */}
-          {excelData.length > 0 && mappedData.length === 0 && (
+          {/* Column Mapper - Only show in Excel mode */}
+          {!useDatabase && excelData.length > 0 && mappedData.length === 0 && (
             <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
               <ColumnMapper
                 columns={columns}
@@ -195,8 +208,8 @@ const App: React.FC = () => {
             </Paper>
           )}
 
-          {/* Mapping Success */}
-          {mappedData.length > 0 && (
+          {/* Mapping Success - Only show in Excel mode */}
+          {!useDatabase && mappedData.length > 0 && (
             <Paper sx={{ p: 2, mb: 3 }}>
               <Typography variant="h6" color="success.main">
                 ✅ Columns Mapped! Ready for Statements
@@ -205,9 +218,13 @@ const App: React.FC = () => {
           )}
 
           {/* Financial Statements Output */}
-          {mappedData.length > 0 && (
+          {(useDatabase || mappedData.length > 0) && (
             <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-              <FinancialStatements data={mappedData} amountKeys={amountKeys} />
+              <FinancialStatements 
+                data={mappedData} 
+                amountKeys={amountKeys} 
+                useDatabase={useDatabase}
+              />
             </Paper>
           )}
         </Box>

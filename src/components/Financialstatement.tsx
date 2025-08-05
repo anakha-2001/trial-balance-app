@@ -13,8 +13,10 @@ import {
   DialogContent,
   DialogActions,
   DialogTitle,      
-  DialogContentText
+  DialogContentText,
+  Alert
 } from '@mui/material';
+import PeriodSelector from './PeriodSelector';
 import { saveAs } from 'file-saver';
 import ExcelJS, { Worksheet, Border, Fill } from 'exceljs';
 import { PDFViewer, Page, Text, View, Document, StyleSheet, PDFDownloadLink, Link } from '@react-pdf/renderer';
@@ -8045,12 +8047,13 @@ if (node.id) {
   }, [rawData,editedNotes]);
 };
 // --- 5. UI COMPONENTS ---
-const DrillDownTable = ({ title, data, expandedKeys, onToggleRow,handleEditNotes, }: {
+const DrillDownTable = ({ title, data, expandedKeys, onToggleRow, handleEditNotes, periodHeaders }: {
   title: string;
   data: HierarchicalItem[];
   expandedKeys: Set<string>;
   onToggleRow: (key: string) => void;
   handleEditNotes: (note?: number | string) => void; // Pass note number if needed
+  periodHeaders: { currentPeriod: string; previousPeriod: string };
 }) => {
   const navigate = useNavigate();  
   const renderRow = (row: HierarchicalItem, depth: number) => {
@@ -8125,8 +8128,8 @@ const DrillDownTable = ({ title, data, expandedKeys, onToggleRow,handleEditNotes
                         <TableRow>
                             <TableCell sx={{width: '50%'}}>Particulars</TableCell>
                             <TableCell align="center">Note No.</TableCell>
-                            <TableCell align="right">For the year ended 31 March 2024</TableCell>
-                            <TableCell align="right">For the year ended 31 March 2023</TableCell>
+                            <TableCell align="right">{periodHeaders.currentPeriod}</TableCell>
+                            <TableCell align="right">{periodHeaders.previousPeriod}</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>{data.map(row => renderRow(row, 0))}</TableBody>
@@ -8136,7 +8139,7 @@ const DrillDownTable = ({ title, data, expandedKeys, onToggleRow,handleEditNotes
     );
 };
 // --- 6. EXPORT & MODAL COMPONENTS ---
-const handleExportExcel = async (data: FinancialData) => {
+const handleExportExcel = async (data: FinancialData, periodHeaders: { currentPeriod: string; previousPeriod: string }) => {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'FinancialApp';
   workbook.created = new Date();
@@ -8188,8 +8191,8 @@ const handleExportExcel = async (data: FinancialData) => {
     worksheet.columns = [
       { header: 'Particulars', key: 'particulars', width: 60 },
       { header: 'Note No.', key: 'note', width: 15, style: { alignment: { horizontal: 'center' }} },
-      { header: 'For the year ended 31 March 2024', key: 'current', width: 25 },
-      { header: 'For the year ended 31 March 2023', key: 'previous', width: 25 },
+      { header: periodHeaders.currentPeriod, key: 'current', width: 25 },
+      { header: periodHeaders.previousPeriod, key: 'previous', width: 25 },
     ];
     worksheet.getRow(1).font = { bold: true };
     addHierarchicalRows(worksheet, sheetData, 0);
@@ -8526,7 +8529,7 @@ const RenderPdfRow = ({ item, depth }: { item: HierarchicalItem; depth: number }
     </Fragment>
   );
 }; 
-const PDFDocumentComponent = ({ data }: { data: FinancialData }) => (
+const PDFDocumentComponent = ({ data, periodHeaders }: { data: FinancialData; periodHeaders: { currentPeriod: string; previousPeriod: string } }) => (
   <Document>
     <Page size="A4" style={PDF_STYLES.page}>
       <Text style={PDF_STYLES.title}>Financial Statements</Text>
@@ -8536,8 +8539,8 @@ const PDFDocumentComponent = ({ data }: { data: FinancialData }) => (
         <View style={PDF_STYLES.tableHeader}>
             <Text style={PDF_STYLES.colParticulars}>Particulars</Text>
             <Text style={PDF_STYLES.colNote}>Note</Text>
-            <Text style={PDF_STYLES.colAmount}>31 Mar 2024</Text>
-            <Text style={PDF_STYLES.colAmount}>31 Mar 2023</Text>
+            <Text style={PDF_STYLES.colAmount}>{periodHeaders.currentPeriod}</Text>
+            <Text style={PDF_STYLES.colAmount}>{periodHeaders.previousPeriod}</Text>
         </View>
         {data.balanceSheet.map(item => <RenderPdfRow key={item.key} item={item} depth={0} />)}
       </View>
@@ -8546,8 +8549,8 @@ const PDFDocumentComponent = ({ data }: { data: FinancialData }) => (
          <View style={PDF_STYLES.tableHeader}>
             <Text style={PDF_STYLES.colParticulars}>Particulars</Text>
             <Text style={PDF_STYLES.colNote}>Note</Text>
-            <Text style={PDF_STYLES.colAmount}>31 Mar 2024</Text>
-            <Text style={PDF_STYLES.colAmount}>31 Mar 2023</Text>
+            <Text style={PDF_STYLES.colAmount}>{periodHeaders.currentPeriod}</Text>
+            <Text style={PDF_STYLES.colAmount}>{periodHeaders.previousPeriod}</Text>
         </View>
         {data.incomeStatement.map(item => <RenderPdfRow key={item.key} item={item} depth={0} />)}
       </View>
@@ -8557,8 +8560,8 @@ const PDFDocumentComponent = ({ data }: { data: FinancialData }) => (
          <View style={PDF_STYLES.tableHeader}>
             <Text style={PDF_STYLES.colParticulars}>Particulars</Text>
             <Text style={PDF_STYLES.colNote}>Note</Text>
-            <Text style={PDF_STYLES.colAmount}>31 Mar 2024</Text>
-            <Text style={PDF_STYLES.colAmount}>31 Mar 2023</Text>
+            <Text style={PDF_STYLES.colAmount}>{periodHeaders.currentPeriod}</Text>
+            <Text style={PDF_STYLES.colAmount}>{periodHeaders.previousPeriod}</Text>
         </View>
         {data.cashFlow.map(item => <RenderPdfRow key={item.key} item={item} depth={0} />)}
       </View>
@@ -8600,7 +8603,7 @@ const PDFDocumentComponent = ({ data }: { data: FinancialData }) => (
     </Page>
   </Document>
 );
-const PdfModal = ({ open, onClose, data }: { open: boolean; onClose: () => void; data: FinancialData }) => {
+const PdfModal = ({ open, onClose, data, periodHeaders }: { open: boolean; onClose: () => void; data: FinancialData; periodHeaders: { currentPeriod: string; previousPeriod: string } }) => {
   useEffect(() => {
     console.log('PdfModal open:', open);
     return () => {
@@ -8621,13 +8624,13 @@ const PdfModal = ({ open, onClose, data }: { open: boolean; onClose: () => void;
       <DialogContent sx={{ height: '80vh' }}>
         {open && (
           <PDFViewer width="100%" height="100%">
-            <PDFDocumentComponent data={data} />
+            <PDFDocumentComponent data={data} periodHeaders={periodHeaders} />
           </PDFViewer>
         )}
       </DialogContent>
       <DialogActions>
         {open && (
-          <PDFDownloadLink document={<PDFDocumentComponent data={data} />} fileName="financial_statements.pdf" style={{ textDecoration: 'none' }}>
+                        <PDFDownloadLink document={<PDFDocumentComponent data={data} periodHeaders={periodHeaders} />} fileName="financial_statements.pdf" style={{ textDecoration: 'none' }}>
             {({ loading }) => (
               <Button variant="contained" disabled={loading}>
                 {loading ? 'Generating...' : 'Download PDF'}
@@ -8689,10 +8692,11 @@ export const joinManualJEAndRenamedData = (
 
 // --- 7. MAIN APPLICATION COMPONENT ---
 export interface FinancialStatementsProps {
-  data: MappedRow[];
-  amountKeys: { amountCurrentKey: string; amountPreviousKey: string };
+  data?: MappedRow[];
+  amountKeys?: { amountCurrentKey: string; amountPreviousKey: string };
+  useDatabase?: boolean;
 }
-const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, amountKeys }) => {
+const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, amountKeys, useDatabase = false }) => {
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [isPdfModalOpen, setPdfModalOpen] = useState(false);
   const [isExcelConfirmOpen, setExcelConfirmOpen] = useState(false);
@@ -8703,6 +8707,66 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, amountK
   const [financialVar, setFinancialVar] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // Database state
+  const [databaseData, setDatabaseData] = useState<MappedRow[]>([]);
+  const [financialVarData, setFinancialVarData] = useState<FinancialVarRow[]>([]);
+  const [dbLoading, setDbLoading] = useState(false);
+  const [dbError, setDbError] = useState<string>('');
+  const [selectedPeriods, setSelectedPeriods] = useState<{ period1: string; period2: string } | null>(null);
+
+  // Function to fetch data from database
+  const fetchDatabaseData = async (period1: string, period2: string) => {
+    try {
+      setDbLoading(true);
+      setDbError('');
+      
+      // Fetch trial balance data
+      const response = await fetch(`http://localhost:5000/api/trial-balance/data?period1=${encodeURIComponent(period1)}&period2=${encodeURIComponent(period2)}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch trial balance data');
+      }
+      const trialBalanceData = await response.json();
+      
+      // Transform data to match MappedRow format
+      const transformedData: MappedRow[] = trialBalanceData.map((row: any) => ({
+        glAccount: row.glAccount,
+        glName: row.glName,
+        accountType: row.accountType,
+        'Level 1 Desc': row['Level 1 Desc'],
+        'Level 2 Desc': row['Level 2 Desc'],
+        functionalArea: row.functionalArea,
+        amountCurrent: parseFloat(row.amountCurrent) || 0,
+        amountPrevious: parseFloat(row.amountPrevious) || 0,
+      }));
+      
+      setDatabaseData(transformedData);
+      
+      // Fetch financial variables
+      const fvResponse = await fetch('http://localhost:5000/api/financial-variables');
+      if (!fvResponse.ok) {
+        throw new Error('Failed to fetch financial variables');
+      }
+      const fvData = await fvResponse.json();
+      
+      // Transform financial variables (handle empty data)
+      const transformedFV: FinancialVarRow[] = fvData.length > 0 
+        ? fvData.map((item: any) => ({
+            key: item.key,
+            amountCurrent: parseFloat(item[period1]) || 0,
+            amountPrevious: parseFloat(item[period2]) || 0,
+          }))
+        : []; // Return empty array if no financial variables data
+      
+      setFinancialVarData(transformedFV);
+      setSelectedPeriods({ period1, period2 });
+      
+    } catch (error) {
+      console.error('Error fetching database data:', error);
+      setDbError('Failed to load data from database');
+    } finally {
+      setDbLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchJEs = async () => {
@@ -8724,10 +8788,42 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, amountK
   }, []);
 console.log("manualJE",manualJE)
 
+  // Determine which data source to use
+  const currentData = useDatabase ? databaseData : (data || []);
+  const currentAmountKeys = useDatabase ? { amountCurrentKey: 'amountCurrent', amountPreviousKey: 'amountPrevious' } : (amountKeys || { amountCurrentKey: '', amountPreviousKey: '' });
+  const currentFinancialVar = useDatabase ? financialVarData : financialVar;
+
+  // Function to format period names for display
+  const formatPeriodName = (periodName: string): string => {
+    // Return the original period name as selected from database
+    return periodName;
+  };
+
+  // Get formatted period names for headers
+  const getPeriodHeaders = () => {
+    if (useDatabase && selectedPeriods) {
+      return {
+        currentPeriod: formatPeriodName(selectedPeriods.period1),
+        previousPeriod: formatPeriodName(selectedPeriods.period2)
+      };
+    }
+    return {
+      currentPeriod: 'For the year ended 31 March 2024',
+      previousPeriod: 'For the year ended 31 March 2023'
+    };
+  };
+
+  const periodHeaders = getPeriodHeaders();
+
   // Move hooks to top level
-  const renamedData = data.map(row => {
-    const currentValue = row[amountKeys.amountCurrentKey];
-    const previousValue = row[amountKeys.amountPreviousKey];
+  const renamedData = currentData.map(row => {
+    if (useDatabase) {
+      // Database data is already in the correct format
+      return row;
+    }
+    
+    const currentValue = row[currentAmountKeys.amountCurrentKey];
+    const previousValue = row[currentAmountKeys.amountPreviousKey];
     const amountCurrent = typeof currentValue === 'string' || typeof currentValue === 'number'
       ? parseFloat(currentValue as string)
       : 0;
@@ -8735,7 +8831,7 @@ console.log("manualJE",manualJE)
       ? parseFloat(previousValue as string)
       : 0;
 
-    const { [amountKeys.amountCurrentKey]: _, [amountKeys.amountPreviousKey]: __, ...rest } = row;
+    const { [currentAmountKeys.amountCurrentKey]: _, [currentAmountKeys.amountPreviousKey]: __, ...rest } = row;
 
     return {
       ...rest,
@@ -8744,11 +8840,11 @@ console.log("manualJE",manualJE)
     };
   });
 
-  const renamedData1 = joinManualJEAndRenamedData(renamedData,manualJE,amountKeys)
+  const renamedData1 = useDatabase ? renamedData : joinManualJEAndRenamedData(renamedData, manualJE, currentAmountKeys);
 
-  const columnsToKeep = ['key', amountKeys.amountCurrentKey,amountKeys.amountPreviousKey ];
+  const columnsToKeep = useDatabase ? ['key', 'amountCurrent', 'amountPrevious'] : ['key', currentAmountKeys.amountCurrentKey, currentAmountKeys.amountPreviousKey];
 
-  const financialVar1 = financialVar.map((item: Record<string, any>) => {
+  const financialVar1 = currentFinancialVar.map((item: Record<string, any>) => {
     const filteredItem: Record<string, any> = {};
     columnsToKeep.forEach((col) => {
       filteredItem[col] = item[col];
@@ -8757,8 +8853,17 @@ console.log("manualJE",manualJE)
   });
 
   const financialVar2 = financialVar1.map(row => {
-    const currentValue = row[amountKeys.amountCurrentKey];
-    const previousValue = row[amountKeys.amountPreviousKey];
+    if (useDatabase) {
+      // Database financial variables are already in correct format
+      return {
+        key: row.key,
+        amountCurrent: row.amountCurrent || 0,
+        amountPrevious: row.amountPrevious || 0,
+      };
+    }
+    
+    const currentValue = row[currentAmountKeys.amountCurrentKey];
+    const previousValue = row[currentAmountKeys.amountPreviousKey];
     const amountCurrent = typeof currentValue === 'string' || typeof currentValue === 'number'
       ? parseFloat(currentValue as string)
       : 0;
@@ -8766,7 +8871,7 @@ console.log("manualJE",manualJE)
       ? parseFloat(previousValue as string)
       : 0;
 
-    const { [amountKeys.amountCurrentKey]: _, [amountKeys.amountPreviousKey]: __, key } = row;
+    const { [currentAmountKeys.amountCurrentKey]: _, [currentAmountKeys.amountPreviousKey]: __, key } = row;
 
     return {
       key,
@@ -8791,6 +8896,45 @@ console.log("manualJE",manualJE)
     return <div>Loading...</div>;
   }
 
+  // If using database mode and no periods selected, show period selector
+  if (useDatabase && !selectedPeriods) {
+    return (
+      <Box>
+        <Typography variant="h5" gutterBottom>
+          Database Mode - Select Periods
+        </Typography>
+        <PeriodSelector onPeriodsSelected={fetchDatabaseData} />
+        {dbError && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {dbError}
+          </Alert>
+        )}
+      </Box>
+    );
+  }
+
+  // If using database mode and loading data
+  if (useDatabase && dbLoading) {
+    return <div>Loading financial data from database...</div>;
+  }
+
+  // If using database mode but no data loaded yet
+  if (useDatabase && databaseData.length === 0) {
+    return (
+      <Box>
+        <Typography variant="h5" gutterBottom>
+          Database Mode - Select Periods
+        </Typography>
+        <PeriodSelector onPeriodsSelected={fetchDatabaseData} />
+        {dbError && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {dbError}
+          </Alert>
+        )}
+      </Box>
+    );
+  }
+
   const handleToggleRow = (key: string) => {
     setExpandedKeys(prev => {
       const newSet = new Set(prev);
@@ -8800,7 +8944,7 @@ console.log("manualJE",manualJE)
   };
 
   const handleExcelConfirm = () => {
-    handleExportExcel(financialData);
+    handleExportExcel(financialData, periodHeaders);
     setExcelConfirmOpen(false);
   };
 
@@ -8916,8 +9060,8 @@ const handleEditNotes = (noteId?: number | string) => {
 
   const renamedForServer = updatedFinancialVar2.map(row => ({
     key: row.key,
-    [amountKeys.amountCurrentKey]: row.amountCurrent,
-    [amountKeys.amountPreviousKey]: row.amountPrevious,
+    [currentAmountKeys.amountCurrentKey]: row.amountCurrent,
+    [currentAmountKeys.amountPreviousKey]: row.amountPrevious,
   }));
    console.log("financialVarUpdated",renamedForServer)
 
@@ -8961,7 +9105,7 @@ const handleEditNotes = (noteId?: number | string) => {
         createPortal(
           <NotesEditor
             financialVariable={financialVar2}
-            amountKeys={amountKeys}
+            amountKeys={currentAmountKeys}
             notes={financialData.notes}
             onSave={handleSaveChanges}
             onClose={handleCloseEditor}
@@ -8970,9 +9114,9 @@ const handleEditNotes = (noteId?: number | string) => {
         )
       )}
 
-      <DrillDownTable title="Balance Sheet" data={financialData.balanceSheet} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} handleEditNotes={handleEditNotes}/>
-      <DrillDownTable title="Statement of Profit and Loss" data={financialData.incomeStatement} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} handleEditNotes={handleEditNotes} />
-      <DrillDownTable title="Cash Flow Statement" data={financialData.cashFlow} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} handleEditNotes={handleEditNotes}/>
+                <DrillDownTable title="Balance Sheet" data={financialData.balanceSheet} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} handleEditNotes={handleEditNotes} periodHeaders={periodHeaders}/>
+          <DrillDownTable title="Statement of Profit and Loss" data={financialData.incomeStatement} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} handleEditNotes={handleEditNotes} periodHeaders={periodHeaders} />
+          <DrillDownTable title="Cash Flow Statement" data={financialData.cashFlow} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} handleEditNotes={handleEditNotes} periodHeaders={periodHeaders}/>
 
       <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'center' }}>
         <Button variant="contained" color="primary" onClick={() => setExcelConfirmOpen(true)}>
@@ -8987,7 +9131,7 @@ const handleEditNotes = (noteId?: number | string) => {
         onClose={() => setExcelConfirmOpen(false)}
         onConfirm={handleExcelConfirm}
       />
-      <PdfModal open={isPdfModalOpen} onClose={() => setPdfModalOpen(false)} data={financialData} />
+      <PdfModal open={isPdfModalOpen} onClose={() => setPdfModalOpen(false)} data={financialData} periodHeaders={periodHeaders} />
     </Box>
   );
 };
