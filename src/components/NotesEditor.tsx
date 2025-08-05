@@ -137,7 +137,9 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ financialVariable,amountKeys,
   const [editableNotes, setEditableNotes] = useState<FinancialNote[]>(() => _.cloneDeep(notes));
    const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
 
-   
+  useEffect(() => {
+   console.log('📒 Notes passed to NotesEditor:', notes);
+  }, [notes]);
   useEffect(() => {
     setEditableNotes(_.cloneDeep(notes));
     
@@ -228,6 +230,9 @@ const handleValueChange = (
   };
 
   return (
+    <div>
+
+    
     <Box sx={{ p: 3 }}>
       <AppBar position="sticky">
         <Toolbar>
@@ -281,7 +286,59 @@ const handleValueChange = (
                         </TableCell>
                       </TableRow>
                     );
-                  } else if ('key' in item) {
+                  }
+                   else if ('key' in item) {
+  // ⬅️ Check if it's a narrative row
+  if ((item as any).isNarrative && (item as any).isEditableText) {
+    return (
+      <TableRow key={item.key}>
+        <TableCell colSpan={3} sx={{ padding: 2 }}>
+    <Box
+      sx={{
+        backgroundColor: '#f9f9f9',
+        padding: 2,
+        borderRadius: 2,
+        boxShadow: 1,
+        border: '1px solid #ddd',
+      }}
+    >
+      <Typography
+        variant="subtitle1"
+        sx={{ fontWeight: 600, marginBottom: 1 }}
+      >
+        {(item as any).label}
+      </Typography>
+
+      <TextField
+        fullWidth
+        multiline
+        minRows={6}
+        value={(item as any).narrativeText || ''}
+        onChange={(e) => {
+          const newText = e.target.value;
+          setEditableNotes((prev) => {
+            const updated = _.cloneDeep(prev);
+            const targetNote = updated[noteIndex];
+            const targetItem = targetNote.content[itemIndex];
+            if (typeof targetItem === 'object' && 'key' in targetItem) {
+              (targetItem as any).narrativeText = newText;
+            }
+            return updated;
+          });
+        }}
+        sx={{
+          '& .MuiInputBase-root': {
+            fontSize: '0.95rem',
+            lineHeight: 1.6,
+          },
+        }}
+      />
+    </Box>
+  </TableCell>
+</TableRow>
+    );
+  }
+
                     return (
                       <EditableNoteItem
                         key={item.key}
@@ -304,6 +361,7 @@ const handleValueChange = (
         ))}
       </Box>
     </Box>
+    </div>
   );
 };
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { JournalRow, GLAccountInfo } from '../types';
 import { v4 as uuidv4 } from 'uuid';
-import { Button, Autocomplete, TextField } from '@mui/material';
+import { Button, Autocomplete, TextField, Box, CardContent, Card, Typography, Stack, TableContainer, Table, TableBody, TableRow, TableCell, TableHead, Paper } from '@mui/material';
 
 const API_URL = 'http://localhost:5000/api/journal';
 
@@ -19,6 +19,7 @@ const AdjustmentJournalPage: React.FC<AdjustmentJournalPageProps> = ({ onBack })
   const [isLoading, setIsLoading] = useState(true);
   const [isPosting, setIsPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autocompleteKey, setAutocompleteKey] = useState(0);
 
   const [showEntriesDialog, setShowEntriesDialog] = useState(false);
   const [entryPeriods, setEntryPeriods] = useState<string[]>([]);
@@ -107,107 +108,116 @@ const AdjustmentJournalPage: React.FC<AdjustmentJournalPageProps> = ({ onBack })
   const typeOptions: Array<'Debit' | 'Credit'> = ['Debit', 'Credit'];
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-      <h1>Adjustment Journal Entries</h1>
-      <Button variant="outlined" onClick={onBack} style={{ marginBottom: '15px' }}>← Back</Button>
-      <Button variant="outlined" onClick={() => setShowEntriesDialog(true)} style={{ marginLeft: '10px' }}>
-        View Entries
-      </Button>
+    <Box p={3}>
+      <Card elevation={3}>
+        <CardContent>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="h5" fontWeight="bold">Adjustment Journal Entries</Typography>
+            <Button variant="outlined" onClick={onBack}>← Back</Button>
+          </Stack>
 
+          {!showEntryControls && (
+            <Button variant="contained" onClick={() => setShowEntryControls(true)}>Add Journal Entry</Button>
+          )}
 
-      {!showEntryControls && (
-        <Button variant="contained" onClick={() => setShowEntryControls(true)}>Add Journal Entry</Button>
-      )}
+          {showEntryControls && (
+            <Stack direction="row" spacing={2} alignItems="center" my={2}>
+              <Button variant="contained" size="small" onClick={handleAddRow}>
+                Add General Ledger
+              </Button>
+              <Autocomplete
+  key={autocompleteKey} // 🔁 Force rerender
+  value={null}
+  onChange={(event, newValue) => {
+    if (newValue) {
+      handleAddPeriod(newValue);
+      setAutocompleteKey(prev => prev + 1); // ✅ Force reset input after selection
+    }
+  }}
+  options={allPeriods.filter(p => !selectedPeriods.includes(p))}
+  getOptionLabel={(option) => option}
+  renderInput={(params) => <TextField {...params} label="Add Period" size="small" />}
+  sx={{ width: 200 }}
+/>
+            </Stack>
+          )}
 
-      {showEntryControls && (
-        <div style={{ margin: '20px 0', display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <Button variant="contained" size="small" onClick={handleAddRow}>Add General Ledger</Button>
+          {rows.length > 0 && (
+            <>
+              <TableContainer component={Paper} sx={{ boxShadow: 2, borderRadius: 2 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 'bold', width: '350px' }}>General Ledger Account</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', width: '170px' }}>Type</TableCell>
+                      {selectedPeriods.map(period => (
+                        <TableCell key={period} sx={{ fontWeight: 'bold', width: '170px' }}>{period}</TableCell>
+                      ))}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {rows.map(row => (
+                      <TableRow key={row.id}>
+                        <TableCell>
+                          <Autocomplete
+                            value={allGlAccounts.find(acc => acc.glAccount === row.selectedGlAccount) || null}
+                            onChange={(event, newValue) => {
+                              handleRowChange(row.id, { selectedGlAccount: newValue?.glAccount || null });
+                            }}
+                            options={allGlAccounts}
+                            getOptionLabel={(option) => `${option.glAccount} - ${option.glName}`}
+                            isOptionEqualToValue={(option, value) => option.glAccount === value.glAccount}
+                            renderInput={(params) => <TextField {...params} label="GL Account" size="small" />}
+                            sx={{ width: 320 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Autocomplete
+                            value={row.transactionType}
+                            onChange={(event, newValue) => {
+                              if (newValue) {
+                                handleRowChange(row.id, { transactionType: newValue });
+                              }
+                            }}
+                            options={typeOptions}
+                            disableClearable
+                            renderInput={(params) => <TextField {...params} label="Type" size="small" />}
+                            sx={{ width: 150 }}
+                          />
+                        </TableCell>
+                        {selectedPeriods.map(period => (
+                          <TableCell key={period}>
+                            <TextField
+                              type="number"
+                              size="small"
+                              placeholder="0.00"
+                              value={row.amounts[period] || ''}
+                              onChange={e => handleAmountChange(row.id, period, e.target.value)}
+                              disabled={!row.selectedGlAccount}
+                              sx={{ width: 150 }}
+                              inputProps={{ style: { textAlign: 'right' } }}
+                            />
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
 
-          <Autocomplete
-            value={null}
-            onChange={(event, newValue) => {
-              if (newValue) {
-                handleAddPeriod(newValue);
-              }
-            }}
-            options={allPeriods.filter(p => !selectedPeriods.includes(p))}
-            getOptionLabel={(option) => option}
-            renderInput={(params) => <TextField {...params} label="Add Period" size="small" />}
-            sx={{ width: 200 }}
-          />
-        </div>
-      )}
-
-      {rows.length > 0 && (
-        <>
-          <table style={{ borderSpacing: '0 10px', borderCollapse: 'separate' }}>
-            <thead>
-              <tr>
-                <th style={{ width: '350px', textAlign: 'left' }}>General Ledger Account</th>
-                <th style={{ width: '170px', textAlign: 'left' }}>Type</th>
-                {selectedPeriods.map(period => (
-                  <th key={period} style={{ width: '170px', textAlign: 'left' }}>{period}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(row => (
-                <tr key={row.id}>
-                  <td>
-                    <Autocomplete
-                      value={allGlAccounts.find(acc => acc.glAccount === row.selectedGlAccount) || null}
-                      onChange={(event, newValue) => {
-                        handleRowChange(row.id, { selectedGlAccount: newValue?.glAccount || null });
-                      }}
-                      options={allGlAccounts}
-                      getOptionLabel={(option) => `${option.glAccount} - ${option.glName}`}
-                      isOptionEqualToValue={(option, value) => option.glAccount === value.glAccount}
-                      renderInput={(params) => <TextField {...params} label="Search GL Account" size="small" />}
-                      sx={{ width: 320 }}
-                    />
-                  </td>
-                  <td>
-                    <Autocomplete
-                      value={row.transactionType}
-                      onChange={(event, newValue) => {
-                        if (newValue) {
-                          handleRowChange(row.id, { transactionType: newValue });
-                        }
-                      }}
-                      options={typeOptions}
-                      disableClearable
-                      renderInput={(params) => <TextField {...params} label="Type" size="small" />}
-                      sx={{ width: 150 }}
-                    />
-                  </td>
-                  {selectedPeriods.map(period => (
-                    <td key={period}>
-                      <TextField
-                        type="number"
-                        size="small"
-                        placeholder="0.00"
-                        value={row.amounts[period] || ''}
-                        onChange={e => handleAmountChange(row.id, period, e.target.value)}
-                        disabled={!row.selectedGlAccount}
-                        sx={{ width: 150 }}
-                        inputProps={{ style: { textAlign: 'right' } }}
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <div style={{ marginTop: '20px' }}>
-            <Button variant="contained" onClick={handlePostEntries} disabled={isPosting}>
-              {isPosting ? 'Posting...' : 'Post Entries'}
-            </Button>
-            {error && <span style={{ color: 'red', marginLeft: '10px' }}>{error}</span>}
-          </div>
-        </>
-      )}
-
+              <Stack direction="row" spacing={2} mt={3} alignItems="center">
+                <Button variant="contained" onClick={handlePostEntries} disabled={isPosting}>
+                  {isPosting ? 'Posting...' : 'Post Entries'}
+                </Button>
+                <Button variant="outlined" onClick={() => setShowEntriesDialog(true)} style={{ marginLeft: '10px' }}>
+                  View Entries
+                </Button>
+                {error && <Typography color="error">{error}</Typography>}
+              </Stack>
+            </>
+          )}
+        </CardContent>
+      </Card>
       {showEntriesDialog && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
@@ -261,8 +271,10 @@ const AdjustmentJournalPage: React.FC<AdjustmentJournalPageProps> = ({ onBack })
           </div>
         </div>
       )}
-    </div>
+    </Box>
   );
+
+  
 };
 
 export default AdjustmentJournalPage;

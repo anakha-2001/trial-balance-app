@@ -69,7 +69,10 @@ export interface HierarchicalItem extends TemplateItem {
   valuePrevious: number | null;
   isEditableRow?: boolean;
   footer?: string;
-  children?: HierarchicalItem[];
+  children?: HierarchicalItem[];  
+  narrativeText?: string;
+  isNarrative?: boolean;
+  isEditableText?: boolean;
 }
 export interface FinancialNote {
     noteNumber: number;
@@ -598,6 +601,34 @@ const getValueForKey = (
   return findItem(editedNote.content);
 };
 
+const findNarrativeText = (
+  items: (HierarchicalItem | TableContent | string)[],
+  key: string
+): string | null => {
+  for (const item of items) {
+    if (typeof item !== 'string' && 'key' in item && item.key === key) {
+      return item.narrativeText ?? null;
+    }
+
+    if (typeof item !== 'string' && 'children' in item && item.children) {
+      const result = findNarrativeText(item.children, key);
+      if (result !== null) return result;
+    }
+  }
+
+  return null;
+};
+const getNarrativeTextByKey = (key: string): string | null => {
+  if (!editedNotes) return null;
+
+  for (const note of editedNotes) {
+    const result = findNarrativeText(note.content, key);
+    if (result !== null) return result;
+  }
+
+  return null;
+};
+
 
   const totals = new Map<string, { current: number, previous: number }>();
 
@@ -741,8 +772,32 @@ cwipInCompletedDeduct.push(calculateRowTotal(cwipInCompletedDeduct));
         valuePrevious: null,
         isSubtotal: true,
       },
-      'a) Unless otherwise stated all the assets are owned by the Company and none of the assets have been given on operating lease by the Company.',
-      'b) Charge as on 31 March 2023 ₹1,774.36 lakhs towards Freehold land and buildings has been released during the year. ',
+      
+        {
+        key: 'note3-text-a',
+        label: '',
+        narrativeText:getNarrativeTextByKey('note3-text-a')??`a)Unless otherwise stated all the assets are owned by the Company and none of the assets have been given on operating lease by the Company.` ,
+        isNarrative: true,
+        isEditableText: true,
+        valueCurrent: null,
+        valuePrevious: null,
+
+        },
+
+
+        {
+        key: 'note3-text-b',
+        label: '',
+        narrativeText: getNarrativeTextByKey('note3-text-b')??`b) Charge as on 31 March 2023 ₹1,774.36 lakhs towards Freehold land and buildings has been released during the year. `,
+        isNarrative: true,
+        isEditableText: true,
+        valueCurrent: null,
+        valuePrevious: null,
+
+        },
+
+     
+      
       {
         key: 'note3-Capital',
         label: 'Capital Work-in-Progress',
@@ -768,7 +823,19 @@ cwipInCompletedDeduct.push(calculateRowTotal(cwipInCompletedDeduct));
           ['Total as on 31 March 2023',...cwipInProgressDeduct],
         ]
       },
-      'There is no such case, wherein Capital-work-in progress, whose completion is overdue or has exceeded its cost compared to its original plan.',
+      
+{
+  key: 'note3-text-c',
+  label: '',
+  narrativeText:getNarrativeTextByKey('note3-text-c')?? ` There is no such case, wherein Capital-work-in progress, whose completion is overdue or has exceeded its cost compared to its original plan.`,
+  isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+     
   
       'The capital work-in-progress completion schedule for the year ended 31 March 2024 is as follows:',
       {
@@ -1017,7 +1084,19 @@ inCOMTAS2.push(calculateRowTotal(inCOMTAS2));
           ['Total as on 31 March 2023',...inTAS2],
         ]
       },
-      'There is no such case, wherein Intangibles Under Development , whose completion is overdue or has exceeded its cost compared to its original plan .',
+      
+{
+  key: 'note4-text-a',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note4-text-a')??`There is no such case, wherein Intangibles Under Development , whose completion is overdue or has exceeded its cost compared to its original plan .`,
+  isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+     
       'The intangibles under development completion schedule for the year ended 31 March 2024 is as follows :',
       {
         type: 'table',
@@ -1523,7 +1602,16 @@ const calculateNote9 = (): FinancialNote => {
         valuePrevious: totalPrevious,
       },
       'Expected credit loss',
-      'The Company uses a provision matrix to determine impairment loss on portfolio of its trade receivable.The provision matrix is based on its historically observed default rates over the expected life of the trade receivables and is adjusted for forward-looking estimates. At regular intervals, the historically observed default rates are updated and changes in forward-looking estimates are analysed.',
+      {
+        key:'note9-text-a',
+        label:'',
+        narrativeText:getNarrativeTextByKey('note9-text-a')??'The Company uses a provision matrix to determine impairment loss on portfolio of its trade receivable.The provision matrix is based on its historically observed default rates over the expected life of the trade receivables and is adjusted for forward-looking estimates. At regular intervals, the historically observed default rates are updated and changes in forward-looking estimates are analysed.',
+        isNarrative:true,
+        isEditableText:true,
+        valueCurrent:null,
+        valuePrevious:null,
+      },
+      
       'The trade receivables ageing schedule for the year ended as on 31 March 2024 is as follows :',
       {
         type: 'table',
@@ -1914,10 +2002,17 @@ const calculateNote12 = (): FinancialNote => {
         ]
       },
       '(b) Terms and rights attached to equity shares',
-      `The Company has only one class of equity shares having a par value of ₹ 10 per share. Each equity share is entitled to one vote per share. The dividend, if any, proposed by the Board of Directors is subject to the approval of the shareholders in the ensuing Annual General Meeting and shall be payable in Indian rupees. In the event of liquidation of the company, the shareholders will be entitled to receive remaining assets of the company, after distribution of all preferential amounts.The distribution will be in proportion to the number of equity shares held by the shareholders.
+      {
+  key: 'note12-text-a',
+  label: '',
+  narrativeText:getNarrativeTextByKey('note12-text-a')?? `The Company has only one class of equity shares having a par value of ₹ 10 per share. Each equity share is entitled to one vote per share. The dividend, if any, proposed by the Board of Directors is subject to the approval of the shareholders in the ensuing Annual General Meeting and shall be payable in Indian rupees. In the event of liquidation of the company, the shareholders will be entitled to receive remaining assets of the company, after distribution of all preferential amounts.The distribution will be in proportion to the number of equity shares held by the shareholders.
         There have been no issues with respect to unclassified shares.`,
+  isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
 
-
+},
       '(c) Details of shares held by the holding company',
       {
         type: 'table',
@@ -1952,10 +2047,23 @@ const calculateNote12 = (): FinancialNote => {
 
 
 
-      `(f) Capital Reduction : 
-      The Company considered the Reduction of Share Capital on selective basis by reducing the capital to the extent of the holding by the shareholders other than the promoter shareholders. Before the capital reduction, 97.21% of the share capital was held by M/s. Yokogawa Electric Corporation and the balance 2.79% by public. It was therefore proposed to reduce and hence cancel the portion of the shares held by the public by 2.79% (244,531 number of shares). The Board of Directors during the 147th Meeting held on 13th November 2017 and the shareholders during the Extra Ordinary General Meeting held on 11th January 2018 have considered and approved the proposal of selective capital reduction.
+      '(f) Capital Reduction',
+      {
+    key: 'note12-text-b',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note12-text-b')??
+      `The Company considered the Reduction of Share Capital on selective basis by reducing the capital to the extent of the holding by the shareholders other than the promoter shareholders. Before the capital reduction, 97.21% of the share capital was held by M/s. Yokogawa Electric Corporation and the balance 2.79% by public. It was therefore proposed to reduce and hence cancel the portion of the shares held by the public by 2.79% (244,531 number of shares). The Board of Directors during the 147th Meeting held on 13th November 2017 and the shareholders during the Extra Ordinary General Meeting held on 11th January 2018 have considered and approved the proposal of selective capital reduction.
       The Company had accordingly filed petition with the Hon'ble Tribunal (National Company Law Tribunal-Bengaluru Bench) to reduce the issued, subscribed and paid up share capital of the company consisting of 244,531 equity shares of INR 10/- each fully paid up (INR 2,445,310/-), held by shareholders belonging to non-promoter group and cancel along with the securities premium/free reserves of the Company. The reduction and cancellation is effected by returning the paid-up equity share capital along with the securities premium lying to the credit of the securities premium account and free reserves to the shareholders belonging to non-promoter group ( “Public Shareholders”) in cash at the rate of INR 923.20/- which includes the paid up share capital and the premium amount thereon.
       The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed the petition for the reduction of the share capital of the Company. The company pursuant to the order of the Hon'ble Tribunal discharged the dues to the shareholders whose shares were reduced by depositing the fund with an Escrow Account opened for the purpose and paying the shareholders out of this account by Bank Transfer or Draft or other mode as indicated by the respective shareholder with the Company. For the year ended 31st March 2024 the capital reduction liability payable to shareholders has been discharged to the extent of Rs. 92,320/-.`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+      
+
       `(g) Promoter's Shareholding as on 31 March 2024 :`,
      {
         type: 'table',
@@ -2158,8 +2266,31 @@ const balance2023 = calculateBalance([MSME2,others2]);
       },
       '(Refer notes below)',
       'Note',
-      'a) Dues to related parties (Refer note 31b) in trade payable {other than MSME} Rs. 26,398.24 Lakhs [31 March 2023: 35,845.48 Lakhs].',
-      'b) Trade payables include foreign currency payables amounting to Rs.2,307.03 lakhs which are outstanding for a period greater than 6 months. The Company has informed about their status to the authorised dealer. The Company will obtain and ensure the requisite approvals wherever required before settling the overdue balances payable.',
+      
+{
+  key: 'note14-text-a',
+  label: '',
+  narrativeText:getNarrativeTextByKey('note14-text-a')?? `a) Dues to related parties (Refer note 31b) in trade payable {other than MSME} Rs. 26,398.24 Lakhs [31 March 2023: 35,845.48 Lakhs].`,
+  isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+{
+  key: 'note14-text-b',
+  label: '',
+  narrativeText:getNarrativeTextByKey('note14-text-b')?? `b) Trade payables include foreign currency payables amounting to Rs.2,307.03 lakhs which are outstanding for a period greater than 6 months. The Company has informed about their status to the authorised dealer. The Company will obtain and ensure the requisite approvals wherever required before settling the overdue balances payable.`,
+  isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+     
+      
 
       'The trade payables ageing schedule for the years ended as on 31 March is as follows :',
            {
@@ -2624,7 +2755,20 @@ const calculateNote18 = (): FinancialNote => {
     totalCurrent: null,
     totalPrevious: null,
     content: [
-      'Set out below is the disaggregation of the Company’s revenue from contracts with customers',
+
+        
+{
+  key: 'note18-text-a',
+  label: '',
+  narrativeText:getNarrativeTextByKey('note18-text-a')?? ` Set out below is the disaggregation of the Company’s revenue from contracts with customers`,
+  isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+     
       {
         key: 'note18-disaggregate',
         label: 'Type of goods or services',
@@ -2752,8 +2896,18 @@ const calculateNote18 = (): FinancialNote => {
           },
         ]
       },
-      `The Company presented disaggregated revenue based on the type of goods or services provided to customers, the geographical region, and the timing of transfer of goods and services. 
+      {
+    key: 'note18-text-b',
+  label: '',
+  narrativeText:getNarrativeTextByKey('note18-text-b')?? `The Company presented disaggregated revenue based on the type of goods or services provided to customers, the geographical region, and the timing of transfer of goods and services. 
        The Company presented a reconciliation of the disaggregated revenue with the revenue information disclosed for each reportable segment. Refer note 30 for the detailed information.`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
       {
         key: 'note18-contract-balances',
         label: '18.1 Contract balances',
@@ -2766,9 +2920,40 @@ const calculateNote18 = (): FinancialNote => {
           { key: 'contract-liabilities', label: 'Contract liabilities', valueCurrent: contractBalances.contractLiabilities.current, valuePrevious: contractBalances.contractLiabilities.previous },
         ],
         },
-        'Trade receivables are non-interest bearing and are generally on terms of 30 to 90 days. At 31 March 2024, ₹ 7,050.91 Lakhs (31 March 2023: ₹ 4,608.50 Lakhs ) was recognised as provision for expected credit losses on trade receivables.',
-        'Contract assets relates to revenue earned from ongoing supply and installation service contracts as well as retention money receivable from customers. As such, the balances of this account vary and depend on the number of such contracts at the end of the year.',
-        'Contract liabilities include long-term advances received to and short-term advances received to render supply and installation services as well as transaction price allocated to unexpired service obligations.',
+        {
+    key: 'note18-text-c',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note18-text-c')??`Trade receivables are non-interest bearing and are generally on terms of 30 to 90 days. At 31 March 2024, ₹ 7,050.91 Lakhs (31 March 2023: ₹ 4,608.50 Lakhs ) was recognised as provision for expected credit losses on trade receivables.`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+        {
+    key: 'note18-text-d',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note18-text-d')??`Contract assets relates to revenue earned from ongoing supply and installation service contracts as well as retention money receivable from customers. As such, the balances of this account vary and depend on the number of such contracts at the end of the year.`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+        {
+    key: 'note18-text-e',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note18-text-e')??`Contract liabilities include long-term advances received to and short-term advances received to render supply and installation services as well as transaction price allocated to unexpired service obligations.`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+        
+        
+       
           {
             key: 'note18-performance-obligation-total',
             label: `18.2 Performance obligation
@@ -2781,9 +2966,43 @@ const calculateNote18 = (): FinancialNote => {
             isGrandTotal:true,
           },
 
-          'The performance obligation is satisfied over-time and payment is generally due upon completion of installation and acceptance of the customer. In some contracts, short-term advances are required before the installation service is provided',
-          'Procurement services',
-          'There are contracts with customers to acquire buy out items like UPS, Cables Batteries, on their behalf, The Company is acting as agent in these arrangements. The performance obligation is satisfied, and payment is due upon receipt of the equipment by the customer.',
+          {
+    key: 'note18-text-f',
+  label: '',
+  narrativeText:getNarrativeTextByKey('note18-text-f')?? `The performance obligation is satisfied over-time and payment is generally due upon completion of installation and acceptance of the customer. In some contracts, short-term advances are required before the installation service is provided`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+{
+    key: 'note18-text-g',
+  label: '',
+  narrativeText:getNarrativeTextByKey('note18-text-g')?? `Procurement services`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+{
+    key: 'note18-text-h',
+  label: '',
+  narrativeText:getNarrativeTextByKey('note18-text-h')?? `There are contracts with customers to acquire buy out items like UPS, Cables Batteries, on their behalf, The Company is acting as agent in these arrangements. The performance obligation is satisfied, and payment is due upon receipt of the equipment by the customer.`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+
+          
+         
+          
 
       {
         key: 'note18-performance-obligation',
@@ -4413,7 +4632,9 @@ const calculateNote26 = (): FinancialNote => {
         valuePrevious: 0,
       },
     ],
-    footer: 'The said information regarding Micro and Small Enterprises has been determined to the extent such parties have been identified on the basis of information collected by the Management bases on enquiries made with the parties. This has been relied upon by the auditors.',
+    footer: 
+    
+    'The said information regarding Micro and Small Enterprises has been determined to the extent such parties have been identified on the basis of information collected by the Management bases on enquiries made with the parties. This has been relied upon by the auditors.',
   };
 };
 const calculateNote27 = (): FinancialNote => {
@@ -4455,7 +4676,18 @@ const calculateNote27 = (): FinancialNote => {
     totalCurrent: null, // Not applicable; shown as a disclosure table
     totalPrevious: null,
     content: [
-      'As per Section 135 of the Companies Act, 2013, a CSR committee has been formed by the Company. The areas for CSR activities are promoting education, healthcare and woman economic empowerment, providing disaster relief and undertaking rural development projects.',
+        {
+    key: 'note27-text-a',
+  label: '',
+  narrativeText:getNarrativeTextByKey('note27-text-a')?? `As per Section 135 of the Companies Act, 2013, a CSR committee has been formed by the Company. The areas for CSR activities are promoting education, healthcare and woman economic empowerment, providing disaster relief and undertaking rural development projects.`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+      
       {
         key: 'note27-1',
         label: '(a) Gross amount required to be spent by the company during the year ',
@@ -4668,7 +4900,18 @@ const calculateNote28 = (): FinancialNote => {
         valueCurrent: null,
         valuePrevious: null,
       },
-`The Company makes Provident Fund and Superannuation Fund contributions to defined contribution plans for qualifying employees. Under the Schemes, the Company is required to contribute a specified percentage of the payroll costs to fund the benefits.  The Company recognised ₹ 798.70 Lakhs (Year ended 31 March 2023 ₹ 696.11 Lakhs) for Provident Fund contributions and ₹ 401.01 Lakhs (Year ended 31 March 2023 ₹ 349.60 Lakhs) for Superannuation Fund contributions. The contributions payable to these plans by the Company are at rates specified in the rules of the schemes. `,
+      {
+    key: 'note28-text-a',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note28-text-a')??`The Company makes Provident Fund and Superannuation Fund contributions to defined contribution plans for qualifying employees. Under the Schemes, the Company is required to contribute a specified percentage of the payroll costs to fund the benefits.  The Company recognised ₹ 798.70 Lakhs (Year ended 31 March 2023 ₹ 696.11 Lakhs) for Provident Fund contributions and ₹ 401.01 Lakhs (Year ended 31 March 2023 ₹ 349.60 Lakhs) for Superannuation Fund contributions. The contributions payable to these plans by the Company are at rates specified in the rules of the schemes. `,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+
       {
         key: 'note28-2',
         label: `28(b)  Defined benefit plans 
@@ -4677,14 +4920,79 @@ const calculateNote28 = (): FinancialNote => {
         valueCurrent: null,
         valuePrevious: null,
       },
-      `The Gratuity scheme is a final salary defined benefit plan, that provides for a lumpsum payment at the time of separation; based on scheme rules the benefits are calculated on the basis of last drawn salary and the period of service at the time of separation and paid as lumpsum. There is a vesting period of 5 years.`,
-      'These plans typically expose the company to actuarial risks such as:',
-      `(i) Investment Risk: The fund is managed by LIC, fund manager. So the details of composition of plan assets managed by the fund manager is not available with the company. However, the fall in plan assets will increase the defined benefit obligation.`,
-      `(ii) Interest rates risks: the defined benefit obligation calculated uses a discount rate based on government bonds. If bond yields fall, the defined benefit will tend to increase.`,
-      `(iii) Salary Inflation risks: The present value of the defined benefit plan liability is calculated by reference to the future salaries of plans participants. As such increase in salary will increase the defined benefit obligation.`,
-      `(iv) Demographic risks: The present value of the defined benefit plan liability is calculated by reference to the best estimate of the mortality of plan participants during their employment as the increase in life  expectancy of the plan participants will increase the plan's liability.`,
+      {
+    key: 'note28-text-b',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note28-text-b')?? `The Gratuity scheme is a final salary defined benefit plan, that provides for a lumpsum payment at the time of separation; based on scheme rules the benefits are calculated on the basis of last drawn salary and the period of service at the time of separation and paid as lumpsum. There is a vesting period of 5 years.`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
 
-      `In respect of the plan, the most recent actuary valuation of plan assets and the present values of the defined benefit obligation were carried out as at March 31,2024 and  March 31, 2023 . The present value of the defined benefit obligation, and the related service cost and the past service cost, were measured using the projected unit credit method.`,
+},
+{
+    key: 'note28-text-c',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note28-text-c')??'These plans typically expose the company to actuarial risks such as:',
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+{
+    key: 'note28-text-d',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note28-text-d')?? `(i) Investment Risk: The fund is managed by LIC, fund manager. So the details of composition of plan assets managed by the fund manager is not available with the company. However, the fall in plan assets will increase the defined benefit obligation.`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+{
+    key: 'note28-text-e',
+  label: '',
+  narrativeText:getNarrativeTextByKey('note28-text-e')?? `(ii) Interest rates risks: the defined benefit obligation calculated uses a discount rate based on government bonds. If bond yields fall, the defined benefit will tend to increase.`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+{
+    key: 'note28-text-f',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note28-text-f')??`(iii) Salary Inflation risks: The present value of the defined benefit plan liability is calculated by reference to the future salaries of plans participants. As such increase in salary will increase the defined benefit obligation.`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+{
+    key: 'note28-text-g',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note28-text-g')??  `(iv) Demographic risks: The present value of the defined benefit plan liability is calculated by reference to the best estimate of the mortality of plan participants during their employment as the increase in life  expectancy of the plan participants will increase the plan's liability.`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+{
+    key: 'note28-text-h',
+  label: '',
+  narrativeText:  getNarrativeTextByKey('note28-text-h')??`In respect of the plan, the most recent actuary valuation of plan assets and the present values of the defined benefit obligation were carried out as at March 31,2024 and  March 31, 2023 . The present value of the defined benefit obligation, and the related service cost and the past service cost, were measured using the projected unit credit method.`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+     
+        
       {
         key: 'note28-amount',
         label: 'Amount recognised in comprehensive income in respect of these defined benefit plans are as follows:',
@@ -5016,7 +5324,18 @@ const calculateNote28 = (): FinancialNote => {
         ],
       },
 'Sensitivity analysis:',
-'Significant actuarial assumptions for the determination of the defined benefit obligation are discount rate, expected salary increase and mortality. The sensitivity analysis below have been determined based on reasonably possible changes of the assumptions occurring at the end of the reporting period, while holding all other assumptions constant. The results of sensitivity analysis is given below:',
+{
+    key: 'note28-text-i',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note28-text-i')??`Significant actuarial assumptions for the determination of the defined benefit obligation are discount rate, expected salary increase and mortality. The sensitivity analysis below have been determined based on reasonably possible changes of the assumptions occurring at the end of the reporting period, while holding all other assumptions constant. The results of sensitivity analysis is given below:`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+
 'Gratuity',
       {
         type: "table",
@@ -5034,9 +5353,40 @@ const calculateNote28 = (): FinancialNote => {
           ["Mortality Rate (- / + 10% of mortality rates)",...mortality]      
         ]
       },
-      'Sensitivity analysis presented above may not be representative of the actual change in the defined benefit obligation as it is unlikely that the change in assumptions would occur in isolation of one another as some of the assumptions may be correlated. There are no changes from the previous period in the methods and assumptions used in preparing the sensitivity analysis.',
-      'There has been no change in the process used by the Company to manage its risks from prior periods.',
-      'Expected future cash outflows towards the plans are as follows:',
+      {
+    key: 'note28-text-j',
+  label: '',
+  narrativeText:getNarrativeTextByKey('note28-text-j')?? `Sensitivity analysis presented above may not be representative of the actual change in the defined benefit obligation as it is unlikely that the change in assumptions would occur in isolation of one another as some of the assumptions may be correlated. There are no changes from the previous period in the methods and assumptions used in preparing the sensitivity analysis.`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+{
+    key: 'note28-text-k',
+  label: '',
+  narrativeText:getNarrativeTextByKey('note28-text-k')?? `There has been no change in the process used by the Company to manage its risks from prior periods.`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+{
+    key: 'note28-text-l',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note28-text-l')??`Expected future cash outflows towards the plans are as follows:`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+      
+     
       {
         type: "table",
         headers: [
@@ -5450,8 +5800,6 @@ const calculateNote29 = (): FinancialNote => {
         {
           key: 'note29a-profit',
           label: `The Company entered into finance leasing arrangements as a lessor for certain equipment to its customer. The term of finance leases entered into is 5 years. These lease contracts do not include extension or early termination options. The average effective interest rate contracted approximates 7.61% (2022-23: Nil) per annum. The net investment in lease is secured by bank guarantee issued by customer's bank.
-          
-          
           The following table presents the amounts included in profit or loss:`,
           valueCurrent: null,
           valuePrevious: null,
@@ -5578,8 +5926,19 @@ const calculateNote30 = (): FinancialNote => {
     footer:`Note:
     The Secondary Segment is determined based on location of the customers. All other assets are situated in India.`,
     content: [
-      `As part of structural reform global project, the Yokogawa Group has established Structure between the Parent Company and its Subsidiaries wherein for each Global Business Function, a corresponding Regional Business/Process Function will be responsible for routine business/process operations. These Regional Business/Process Functions will make operating decisions in ratification with Managing Director of the Company and have been identified as the Chief Operating Decision Maker (CODM) as defined by Ind AS 108, operating segments. 
+        {
+    key: 'note30-text-a',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note30-text-a')?? `As part of structural reform global project, the Yokogawa Group has established Structure between the Parent Company and its Subsidiaries wherein for each Global Business Function, a corresponding Regional Business/Process Function will be responsible for routine business/process operations. These Regional Business/Process Functions will make operating decisions in ratification with Managing Director of the Company and have been identified as the Chief Operating Decision Maker (CODM) as defined by Ind AS 108, operating segments. 
 The Company has identified geographic segments as operating and reportable segment. Revenues and expenses directly attributable to the geographic segment are reported under such segments. Assets and liabilities that are directly attributable or allocable to the segments are disclosed under the reportable segments. All other assets and liabilities are disclosed as unallocable. Fixed assets that are used interchangeably amongst segments are not allocated to the reportable segments. Geographical revenues are allocated based on the location of the customer. Geographic segments of the Company includes Japan, Singapore, Middle East & others.`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+     
       {
         key: "note30-intro",
         label: `The geographic segments individually contributing 10 percent or more of the Company’s revenues and segment assets are shown separately:`,
@@ -6454,14 +6813,14 @@ const PHP ='-0.01'
     content: [
       {
         key: 'note35-capital',
-        label: 'A    Capital management',
+        label: 'A   Capital management',
         isSubtotal: true,
         valueCurrent:   null,
         valuePrevious:  null,
         children: [
           {
             key: 'note35-capital-description',
-            label: 'The Companys policy is to maintain a strong capital base so as to maintain investor, creditor and market confidence and to sustain future development of the business. The Company monitors the return on capital as well as the level of dividends on its equity shares. The Companys objective when managing capital is to maintain an optimal structure so as to maximise share-holder value.',
+            label:'The Companys policy is to maintain a strong capital base so as to maintain investor, creditor and market confidence and to sustain future development of the business. The Company monitors the return on capital as well as the level of dividends on its equity shares. The Companys objective when managing capital is to maintain an optimal structure so as to maximise share-holder value.',
             valueCurrent: null,
             valuePrevious: null,
           },
@@ -6498,7 +6857,18 @@ const PHP ='-0.01'
           },
         ],
       },
-      `The Company is equity financed which is evident from the capital structure table. Further, the Company has always been a net cash Company with cash and bank balances along with liquid investments.`,
+      {
+    key: 'note35-text-a',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note35-text-a')?? `The Company is equity financed which is evident from the capital structure table. Further, the Company has always been a net cash Company with cash and bank balances along with liquid investments.`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+     
           {
             key: 'note35-category',
             label: 'B.    Categories of financial Instruments',
@@ -6540,12 +6910,45 @@ const PHP ='-0.01'
             valuePrevious: null,
             isSubtotal:true,
           },
-          `The Company's activities expose it to a variety of financial risks: market risk, credit risk and liquidity risk. The Company's focus is to foresee the unpredictability of financial markets and seek to minimize potential adverse effects on it's financial performance. The primary market risk to the Company is foreign exchange exposure risk. The Company's exposure to credit risk is influenced mainly by the individual characteristic of each customer. `,
-          `The Company's financial risk management is supported by the finance department and enterprise risk management committee:
+          {
+    key: 'note35-text-b',
+  label: '',
+  narrativeText:getNarrativeTextByKey('note35-text-b')??  `The Company's activities expose it to a variety of financial risks: market risk, credit risk and liquidity risk. The Company's focus is to foresee the unpredictability of financial markets and seek to minimize potential adverse effects on it's financial performance. The primary market risk to the Company is foreign exchange exposure risk. The Company's exposure to credit risk is influenced mainly by the individual characteristic of each customer. `,
+  isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+{
+    key: 'note35-text-c',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note35-text-c')??`The Company's financial risk management is supported by the finance department and enterprise risk management committee:
  - protect the Company's financial results and position from financial risks
  - maintain market risks within acceptable parameters, while optimising returns; and
  - protect the Company's financial investments, while maximising returns.`,
- `The Company does not actively engage in the trading of financial assets for speculative purposes nor does it write options. The most significant financial risks to which the Company is exposed are described below.`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+{
+    key: 'note35-text-d',
+  label: '',
+  narrativeText:getNarrativeTextByKey('note35-text-d')??`The Company does not actively engage in the trading of financial assets for speculative purposes nor does it write options. The most significant financial risks to which the Company is exposed are described below.`,
+        isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+         
+          
+ 
  {
             key: 'note35-financialrisk-credit',
             label: '           (i) Management of credit risk',
@@ -6553,7 +6956,18 @@ const PHP ='-0.01'
             valuePrevious: null,
             isSubtotal:true,
           },
-          `Credit risk is the risk of financial loss to the Company arising from counter party failure to meet its contractual obligations. Credit risk encompasses of both, the direct risk of default and the risk of deterioration of creditworthiness as well as concentration of risks. Credit risk is controlled by analysing credit limits and creditworthiness of customers on a continuous basis to whom the credit has been granted after necessary approvals for credit. `,
+          {
+    key: 'note35-text-e',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note35-text-e')??`Credit risk is the risk of financial loss to the Company arising from counter party failure to meet its contractual obligations. Credit risk encompasses of both, the direct risk of default and the risk of deterioration of creditworthiness as well as concentration of risks. Credit risk is controlled by analysing credit limits and creditworthiness of customers on a continuous basis to whom the credit has been granted after necessary approvals for credit. `,
+  isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+          
           {
             key: 'note35-financialrisk-trade',
             label: 'Trade and other receivables',
@@ -6561,8 +6975,20 @@ const PHP ='-0.01'
             valuePrevious: null,
             isSubtotal:true,
           },
-          `The Company assess the customers credit quality by taking into account their financial position, past experience and other factors. The Company’s exposure to credit risk is influenced mainly by the individual characteristics of each customer. The demographics of the customer, including the default risk of the industry and country in which the customer operates, also has an influence on credit risk assessment.
+
+          {
+    key: 'note35-text-f',
+   label: '',
+   narrativeText: getNarrativeTextByKey('note35-text-f')??`The Company assess the customers credit quality by taking into account their financial position, past experience and other factors. The Company’s exposure to credit risk is influenced mainly by the individual characteristics of each customer. The demographics of the customer, including the default risk of the industry and country in which the customer operates, also has an influence on credit risk assessment.
 Trade receivables are typically unsecured and are derived from revenue earned from customers primarily located in India and Japan. Credit risk has always been managed by the Company through credit approvals, establishing credit limits and continuously monitoring the creditworthiness of customers to which the Company grants credit terms in the normal course of business. On account of adoption of Ind AS 109, Financial Instruments, the Company uses expected credit loss model to assess the impairment loss or gain. The provision for expected credit loss takes into account available external and internal credit risk factors and Company's historical experience for customers.`,
+   isNarrative: true,
+   isEditableText: true,
+   valueCurrent: null,
+   valuePrevious: null,
+
+},
+
+          
 {
             key: 'note35-financialrisk-BOY',
             label: 'Balance at the beginning',
@@ -6627,7 +7053,19 @@ Trade receivables are typically unsecured and are derived from revenue earned fr
             valuePrevious: null,
             isSubtotal:true,
           },
-          `Liquidity risk is the risk that the Company will not be able to meet its financial obligations as they become due. The Company’s approach to managing liquidity is to ensure that it will have sufficient funds to meet its liabilities when due without incurring unacceptable losses. In doing this, management considers both normal and stressed conditions. A material and sustained shortfall in the cash flow could undermine the Company’s credit rating and impair investor confidence. The Company’s treasury department is responsible for liquidity, funding as well as settlement management. In addition, processes and policies related to such risks are overseen by senior management.`,
+          
+{
+  key: 'note35-text-g',
+  label: '',
+  narrativeText:getNarrativeTextByKey('note35-text-g')??  `Liquidity risk is the risk that the Company will not be able to meet its financial obligations as they become due. The Company’s approach to managing liquidity is to ensure that it will have sufficient funds to meet its liabilities when due without incurring unacceptable losses. In doing this, management considers both normal and stressed conditions. A material and sustained shortfall in the cash flow could undermine the Company’s credit rating and impair investor confidence. The Company’s treasury department is responsible for liquidity, funding as well as settlement management. In addition, processes and policies related to such risks are overseen by senior management.`,
+  isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+         
           `The following table shows the maturity analysis of the Company's financial liabilities based on contractually agreed undiscounted cash flows:`,
       {
         type: 'table',
@@ -6673,11 +7111,23 @@ Trade receivables are typically unsecured and are derived from revenue earned fr
             valueCurrent: null,
             valuePrevious: null,
           },
-          `The Company's size and operations result in it being exposed to the following market risks that arise from its use of financial instruments:
+          
+{
+  key: 'note35-text-h',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note35-text-h')??`The Company's size and operations result in it being exposed to the following market risks that arise from its use of financial instruments:
               • interest rate risk
               • price risk
               • currency risk
            The above risks may affect the Company's income and expenses, or the value of its financial instruments. The objective of the Company’s management of market risk is to maintain this risk within acceptable parameters, while optimising returns. The Company’s exposure to, and management of, these risks is explained below:`,
+  isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+         
       {
         type: 'table',
         headers: [
@@ -6742,7 +7192,19 @@ Trade receivables are typically unsecured and are derived from revenue earned fr
         ]
       },
       'Sensitivity',
-      `The following table details the Company’s sensitivity to a 1% increase and decrease in the ₹ against the relevant foreign currencies. 1% is the sensitivity rate used when reporting foreign currency risk internally to key management personnel and represents management’s assessment of the reasonably possible change in foreign exchange rates. The sensitivity analysis includes only outstanding foreign currency denominated monetary items and adjusts their translation at the year-end for a 1% change in foreign currency rates, with all other variables held constant. A positive number below indicates an increase in profit or equity where ₹ strengthens 1% against the relevant currency. For a 1% weakening of ₹ against the relevant currency, there would be a comparable impact on profit or equity, and the balances below would be negative.`,
+      
+{
+  key: 'note35-text-i',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note35-text-i')?? `The following table details the Company’s sensitivity to a 1% increase and decrease in the ₹ against the relevant foreign currencies. 1% is the sensitivity rate used when reporting foreign currency risk internally to key management personnel and represents management’s assessment of the reasonably possible change in foreign exchange rates. The sensitivity analysis includes only outstanding foreign currency denominated monetary items and adjusts their translation at the year-end for a 1% change in foreign currency rates, with all other variables held constant. A positive number below indicates an increase in profit or equity where ₹ strengthens 1% against the relevant currency. For a 1% weakening of ₹ against the relevant currency, there would be a comparable impact on profit or equity, and the balances below would be negative.`,
+  isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+     
       {
         type: 'table',
         headers: [
@@ -6769,17 +7231,78 @@ Trade receivables are typically unsecured and are derived from revenue earned fr
             valueCurrent: null,
             valuePrevious: null,
           },
-          `Fair value is the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between Market participants at the measurement date, regardless of whether that price is directly observable or estimated using another valuation technique. In estimating the fair value of an asset or a liability, the Company takes into account the characteristics of the asset or liability if Market participants would take those characteristics into account when pricing the asset or liability, at the measurement date. Fair value for measurement and/or disclosure purposes in these financial statements is determined on such a basis, except for leasing transactions that are within the scope of Ind AS 116, and measurements that have some similarities to fair value but are not fair value, such as net realisable value in Ind AS 2 or value in use in Ind AS 36.`,
+          
+{
+  key: 'note35-text-j',
+  label: '',
+  narrativeText:getNarrativeTextByKey('note35-text-j')?? `Fair value is the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between Market participants at the measurement date, regardless of whether that price is directly observable or estimated using another valuation technique. In estimating the fair value of an asset or a liability, the Company takes into account the characteristics of the asset or liability if Market participants would take those characteristics into account when pricing the asset or liability, at the measurement date. Fair value for measurement and/or disclosure purposes in these financial statements is determined on such a basis, except for leasing transactions that are within the scope of Ind AS 116, and measurements that have some similarities to fair value but are not fair value, such as net realisable value in Ind AS 2 or value in use in Ind AS 36.`,
+  isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
 
-          `In addition, for financial reporting purposes, fair value measurements are categorised into Level 1, 2, or 3 based on the degree to which the inputs to the fair value measurements are observable and the significance of the inputs to the fair value measurement in its entirety, which are described as follows:`,
-          `- Level 1 inputs are quoted prices (unadjusted) in active Markets for identical assets or liabilities that the entity can access at the measurement date;`,
-          `- Level 2 inputs are inputs, other than quoted prices included within Level 1, that are observable for the asset or liability, either directly or indirectly; and`,
-          `- Level 3 inputs are unobservable inputs for the asset or liability.`,
+},
+
+{
+  key: 'note35-text-k',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note35-text-k')??`In addition, for financial reporting purposes, fair value measurements are categorised into Level 1, 2, or 3 based on the degree to which the inputs to the fair value measurements are observable and the significance of the inputs to the fair value measurement in its entirety, which are described as follows:`,
+  isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+{
+  key: 'note35-text-l',
+  label: '',
+  narrativeText:getNarrativeTextByKey('note35-text-l')?? `- Level 1 inputs are quoted prices (unadjusted) in active Markets for identical assets or liabilities that the entity can access at the measurement date;`,
+  isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+{
+  key: 'note35-text-m',
+  label: '',
+  narrativeText:getNarrativeTextByKey('note35-text-m')?? `- Level 2 inputs are inputs, other than quoted prices included within Level 1, that are observable for the asset or liability, either directly or indirectly; and`,
+  isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+{
+  key: 'note35-text-n',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note35-text-n')?? `- Level 3 inputs are unobservable inputs for the asset or liability.`,
+  isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+
+{
+  key: 'note35-text-o',
+  label: '',
+  narrativeText: getNarrativeTextByKey('note35-text-o')??
           `The fair value hierachy of Financial Instruments of the company are measured under Level 3 .`,
+  isNarrative: true,
+  isEditableText: true,
+  valueCurrent: null,
+  valuePrevious: null,
+
+},
+  
+         
         ],
       };
 };
-
     const note3 = calculateNote3();
     const note4 = calculateNote4();
     const note5 = calculateNote5();
@@ -7482,13 +8005,13 @@ else if (node.key==='cf-cce-total'){
   valuePrevious=3723.25;
 }
       
-      else if (node.keywords) {
+else if (node.keywords) {
         valueCurrent = getAmount('amountCurrent', node.keywords);
         valuePrevious = getAmount('amountPrevious', node.keywords);
-      } else if (children?.length) {
+} else if (children?.length) {
         valueCurrent = children.reduce((sum, c) => sum + (c.valueCurrent ?? 0), 0);
         valuePrevious = children.reduce((sum, c) => sum + (c.valuePrevious ?? 0), 0);
-      } else if (node.formula) {
+} else if (node.formula) {
         const [id1, op, id2] = node.formula;
         const val1 = totals.get(id1 as string);
         const val2 = totals.get(id2 as string);
@@ -7499,14 +8022,14 @@ else if (node.key==='cf-cce-total'){
             valueCurrent = null;
             valuePrevious = null;
         }
-      } else {
+} else {
         valueCurrent = null;
         valuePrevious = null;
-      }
+}
       
-      if (node.id) {
+if (node.id) {
         totals.set(node.id, { current: valueCurrent ?? 0, previous: valuePrevious ?? 0 });
-      }
+}
 
       return { ...node, valueCurrent, valuePrevious, children };
     };
@@ -8344,50 +8867,79 @@ const handleEditNotes = (noteId?: number | string) => {
 
   const handleSaveChanges = (updatedNotes: FinancialNote[]) => {
     setEditedNotes(updatedNotes);
-
-
     const getEditedValueByKey = (
-        key: string
-      ): { valueCurrent: number | null; valuePrevious: number | null } => {
-        if (!editedNotes) return { valueCurrent: null, valuePrevious: null };
+    key: string
+  ): { valueCurrent: number | null; valuePrevious: number | null } => {
+    if (!updatedNotes) return { valueCurrent: null, valuePrevious: null };
 
-        for (const note of editedNotes) {
-          const result = findInContent(note.content, key);
-          if (result) return result;
-        }
+    for (const note of updatedNotes) {
+      const result = findInContent(note.content, key);
+      if (result) return result;
+    }
 
-        return { valueCurrent: null, valuePrevious: null };
-      };
+    return { valueCurrent: null, valuePrevious: null };
+  };
 
-      const findInContent = (
-        items: (HierarchicalItem | TableContent | string)[],
-        key: string
-      ): { valueCurrent: number | null; valuePrevious: number | null } | null => {
-        for (const item of items) {
-          if (typeof item !== 'string' && 'key' in item && item.key === key) {
-            return {
-              valueCurrent: item.valueCurrent ?? null,
-              valuePrevious: item.valuePrevious ?? null,
-            };
-          }
+  const findInContent = (
+    items: (HierarchicalItem | TableContent | string)[],
+    key: string
+  ): { valueCurrent: number | null; valuePrevious: number | null } | null => {
+    for (const item of items) {
+      if (typeof item !== 'string' && 'key' in item && item.key === key) {
+        return {
+          valueCurrent: item.valueCurrent ?? null,
+          valuePrevious: item.valuePrevious ?? null,
+        };
+      }
 
-          if (typeof item !== 'string' && 'children' in item && item.children) {
-            const result = findInContent(item.children, key);
-            if (result) return result;
-          }
-        }
-        return null;
-      };
+      if (typeof item !== 'string' && 'children' in item && item.children) {
+        const result = findInContent(item.children, key);
+        if (result) return result;
+      }
+    }
+    return null;
+  };
+
+  const updatedFinancialVar2 = financialVar2.map(row => {
+    const { key } = row;
+    const edited = getEditedValueByKey(key);
+
+    return {
+      ...row,
+      amountCurrent: edited.valueCurrent ?? row.amountCurrent,
+      amountPrevious: edited.valuePrevious ?? row.amountPrevious,
+    };
+  });
+
+  // setFinancialVarUpdated(updatedFinancialVar2);
+ 
+
+  const renamedForServer = updatedFinancialVar2.map(row => ({
+    key: row.key,
+    [amountKeys.amountCurrentKey]: row.amountCurrent,
+    [amountKeys.amountPreviousKey]: row.amountPrevious,
+  }));
+   console.log("financialVarUpdated",renamedForServer)
+
+  fetch('http://localhost:5000/update-financial-vars', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(renamedForServer),
+  })
+    .then(response => {
+      if (!response.ok) throw new Error('Failed to update');
+      return response.json();
+    })
+    .then(data => {
+      console.log('✅ Server update success:', data);
+    })
+    .catch(error => {
+      console.error('❌ Error updating financial variables:', error);
+    });
 
 
 
-
-
-
-
-
-
-    handleCloseEditor();
+  handleCloseEditor();
   };
 
   return (
