@@ -108,29 +108,76 @@ const EditableNoteItem: React.FC<{
   );
 };
 
-const RenderMuiNoteTable = ({ data }: { data: TableContent }) => (
-  <Table size="small" sx={{ mt: 2, mb: 2 }}>
-    <TableHead>
-      <TableRow>
-        {data.headers.map((header, index) => (
-          <TableCell key={index} align={index === 0 ? 'left' : 'right'} sx={{ fontWeight: 'bold' }}>
-            {header}
-          </TableCell>
-        ))}
-      </TableRow>
-    </TableHead>
-    <TableBody>
-      {data.rows.map((row, rowIndex) => (
-        <TableRow key={rowIndex}>
-          {row.map((cell, cellIndex) => (
-            <TableCell key={cellIndex} align={cellIndex === 0 ? 'left' : 'right'}>
-              {cell}
+const RenderMuiNoteTable = ({
+    data,
+    onTableChange,
+    noteIndex,
+    itemIndex,
+  }: {
+    data: TableContent;
+    noteIndex?: number;
+    itemIndex?: number;
+    onTableChange?: (
+      noteIndex: number,
+      itemIndex: number,
+      rowIndex: number,
+      colIndex: number,
+      value: string
+    ) => void;
+  }) => (
+    <Box sx={{ mb: 2, border: '1px solid', borderColor: 'divider', overflowX: 'auto' }}>
+    <Table size="small" sx={{ minWidth: 650 }}>
+      <TableHead>
+        <TableRow sx={{ backgroundColor: 'action.selected' }}>
+          {data.headers.map((header, index) => (
+            <TableCell 
+              key={index} 
+              align={index === 0 ? 'left' : 'right'} 
+              sx={{ 
+                fontWeight: 'bold',
+                borderRight: index === data.headers.length - 1 ? 'none' : '1px solid',
+                borderColor: 'divider',
+              }}
+            >
+              {header}
             </TableCell>
           ))}
         </TableRow>
-      ))}
-    </TableBody>
-  </Table>
+      </TableHead>
+      <TableBody>
+        {data.rows.map((row, rowIndex) => (
+          <TableRow key={rowIndex}>
+            {row.map((cell, colIndex) => (
+              <TableCell 
+                key={colIndex} 
+                align={colIndex === 0 ? 'left' : 'right'}
+                sx={{
+                  backgroundColor: 'white', // Ensure all cells have a white background
+                  borderRight: colIndex === row.length - 1 ? 'none' : '1px solid',
+                  borderColor: 'divider',
+                }}
+              >
+                {data.isEditable && onTableChange && noteIndex !== undefined && itemIndex !== undefined && colIndex !== 0 ? (
+                  <TextField
+                    variant="outlined"
+                    size="small"
+                    type="number"
+                    value={cell}
+                    sx={{ width: '100%' }} // Use 100% width to fill the cell
+                    onChange={(e) =>
+                      onTableChange(noteIndex, itemIndex, rowIndex, colIndex, e.target.value)
+                    }
+                  />
+                ) : (
+                  cell 
+                )}
+              </TableCell>
+            ))}
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </Box>
 );
 
 const NotesEditor: React.FC<NotesEditorProps> = ({ financialVariable,amountKeys,notes, onSave, onClose }) => {
@@ -228,12 +275,29 @@ const handleValueChange = (
     console.log('filteredNotes', filteredNotes);
     onSave(filteredNotes);
   };
-
+  const handleTableChange = (
+    noteIndex: number,
+    itemIndex: number,
+    rowIndex: number,
+    colIndex: number,
+    value: string
+  ) => {
+    setEditableNotes((prevNotes) => {
+      const updatedNotes = _.cloneDeep(prevNotes);
+      const note = updatedNotes[noteIndex];
+      const table = note.content[itemIndex] as TableContent;
+      if (table?.rows?.[rowIndex] && colIndex < table.rows[rowIndex].length) {
+      // Update the cell value
+      table.rows[rowIndex][colIndex] = value;
+    }
+      return updatedNotes;
+    });
+  };
   return (
     <div>
 
     
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3, backgroundColor: 'grey.100', minHeight: '100vh', maxWidth:3000 }}>
       <AppBar position="sticky">
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
@@ -247,7 +311,7 @@ const handleValueChange = (
           </Button>
         </Toolbar>
       </AppBar>
-      <Box sx={{ mt: 8 }}> {/* Offset for AppBar */}
+      <Box sx={{ mt: 10, maxWidth: 3500, mx: 'auto' }}> {/* Offset for AppBar */}
         {editableNotes .filter(note => !selectedNoteId || String(note.noteNumber) === selectedNoteId) .map((note, noteIndex) => (
           <Paper key={note.noteNumber} sx={{ mb: 3, p: 2 }} data-note-id={note.noteNumber}>
             <Typography variant="h5" gutterBottom>
@@ -282,7 +346,12 @@ const handleValueChange = (
                     return (
                       <TableRow key={`table-${itemIndex}`}>
                         <TableCell colSpan={3} sx={{ p: 0 }}>
-                          <RenderMuiNoteTable data={item as TableContent} />
+                          <RenderMuiNoteTable
+    data={item as TableContent}
+    noteIndex={noteIndex}
+    itemIndex={itemIndex}
+    onTableChange={handleTableChange}
+  />
                         </TableCell>
                       </TableRow>
                     );

@@ -47,6 +47,7 @@ export interface TableContent {
   type: 'table';
   headers: string[];
   rows: string[][];
+  isEditable?: boolean;
 }
 // Represents a single accounting policy, which can contain text and tables.
 interface AccountingPolicy {
@@ -646,174 +647,224 @@ const getNarrativeTextByKey = (key: string): string | null => {
 };
 
 
-  const totals = new Map<string, { current: number, previous: number }>();
+const getTableValue = (
+  noteKey: number,
+  rowLabel: string
+): string[] | null => {
+  const editedNote = editedNotes?.find((n) => n.noteNumber === noteKey);
+  if (!editedNote) return null;
 
+  for (const item of editedNote.content) {
+    if (typeof item === 'object' && 'type' in item && item.type === 'table') {
+      const table = item as TableContent;
+      if (table.isEditable) {
+        const foundRow = table.rows.find((row) => row[0]?.trim() === rowLabel.trim());
+        if (foundRow) return foundRow;
+      }
+    }
+  }
+
+  return null;
+};
+const totals = new Map<string, { current: number, previous: number }>();
 const calculateNote3 = (): FinancialNote => {
+  // Updated calculateRowTotal to sum columns 1 to 7 (exclusive of 'Total' column at index 8)
   const calculateRowTotal = (row: string[]): string => {
-  const sum = row
-    .slice(0, 7)
-    .reduce((acc, val) => acc + (parseFloat(val.replace(/,/g, '')) || 0), 0);
-  return sum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
-const parseNum = (val: string): number => parseFloat(val.replace(/,/g, '')) || 0;
-const calculateBalance = (rows: string[][]): string[] => {
-  const result: number[] = [];
+    const sum = row
+      .slice(1, 8)
+      .reduce((acc, val) => acc + (parseFloat(val.replace(/,/g, '')) || 0), 0);
+    return sum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
 
-  for (let i = 0; i < 7; i++) {
-    const colSum = rows.reduce((sum, row) => sum + parseNum(row[i]), 0);
-    result.push(colSum);
-  }
+  const parseNum = (val: string): number => parseFloat(val.replace(/,/g, '')) || 0;
 
-  const total = result.reduce((sum, val) => sum + val, 0);
-  return [...result.map(val =>
-    val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  ), total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })];
-};
-const calculateDifference = (row1: string[], row2: string[]): string[] => {
-  const diff: number[] = [];
+  // calculateBalance remains unchanged as per your request
+  const calculateBalance = (rows: string[][], columnCount: number): string[] => {
+    const result: number[] = [];
+    // Start from index 1 to skip the label column
+    for (let i = 1; i < columnCount; i++) {
+      const colSum = rows.reduce((sum, row) => sum + parseNum(row[i]), 0);
+      result.push(colSum);
+    }
+    const total = result.reduce((sum, val) => sum + val, 0);
+    return ['', ...result.map(val => val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })), total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })];
+  };
 
-  for (let i = 0; i < 8; i++) {
-    const val1 = parseNum(row1[i]);
-    const val2 = parseNum(row2[i]);
-    diff.push(val1 - val2);
-  }
+  const calculateDifference = (row1: string[], row2: string[]): string[] => {
+    const diff: number[] = [];
+    // Start from index 1 to skip the label column
+    for (let i = 1; i <= 8; i++) {
+      const val1 = parseNum(row1[i]);
+      const val2 = parseNum(row2[i]);
+      diff.push(val1 - val2);
+    }
+    return ['', ...diff.map(val => val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))];
+  };
+  
+  // This is the updated, dynamic `row` function
+  const row = (label: string, columnCount: number): string[] => {
+    const edited = getTableValue(3, label);
+    if (edited) return edited;
+    const emptyRow = Array(columnCount).fill('');
+    const r = [...emptyRow];
+    r[0] = label;
+    return r;
+  };
 
-  return diff.map(val =>
-    val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  // --- First Table Headers (PPE) ---
+  const ppeHeaders = [
+    '',
+    'Freehold land (Refer Note b)',
+    'Buildings (Refer Note b)',
+    'Plant and equipment',
+    'Furniture and fixtures',
+    'Vehicles',
+    'Office equipment',
+    'Leasehold improvements',
+    'Total'
+  ];
+  const ppeColumnCount = ppeHeaders.length;
+
+  // --- First Table Rows (PPE) ---
+  const ppeRows = [];
+
+  // Gross carrying amount section
+  const grossCarryingRows = [
+    row('Balance as at 1 April 2022', ppeColumnCount),
+    row('Additions', ppeColumnCount),
+    row('Disposals', ppeColumnCount),
+    row('Adjustments', ppeColumnCount),
+  ];
+  // calculateRowTotal is called on these editable rows
+  grossCarryingRows.forEach(r => r[8] = calculateRowTotal(r));
+  // balanceRow is calculated using calculateBalance, not calculateRowTotal
+  const balanceRow = ['Balance as at 31 March 2023', ...calculateBalance(grossCarryingRows, ppeColumnCount).slice(1, -1)];
+  
+  const additionalGrossCarryingRows = [
+    row('Additions FY24', ppeColumnCount),
+    row('Disposals FY24', ppeColumnCount),
+    row('Adjustments FY24', ppeColumnCount),
+  ];
+  additionalGrossCarryingRows.forEach(r => r[8] = calculateRowTotal(r));
+  const balanceRow1 = ['Balance as at 31 March 2024', ...calculateBalance([balanceRow, ...additionalGrossCarryingRows], ppeColumnCount).slice(1, -1)];
+  
+  ppeRows.push(
+    ['Gross carrying amount'],
+    ...grossCarryingRows,
+    balanceRow,
+    ...additionalGrossCarryingRows,
+    balanceRow1
   );
-};
 
+  // Accumulated depreciation section
+  const accumulatedDepreciationRows = [
+    row('Balance as at 1 April 2022 (dep)', ppeColumnCount),
+    row('Depreciation expense', ppeColumnCount),
+    row('Eliminated on disposal', ppeColumnCount),
+    row('Adjustments (dep)', ppeColumnCount),
+  ];
+  accumulatedDepreciationRows.forEach(r => r[8] = calculateRowTotal(r));
+  const balanceRow2 = ['Balance as at 31 March 2023 (dep)', ...calculateBalance(accumulatedDepreciationRows, ppeColumnCount).slice(1, -1)];
 
+  const additionalDepreciationRows = [
+    row('Depreciation expense FY24', ppeColumnCount),
+    row('Eliminated on disposal FY24', ppeColumnCount),
+    row('Adjustments FY24 (dep)', ppeColumnCount),
+  ];
+  additionalDepreciationRows.forEach(r => r[8] = calculateRowTotal(r));
+  const balanceRow3 = ['Balance as at 31 March 2024 (dep)', ...calculateBalance([balanceRow2, ...additionalDepreciationRows], ppeColumnCount).slice(1, -1)];
 
-const Freehold = ['142.27', '2,411.58', '2,766.65', '282.41', '131.19', '1,901.19', '535.75'];
-Freehold.push(calculateRowTotal(Freehold));
-const add = ['', '', '269.96', '114.29', '81.47', '101.44', '130.08'];
-add.push(calculateRowTotal(add));
-const disposals = ['', '-17.29', '', '-61.63', '-86.25', '', ''];
-disposals.push(calculateRowTotal(disposals));
-const adj = ['', '', '', '', '155.74', '', ''];
-adj.push(calculateRowTotal(adj));
-const balance = calculateBalance([Freehold, add, disposals, adj]);
+  ppeRows.push(
+    ['Accumulated depreciation'],
+    ...accumulatedDepreciationRows,
+    balanceRow2,
+    ...additionalDepreciationRows,
+    balanceRow3
+  );
+  // Net carrying amount section
+  const balance4 = calculateDifference(balanceRow, balanceRow2);
+  balance4[0] = 'As at 31 March 2023';
+  const balance5 = calculateDifference(balanceRow1, balanceRow3);
+  balance5[0] = 'As at 31 March 2024';
 
-const add1 = ['', '2,185.22', '1,241.99', '249.57', '1.97', '1,383.28', '610.70'];
-add1.push(calculateRowTotal(add1));
-const disposals1 = ['', '-58.47', '-190.66', '', '-80.54', '-305.60', ''];
-disposals1.push(calculateRowTotal(disposals1));
-const adj1 = ['', '', '', '', '', '', ''];
-adj1.push(calculateRowTotal(adj1));
-const balance1 = calculateBalance([balance,add1, disposals1, adj1]);
+  ppeRows.push(
+    ['Net carrying amount'],
+    balance4,
+    balance5
+  );
 
-const april =['','658.92','1350.77','221.08','56.78','1718.58','388.02'];
-april.push(calculateRowTotal(april));
-const expense =['','108.18','200.23','25.25','18.58','211.74','46.24'];
-expense.push(calculateRowTotal(expense));
-const assets =['','-4.90','','-61.63','-76.64','',''];
-assets.push(calculateRowTotal(assets));
-const adj2 =['','','','','155.74','',''];
-adj2.push(calculateRowTotal(adj2));
-const balance2 = calculateBalance([april,expense, assets, adj2]);
+  // --- Second Table Headers (CWIP Ageing) ---
+  const cwipHeaders = [
+    'CWIP',
+    'Less than 1 year',
+    '1-2 years',
+    '2-3 years',
+    'More than 3 years',
+    'Total'
+  ];
+  const cwipColumnCount = cwipHeaders.length;
 
-const expense1 =['','148.46','259.62','68.93','18.00','255.27','87.66'];
-expense1.push(calculateRowTotal(expense1));
-const assets1 =['','-33.41','-167.12','','-58.65','-305.60',''];
-assets1.push(calculateRowTotal(assets1));
-const adj3 =['','','','','','',''];
-adj3.push(calculateRowTotal(adj3));
-const balance3 = calculateBalance([balance2,expense1, assets1, adj3]);
-const balance4 = calculateDifference(balance, balance2);
-const balance5 = calculateDifference(balance1, balance3);
+  // --- Second Table Rows (CWIP Ageing) ---
+  const cwipAgeingRows = [
+    row('Projects in progress', cwipColumnCount),
+    row('Adjustments in progress', cwipColumnCount),
+    // Add more rows here if you need a total of 5 editable rows
+  ];
+  // Corrected slice to calculate row total for CWIP tables
+  const calculateCwipRowTotal = (row: string[]): string => {
+    const sum = row
+      .slice(1, 5) // Summing columns 1-4
+      .reduce((acc, val) => acc + (parseFloat(val.replace(/,/g, '')) || 0), 0);
+    return sum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+  cwipAgeingRows.forEach(r => r[5] = calculateCwipRowTotal(r));
+  const cwipAgeingTotal24 = ['Total as on 31 March 2024', ...calculateBalance(cwipAgeingRows, cwipColumnCount).slice(1, 6)];
+  const cwipAgeingTotal23 = ['Total as on 31 March 2023', ...calculateBalance(cwipAgeingRows, cwipColumnCount).slice(1, 6)];
+  
+  const cwipAgeingTableRows = [
+    ...cwipAgeingRows,
+    cwipAgeingTotal24,
+    cwipAgeingTotal23,
+  ];
 
+  // --- Third Table Rows (CWIP Completion) ---
+  const cwipCompletionRows = [
+    row('Projects to be completed', cwipColumnCount),
+    row('Adjustments to be completed', cwipColumnCount),
+    // Add more rows here if you need a total of 5 editable rows
+  ];
+  cwipCompletionRows.forEach(r => r[5] = calculateCwipRowTotal(r));
+  const cwipCompletionTotal24 = ['Total as on 31 March 2024', ...calculateBalance(cwipCompletionRows, cwipColumnCount).slice(1, 6)];
+  const cwipCompletionTotal23 = ['Total as on 31 March 2023', ...calculateBalance(cwipCompletionRows, cwipColumnCount).slice(1, 6)];
 
-const cwipInProgressAdd: string[] = ['436.98', '', '', ''];
-cwipInProgressAdd.push(calculateRowTotal(cwipInProgressAdd));
-const cwipInProgressDeduct: string[] = ['-1,650.86', '-324.43', '-1,200.96', '-132.83'];
-cwipInProgressDeduct.push(calculateRowTotal(cwipInProgressDeduct));
-
-const cwipInCompletedAdd: string[] =['436.98','','','']
-cwipInCompletedAdd.push(calculateRowTotal(cwipInCompletedAdd));
-const cwipInCompletedDeduct: string[] =['-3309.08','','','']
-cwipInCompletedDeduct.push(calculateRowTotal(cwipInCompletedDeduct));
+  const cwipCompletionTableRows = [
+    ...cwipCompletionRows,
+    cwipCompletionTotal24,
+    cwipCompletionTotal23,
+  ];
 
   return {
     noteNumber: 3,
     title: 'Property, plant and equipment (PPE)',
-    totalCurrent: 0, // Replace with calculated value if available
+    totalCurrent: 0,
     totalPrevious: 0,
-    footer:'Note : Figures in brackets relate to previous year.',
+    footer: 'Note : Figures in brackets relate to previous year.',
     content: [
       {
         type: 'table',
-        headers: [
-          '',
-          'Freehold land (Refer Note b)',
-          'Buildings (Refer Note b)',
-          'Plant and equipment',
-          'Furniture and fixtures',
-          'Vehicles',
-          'Office equipment',
-          'Leasehold improvements',
-          'Total'
-        ],
-        rows: [
-          ['Gross carrying amount'],
-          ['Balance as at 1 April 2022', ...Freehold],
-          ['Additions', ...add],
-          ['Disposals', ...disposals],
-          ['Adjustments', ...adj],
-          ['Balance as at 31 March 2023', ...balance],
-          ['Additions', ...add1],
-          ['Disposals', ...disposals1],
-          ['Adjustments', ...adj1],
-          ['Balance as at 31 March 2024', ...balance1],
-          ['Accumulated depreciation'] ,
-          ['Balance as at 1 April 2022',...april],
-          ['Depreciation expense',...expense],
-          ['Eliminated on disposal of assets',...assets],
-          ['Adjustments', ...adj2],
-          ['Balance as at 31 March 2023', ...balance2],
-          ['Depreciation expense',...expense1],
-          ['Eliminated on disposal of assets',...assets1],
-          ['Adjustments', ...adj3],
-          ['Balance as at 31 March 2024', ...balance3],
-          ['Net carrying amount'],
-          ['As at 31 March 2023',...balance4],
-          ['As at 31 March 2024',...balance5],
-
-        ]
+        isEditable: true,
+        headers: ppeHeaders,
+        rows: ppeRows
       },
-     {
+      {
         key: 'note3-Contractual',
         label: 'Contractual obligations',
         valueCurrent: null,
         valuePrevious: null,
         isSubtotal: true,
       },
-      
-        {
-        key: 'note3-text-a',
-        label: '',
-        narrativeText:getNarrativeTextByKey('note3-text-a')??`a)Unless otherwise stated all the assets are owned by the Company and none of the assets have been given on operating lease by the Company.` ,
-        isNarrative: true,
-        isEditableText: true,
-        valueCurrent: null,
-        valuePrevious: null,
-
-        },
-
-
-        {
-        key: 'note3-text-b',
-        label: '',
-        narrativeText: getNarrativeTextByKey('note3-text-b')??`b) Charge as on 31 March 2023 ₹1,774.36 lakhs towards Freehold land and buildings has been released during the year. `,
-        isNarrative: true,
-        isEditableText: true,
-        valueCurrent: null,
-        valuePrevious: null,
-
-        },
-
-     
-      
+      'a) Unless otherwise stated all the assets are owned by the Company and none of the assets have been given on operating lease by the Company.',
+      'b) Charge as on 31 March 2023 ₹1,774.36 lakhs towards Freehold land and buildings has been released during the year.',
       {
         key: 'note3-Capital',
         label: 'Capital Work-in-Progress',
@@ -821,56 +872,21 @@ cwipInCompletedDeduct.push(calculateRowTotal(cwipInCompletedDeduct));
         valuePrevious: null,
         isSubtotal: true,
       },
-      'The capital work-in-progress ageing schedule for the year ended 31 March 2024 is as follows:', 
+      'The capital work-in-progress ageing schedule for the year ended 31 March 2024 is as follows:',
       {
         type: 'table',
-        headers: [
-          '\nCWIP',
-          'Amount in capital work-in-progress for a period of\nLess than 1 year',
-          'Amount in capital work-in-progress for a period of\n1-2 years',
-          'Amount in capital work-in-progress for a period of\n2-3 years',
-          'Amount in capital work-in-progress for a period of\nMore than 3 years',
-          '\nTotal',
-        ],
-        rows: [
-          ['Projects in progress',...cwipInProgressAdd],
-          ['',...cwipInProgressDeduct],
-          ['Total as on 31 March 2024',...cwipInProgressAdd],
-          ['Total as on 31 March 2023',...cwipInProgressDeduct],
-        ]
+        isEditable: true,
+        headers: cwipHeaders,
+        rows: cwipAgeingTableRows
       },
-      
-{
-  key: 'note3-text-c',
-  label: '',
-  narrativeText:getNarrativeTextByKey('note3-text-c')?? ` There is no such case, wherein Capital-work-in progress, whose completion is overdue or has exceeded its cost compared to its original plan.`,
-  isNarrative: true,
-  isEditableText: true,
-  valueCurrent: null,
-  valuePrevious: null,
-
-},
-
-     
-  
+      'There is no such case, wherein Capital-work-in progress, whose completion is overdue or has exceeded its cost compared to its original plan.',
       'The capital work-in-progress completion schedule for the year ended 31 March 2024 is as follows:',
       {
         type: 'table',
-        headers: [
-          '\nCWIP',
-          'To be completed in\nLess than 1 year',
-          'To be completed in\n1-2 years',
-          'To be completed in\n2-3 years',
-          'To be completed in\nMore than 3 years',
-          '\nTotal',
-        ],
-        rows: [
-          ['Projects in progress',...cwipInCompletedAdd],
-          ['',...cwipInCompletedDeduct],
-          ['Total as on 31 March 2024',...cwipInCompletedAdd],
-          ['Total as on 31 March 2023',...cwipInCompletedDeduct],
-        ]
-      },  
+        isEditable: true,
+        headers: cwipHeaders,
+        rows: cwipCompletionTableRows
+      },
     ]
   };
 };
