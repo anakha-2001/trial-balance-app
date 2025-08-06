@@ -1336,25 +1336,15 @@ const calculateNote6 = (): FinancialNote => {
   };
 };
 const calculateNote7 = (): FinancialNote => {
-  const note7_1 = financialVar2.find(item => item.key === 'note7-under-protest')
-  ? getValueForKey(7, 'note7-under-protest')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note7_1 = getValueForKey(7, 'note7-under-protest');
 
-  const note7_2 = financialVar2.find(item => item.key === 'note7a-adv-tds')
-   ? getValueForKey(7, 'note7a-adv-tds')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note7_2 = getValueForKey(7, 'note7a-adv-tds');
 
-  const note7_3 = financialVar2.find(item => item.key === 'note7a-provision')
-  ? getValueForKey(7, 'note7a-provision')
-   : { valueCurrent: 0, valuePrevious: 0 }; 
+  const note7_3 = getValueForKey(7, 'note7a-provision'); 
 
-  const note7_4 =financialVar2.find(item => item.key === 'note7-adv-tax')
-  ? getValueForKey(7, 'note7-adv-tax')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note7_4 = getValueForKey(7, 'note7-adv-tax');
   
-  const note7_5 = financialVar2.find(item => item.key === 'note7-provision')
-  ? getValueForKey(7, 'note7-provision')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note7_5 = getValueForKey(7, 'note7-provision');
 
 
 
@@ -2113,27 +2103,17 @@ const calculateNote12 = (): FinancialNote => {
   };
 };
 const calculateNote13 = (): FinancialNote => {
-  const note13_1 =financialVar2.find(item => item.key === 'note13-opening')
-  ? getValueForKey(13, 'note13-opening')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note13_1 = getValueForKey(13, 'note13-opening');
 
-  const note13_2 =financialVar2.find(item => item.key === 'note13-profit')
-  ? getValueForKey(13, 'note13-profit')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note13_2 = getValueForKey(13, 'note13-profit');
 
-  const note13_3 = financialVar2.find(item => item.key ==='note13-dividends')
-  ? getValueForKey(13, 'note13-dividends')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note13_3 = getValueForKey(13, 'note13-dividends');
 
 
-  const note13_4 = financialVar2.find(item => item.key === 'note13-oci')
-  ? getValueForKey(13, 'note13-oci')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note13_4 = getValueForKey(13, 'note13-oci');
 
 
-  const note13_5 =financialVar2.find(item => item.key === 'note13-reserve')
-  ? getValueForKey(13, 'note13-reserve')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note13_5 = getValueForKey(13, 'note13-reserve');
 
   const retainedOpening = { current:note13_1.valueCurrent?? 0, previous:note13_1.valuePrevious?? 0 };
   const transferredProfit = { current:note13_2.valueCurrent?? 0, previous:note13_2.valuePrevious?? 0 };
@@ -2640,50 +2620,28 @@ const calculateNote17 = (): FinancialNote => {
   };
 };
 const calculateNote18 = (): FinancialNote => {
-  const note18_1 =financialVar2.find(item => item.key === 'note18-process')
-  ? getValueForKey(18, 'note18-process')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note18_1 = getValueForKey(18, 'note18-process');
 
-  const note18_2 =financialVar2.find(item => item.key ==='note18-spares')
-  ? getValueForKey(18, 'note18-spares')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note18_2 = getValueForKey(18, 'note18-spares');
 
-  const note18_3 = financialVar2.find(item => item.key === 'note18-products')
-  ? getValueForKey(18, 'note18-products')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note18_3 = getValueForKey(18, 'note18-products');
 
-  const note18_4 =financialVar2.find(item => item.key === 'note18-amc')
-  ? getValueForKey(18, 'note18-amc')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note18_4 = getValueForKey(18, 'note18-amc');
 
 
-  const note18_5 = financialVar2.find(item => item.key === 'note18-it')
-  ? getValueForKey(18, 'note18-it')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note18_5 = getValueForKey(18, 'note18-it');
 
-  const note18_6 = financialVar2.find(item => item.key === 'note18-time-point')
-  ? getValueForKey(18, 'note18-time-point')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note18_6 = getValueForKey(18, 'note18-time-point');
 
-  const note18_7 = financialVar2.find(item => item.key === 'note18-time-over')
-  ? getValueForKey(18, 'note18-time-over')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note18_7 = getValueForKey(18, 'note18-time-over');
 
-  const note18_8 = financialVar2.find(item => item.key === 'note18-out-india')
-  ? getValueForKey(18, 'note18-out-india')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note18_8 = getValueForKey(18, 'note18-out-india');
 
-  const note18_9= financialVar2.find(item => item.key === 'note18-india')
-  ? getValueForKey(18, 'note18-india')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note18_9= getValueForKey(18, 'note18-india');
 
-  const note18_10= financialVar2.find(item => item.key ==='performance-within-1y')
-  ? getValueForKey(18, 'performance-within-1y')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note18_10= getValueForKey(18, 'performance-within-1y');
 
-  const note18_11 = financialVar2.find(item => item.key === 'performance-more-1y')
-  ? getValueForKey(18, 'performance-more-1y')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note18_11 = getValueForKey(18, 'performance-more-1y');
   
 
 
@@ -3037,21 +2995,13 @@ const calculateNote18 = (): FinancialNote => {
   };
 };
 const calculateNote19 = (): FinancialNote => {
-  const note19_1 = financialVar2.find(item => item.key === 'note19-reimb')
-  ? getValueForKey(19, 'note19-reimb')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note19_1 = getValueForKey(19, 'note19-reimb');
 
-  const note19_2 = financialVar2.find(item => item.key === 'note19-bond')
-  ? getValueForKey(19, 'note19-bond')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note19_2 = getValueForKey(19, 'note19-bond');
 
-  const note19_3 = financialVar2.find(item => item.key === 'note19-insurance')
-  ? getValueForKey(19, 'note19-insurance')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note19_3 = getValueForKey(19, 'note19-insurance');
 
-  const note19_4 = financialVar2.find(item => item.key === 'note19-others')
-  ? getValueForKey(19, 'note19-others')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note19_4 = getValueForKey(19, 'note19-others');
   
 
   const reimbursements = { current:note19_1.valueCurrent?? 0, previous:note19_1.valuePrevious?? 0 };
@@ -3162,23 +3112,15 @@ const calculateNote19 = (): FinancialNote => {
   };
 };
 const calculateNote20 = (): FinancialNote => {
-  const note20_1 = financialVar2.find(item => item.key === 'note20-openstock')
-  ? getValueForKey(20, 'note20-openstock')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note20_1 = getValueForKey(20, 'note20-openstock');
 
-  const note20_2 =financialVar2.find(item => item.key === 'note20-prod-access')
-  ? getValueForKey(20, 'note20-prod-access')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note20_2 = getValueForKey(20, 'note20-prod-access');
 
 
-  const note20_3 = financialVar2.find(item => item.key === 'note20-inventory-boy-wip')
-  ? getValueForKey(20, 'note20-inventory-boy-wip')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note20_3 = getValueForKey(20, 'note20-inventory-boy-wip');
 
 
-  const note20_4 = financialVar2.find(item => item.key ==='note20-inventory-boy-sit')
-  ? getValueForKey(20, 'note20-inventory-boy-sit')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note20_4 = getValueForKey(20, 'note20-inventory-boy-sit');
   
 
   const openStock = { current:note20_1.valueCurrent?? 0, previous:note20_1.valuePrevious?? 0 };
@@ -4452,21 +4394,13 @@ const calculateNote24 = (): FinancialNote => {
       };
     };
 const calculateNote25 = (): FinancialNote => {
-  const note25_1 =financialVar2.find(item => item.key === 'note25-3')
-  ? getValueForKey(25, 'note25-3')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note25_1 = getValueForKey(25, 'note25-3');
 
-  const note25_2 =financialVar2.find(item => item.key ===  'note25-4')
-  ? getValueForKey(25, 'note25-4')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note25_2 = getValueForKey(25, 'note25-4');
 
-  const note25_3 = financialVar2.find(item => item.key === 'note25-5')
-  ? getValueForKey(25, 'note25-5')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note25_3 = getValueForKey(25, 'note25-5');
 
-  const note25_4 = financialVar2.find(item => item.key ===  'note25-8')
-  ? getValueForKey(25, 'note25-8')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note25_4 = getValueForKey(25, 'note25-8');
   
 
   const incomeTax = { current:note25_1.valueCurrent?? 0, previous:note25_1.valuePrevious?? 0 };
@@ -4573,13 +4507,9 @@ const calculateNote25 = (): FinancialNote => {
 };
 const calculateNote26 = (): FinancialNote => {
 
-  const note26_1 =financialVar2.find(item => item.key === 'note26-2')
-  ? getValueForKey(26, 'note26-2')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note26_1 = getValueForKey(26, 'note26-2');
 
-  const note26_2 = financialVar2.find(item => item.key === 'note26-5')
-  ? getValueForKey(26, 'note26-5')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note26_2 = getValueForKey(26, 'note26-5');
   
 
 
@@ -4649,13 +4579,9 @@ const calculateNote26 = (): FinancialNote => {
   };
 };
 const calculateNote27 = (): FinancialNote => {
-  const note27_1 = financialVar2.find(item => item.key === 'note27-1')
-  ? getValueForKey(27, 'note27-1')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note27_1 = getValueForKey(27, 'note27-1');
 
-  const note27_2 = financialVar2.find(item => item.key ==='note27-2')
-  ? getValueForKey(27, 'note27-2')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note27_2 = getValueForKey(27, 'note27-2');
   
   
 
@@ -4809,62 +4735,33 @@ const calculateNote27 = (): FinancialNote => {
 };
 };
 const calculateNote28 = (): FinancialNote => {
-  const note28_1 = financialVar2.find(item => item.key === 'note28-amount-current-service')
-  ? getValueForKey(28, 'note28-amount-current-service')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note28_1 = getValueForKey(28, 'note28-amount-current-service');
 
-  const note28_2 = financialVar2.find(item => item.key === 'note28-amount-interest')
-  ? getValueForKey(28, 'note28-amount-interest')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note28_2 = getValueForKey(28, 'note28-amount-interest');
 
-  const note28_3 = financialVar2.find(item => item.key === 'note28-benefit-return')
-  ? getValueForKey(28, 'note28-benefit-return')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note28_3 = getValueForKey(28, 'note28-benefit-return');
 
-  const note28_4 = financialVar2.find(item => item.key === 'note28-benefit-DBO')
-  ? getValueForKey(28, 'note28-benefit-DBO')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note28_4 = getValueForKey(28, 'note28-benefit-DBO');
 
-  const note28_5 = financialVar2.find(item => item.key ==='note28-benefit-DBO2')
-  ? getValueForKey(28, 'note28-benefit-DBO2')
-  : { valueCurrent: 0, valuePrevious: 0 };
-
+  const note28_5 = getValueForKey(28, 'note28-benefit-DBO2');
   
-  const note28_6 = financialVar2.find(item => item.key ==='note28-balancesheet-present')
-  ? getValueForKey(28, 'note28-balancesheet-present')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note28_6 = getValueForKey(28, 'note28-balancesheet-present');
 
-  const note28_7 = financialVar2.find(item => item.key ==='note28-balancesheet-fair')
-  ? getValueForKey(28, 'note28-balancesheet-fair')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note28_7 = getValueForKey(28, 'note28-balancesheet-fair');
 
-  const note28_8 = financialVar2.find(item => item.key === 'note28-movement-interest')
-  ? getValueForKey(28, 'note28-movement-interest')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note28_8 = getValueForKey(28, 'note28-movement-interest');
 
-  const note28_9= financialVar2.find(item => item.key === 'note28-movement-payments')
-  ? getValueForKey(28, 'note28-movement-payments')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note28_9= getValueForKey(28, 'note28-movement-payments');
 
-  const note28_10= financialVar2.find(item => item.key === 'note28-fairmovement-open-plan')
-  ? getValueForKey(28, 'note28-fairmovement-open-plan')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note28_10= getValueForKey(28, 'note28-fairmovement-open-plan');
 
-  const note28_11 = financialVar2.find(item => item.key === 'note28-fairmovement-open-benefit')
-  ? getValueForKey(28, 'note28-fairmovement-open-benefit')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note28_11 = getValueForKey(28, 'note28-fairmovement-open-benefit');
 
-  const note28_12 = financialVar2.find(item => item.key === 'note28-plan-assets-Actuarial-1')
-  ? getValueForKey(28, 'note28-plan-assets-Actuarial-1')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note28_12 = getValueForKey(28, 'note28-plan-assets-Actuarial-1');
 
-  const note28_13 = financialVar2.find(item => item.key === 'note28-plan-assets-Actuarial-3')
-  ? getValueForKey(28, 'note28-plan-assets-Actuarial-3')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note28_13 = getValueForKey(28, 'note28-plan-assets-Actuarial-3');
 
-  const note28_14 = financialVar2.find(item => item.key === 'note28-plan-assets-Actuarial-4')
-  ? getValueForKey(28, 'note28-plan-assets-Actuarial-4')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note28_14 = getValueForKey(28, 'note28-plan-assets-Actuarial-4');
 
   
 
@@ -5419,97 +5316,51 @@ const calculateNote28 = (): FinancialNote => {
 };
 };
 const calculateNote29 = (): FinancialNote => {
-  const note29_1 =financialVar2.find(item => item.key === 'note29-balance-rou')
-  ? getValueForKey(29, 'note29-balance-rou')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_1 = getValueForKey(29, 'note29-balance-rou');
 
-  const note29_2 = financialVar2.find(item => item.key === 'note29-balance-long-term')
-  ? getValueForKey(29, 'note29-balance-long-term')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_2 = getValueForKey(29, 'note29-balance-long-term');
 
-  const note29_3 = financialVar2.find(item => item.key === 'note29-balance-short')
-  ? getValueForKey(29, 'note29-balance-short')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_3 = getValueForKey(29, 'note29-balance-short');
   
-  const note29_4 = financialVar2.find(item => item.key ===  'note29-pl-depreciation')
-  ? getValueForKey(29, 'note29-pl-depreciation')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_4 = getValueForKey(29, 'note29-pl-depreciation');
 
-  const note29_5 = financialVar2.find(item => item.key ===  'note29-pl-finance')
-  ? getValueForKey(29, 'note29-pl-finance')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_5 = getValueForKey(29, 'note29-pl-finance');
 
-  const note29_6 = financialVar2.find(item => item.key ===  'note29-pl-interest')
-  ? getValueForKey(29, 'note29-pl-interest')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_6 = getValueForKey(29, 'note29-pl-interest');
 
-  const note29_7 = financialVar2.find(item => item.key ===  'note29-pl-open')
-  ? getValueForKey(29, 'note29-pl-open')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_7 = getValueForKey(29, 'note29-pl-open');
 
-  const note29_8 =financialVar2.find(item => item.key ===  'note29-pl-add')
-  ? getValueForKey(29, 'note29-pl-add')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_8 = getValueForKey(29, 'note29-pl-add');
 
-  const note29_9= financialVar2.find(item => item.key ===  'note29-pl-payments')
-  ? getValueForKey(29, 'note29-pl-payments')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_9= getValueForKey(29, 'note29-pl-payments');
 
-  const note29_10= financialVar2.find(item => item.key === 'note29-pl-1')
-  ? getValueForKey(29, 'note29-pl-1')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_10= getValueForKey(29, 'note29-pl-1');
 
-  const note29_11 = financialVar2.find(item => item.key ===  'note29-pl-5')
-  ? getValueForKey(29, 'note29-pl-5')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_11 = getValueForKey(29, 'note29-pl-5');
 
-  const note29_12 = financialVar2.find(item => item.key ===  'note29-pl-years')
-  ? getValueForKey(29, 'note29-pl-years')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_12 = getValueForKey(29, 'note29-pl-years');
 
-  const note29_13 = financialVar2.find(item => item.key ===  'note29a-lease-noncurrent')
-  ? getValueForKey(29, 'note29a-lease-noncurrent')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_13 = getValueForKey(29, 'note29a-lease-noncurrent');
 
-  const note29_14 = financialVar2.find(item => item.key ===  'note29a-lease-current')
-  ? getValueForKey(29, 'note29a-lease-current')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_14 = getValueForKey(29, 'note29a-lease-current');
 
-  const note29_15 = financialVar2.find(item => item.key ===  'note29a-year5')
-  ? getValueForKey(29, 'note29a-year5')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_15 = getValueForKey(29, 'note29a-year5');
 
-  const note29_16= financialVar2.find(item => item.key ===  'note29a-total')
-  ? getValueForKey(29, 'note29a-total')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_16= getValueForKey(29, 'note29a-total');
 
-  const note29_17= financialVar2.find(item => item.key ===  'note29a-unearned')
-  ? getValueForKey(29, 'note29a-unearned')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_17= getValueForKey(29, 'note29a-unearned');
 
-  const note29_18= financialVar2.find(item => item.key ===  'note29a-after')
-  ? getValueForKey(29, 'note29a-after')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_18= getValueForKey(29, 'note29a-after');
 
-  const note29_19= financialVar2.find(item => item.key ===  'note29a-within')
-  ? getValueForKey(29, 'note29a-within')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_19= getValueForKey(29, 'note29a-within');
 
-  const note29_20= financialVar2.find(item => item.key === 'note29a-after-lease')
-  ? getValueForKey(29, 'note29a-after-lease')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_20= getValueForKey(29, 'note29a-after-lease');
 
-  const note29_21= financialVar2.find(item => item.key ===  'note29a-within-lease')
-  ? getValueForKey(29, 'note29a-within-lease')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_21= getValueForKey(29, 'note29a-within-lease');
 
-  const note29_22= financialVar2.find(item => item.key ===  'note29a-profit-selling')
-  ? getValueForKey(29, 'note29a-profit-selling')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_22= getValueForKey(29, 'note29a-profit-selling');
 
-  const note29_23= financialVar2.find(item => item.key ===  'note29a-profit-finance')
-  ? getValueForKey(29, 'note29a-profit-finance')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note29_23= getValueForKey(29, 'note29a-profit-finance');
   
 
 
@@ -6141,17 +5992,11 @@ The Company has identified geographic segments as operating and reportable segme
   };
 };
 const calculateNote32 = (): FinancialNote => {
-  const note32_1 = financialVar2.find(item => item.key === 'note32-netprofit')
-  ? getValueForKey(32, 'note32-netprofit')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note32_1 = getValueForKey(32, 'note32-netprofit');
 
-  const note32_2 = financialVar2.find(item => item.key ==='note32-shares')
-  ? getValueForKey(32, 'note32-shares')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note32_2 = getValueForKey(32, 'note32-shares');
 
-  const note32_3 = financialVar2.find(item => item.key === 'note32-face')
-  ? getValueForKey(32, 'note32-face')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note32_3 = getValueForKey(32, 'note32-face');
 
   
   const netProfit = { current:note32_1.valueCurrent?? 0, previous:note32_1.valuePrevious?? 0 };
@@ -6309,65 +6154,35 @@ const calculateNote33 = (): FinancialNote => {
 }
 };
 const calculateNote34 = (): FinancialNote => {
-  const note34_1 =financialVar2.find(item => item.key === 'note34-pl-current-tax')
-  ? getValueForKey(34, 'note34-pl-current-tax')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note34_1 = getValueForKey(34, 'note34-pl-current-tax');
 
-  const note34_2 = financialVar2.find(item => item.key === 'note34-oci')
-  ? getValueForKey(34, 'note34-oci')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note34_2 =  getValueForKey(34, 'note34-oci');
 
-  const note34_3 = financialVar2.find(item => item.key === 'note34-benefit')
-  ? getValueForKey(34, 'note34-benefit')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note34_3 =  getValueForKey(34, 'note34-benefit');
 
-  const note34_4 = financialVar2.find(item => item.key === 'note34-reconciliation-open')
-  ? getValueForKey(34, 'note34-reconciliation-open')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note34_4 = getValueForKey(34, 'note34-reconciliation-open');
 
-  const note34_5 = financialVar2.find(item => item.key === 'note34-reconciliation-v3')
-  ? getValueForKey(34, 'note34-reconciliation-v3')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note34_5 = getValueForKey(34, 'note34-reconciliation-v3');
 
-  const note34_6 = financialVar2.find(item => item.key === 'note34-reconciliation-v4')
-  ? getValueForKey(34, 'note34-reconciliation-v4')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note34_6 = getValueForKey(34, 'note34-reconciliation-v4');
 
-  const note34_7 =financialVar2.find(item => item.key === 'note34-reconciliation-short')
-  ? getValueForKey(34, 'note34-reconciliation-short')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note34_7 = getValueForKey(34, 'note34-reconciliation-short');
 
-  const note34_8 = financialVar2.find(item => item.key === 'note34-reconciliation-expectedloss')
-  ? getValueForKey(34, 'note34-reconciliation-expectedloss')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note34_8 = getValueForKey(34, 'note34-reconciliation-expectedloss');
 
-  const note34_9= financialVar2.find(item => item.key === 'note34-Deferred-liability')
-  ? getValueForKey(34, 'note34-Deferred-liability')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note34_9= getValueForKey(34, 'note34-Deferred-liability');
 
-  const note34_10=financialVar2.find(item => item.key === 'note34-Deferred-asset-provision')
-  ? getValueForKey(34, 'note34-Deferred-asset-provision')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note34_10= getValueForKey(34, 'note34-Deferred-asset-provision');
 
-  const note34_11 = financialVar2.find(item => item.key === 'note34-Deferred-asset-difference')
-  ? getValueForKey(34, 'note34-Deferred-asset-difference')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note34_11 = getValueForKey(34, 'note34-Deferred-asset-difference');
 
-  const note34_12 = financialVar2.find(item => item.key === 'note34-Deferred-asset-debt')
-  ? getValueForKey(34, 'note34-Deferred-asset-debt')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note34_12 = getValueForKey(34, 'note34-Deferred-asset-debt');
 
-  const note34_13 = financialVar2.find(item => item.key === 'note34-Deferred-asset-servicetax')
-  ? getValueForKey(34, 'note34-Deferred-asset-servicetax')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note34_13 = getValueForKey(34, 'note34-Deferred-asset-servicetax');
 
-  const note34_14 = financialVar2.find(item => item.key === 'note34-Deferred-asset-loss')
-  ? getValueForKey(34, 'note34-Deferred-asset-loss')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note34_14 = getValueForKey(34, 'note34-Deferred-asset-loss');
 
-  const note34_15 = financialVar2.find(item => item.key === 'note34-Deferred-asset-Others')
-  ? getValueForKey(34, 'note34-Deferred-asset-Others')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note34_15 = getValueForKey(34, 'note34-Deferred-asset-Others');
 
   
 
@@ -6648,41 +6463,23 @@ const calculateNote34 = (): FinancialNote => {
   };
 };
 const calculateNote35 = (): FinancialNote => {
-  const note35_1 = financialVar2.find(item => item.key === 'note35-capital-table')
-  ? getValueForKey(35, 'note35-capital-table')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note35_1 = getValueForKey(35, 'note35-capital-table');
 
-  const note35_2 = financialVar2.find(item => item.key === 'note35-capital-table1')
-  ? getValueForKey(35, 'note35-capital-table1')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note35_2 = getValueForKey(35, 'note35-capital-table1');
 
-  const note35_3 =financialVar2.find(item => item.key === 'note35-financialrisk-BOY')
-  ? getValueForKey(35, 'note35-financialrisk-BOY')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note35_3 = getValueForKey(35, 'note35-financialrisk-BOY');
 
-  const note35_4 = financialVar2.find(item => item.key ==='note35-financialrisk-creditloss')
-  ? getValueForKey(35, 'note35-financialrisk-creditloss')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note35_4 = getValueForKey(35, 'note35-financialrisk-creditloss');
 
-  const note35_5 = financialVar2.find(item => item.key === 'note35-financialrisk-creditloss-reverse')
-  ? getValueForKey(35, 'note35-financialrisk-creditloss-reverse')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note35_5 = getValueForKey(35, 'note35-financialrisk-creditloss-reverse');
 
-  const note35_6 = financialVar2.find(item => item.key === 'note35-revenue')
-  ? getValueForKey(35, 'note35-revenue')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note35_6 = getValueForKey(35, 'note35-revenue');
 
-  const note35_7 = financialVar2.find(item => item.key === 'note35-revenue-top')
-  ? getValueForKey(35, 'note35-revenue-top')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note35_7 = getValueForKey(35, 'note35-revenue-top');
 
-  const note35_8 = financialVar2.find(item => item.key === 'note35-geo-india')
-  ? getValueForKey(35, 'note35-geo-india')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note35_8 = getValueForKey(35, 'note35-geo-india');
 
-  const note35_9= financialVar2.find(item => item.key === 'note35-geo-rest')
-  ? getValueForKey(35, 'note35-geo-rest')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note35_9= getValueForKey(35, 'note35-geo-rest');
 
 
   const equity = { current:note35_1.valueCurrent?? 0, previous:note35_1.valuePrevious?? 0 };
@@ -9063,8 +8860,6 @@ const handleEditNotes = (noteId?: number | string) => {
       amountPrevious: edited.valuePrevious ?? row.amountPrevious,
     };
   });
-
-  // setFinancialVarUpdated(updatedFinancialVar2);
  
 
   const renamedForServer = updatedFinancialVar2.map(row => ({
