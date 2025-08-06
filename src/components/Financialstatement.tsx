@@ -8722,9 +8722,9 @@ console.log("manualJE",manualJE)
   if (useDatabase && !selectedPeriods) {
     return (
       <Box>
-        <Typography variant="h5" gutterBottom>
+        {/* <Typography variant="h5" gutterBottom>
           Database Mode - Select Periods
-        </Typography>
+        </Typography> */}
         <PeriodSelector onPeriodsSelected={fetchDatabaseData} />
         {dbError && (
           <Alert severity="error" sx={{ mt: 2 }}>
@@ -8744,9 +8744,9 @@ console.log("manualJE",manualJE)
   if (useDatabase && databaseData.length === 0) {
     return (
       <Box>
-        <Typography variant="h5" gutterBottom>
+        {/* <Typography variant="h5" gutterBottom>
           Database Mode - Select Periods
-        </Typography>
+        </Typography> */}
         <PeriodSelector onPeriodsSelected={fetchDatabaseData} />
         {dbError && (
           <Alert severity="error" sx={{ mt: 2 }}>

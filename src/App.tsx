@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import ExcelUpload from './components/Excelupload';
 import ColumnMapper, { MappedRow } from './components/Columnmapper';
 import FinancialStatements from './components/Financialstatement';
-import AdjustmentJournalPage from './components/AdjustmentJournalPage';   
+import AdjustmentJournalPage from './components/AdjustmentJournalPage';
 import {
   Typography,
   Paper,
@@ -17,10 +17,16 @@ import {
   ThemeProvider,
   createTheme,
   CssBaseline,
+  Card,
+  CardContent,
+  Divider,
 } from '@mui/material';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import SettingsIcon from '@mui/icons-material/Settings';
 
 const App: React.FC = () => {
   const [excelData, setExcelData] = useState<any[]>([]);
@@ -37,22 +43,21 @@ const App: React.FC = () => {
   const columns = excelData.length > 0 ? Object.keys(excelData[0]) : [];
 
   const handleReset = () => {
-  window.location.reload();
-};
-
+    window.location.reload();
+  };
 
   const handleThemeToggle = () => {
     setDarkMode((prev) => !prev);
   };
 
   const handleConfirm = (
-  mappedData: MappedRow[],
-  amountCurrentKey: string,
-  amountPreviousKey: string
-) => {
-  setMappedData(mappedData);
-  setAmountKeys({ amountCurrentKey, amountPreviousKey });
-};
+    mappedData: MappedRow[],
+    amountCurrentKey: string,
+    amountPreviousKey: string
+  ) => {
+    setMappedData(mappedData);
+    setAmountKeys({ amountCurrentKey, amountPreviousKey });
+  };
 
   const appTheme = createTheme({
     palette: {
@@ -68,19 +73,35 @@ const App: React.FC = () => {
       fontFamily: 'Segoe UI, Roboto, sans-serif',
       h4: { fontWeight: 700 },
     },
+    components: {
+      MuiPaper: {
+        styleOverrides: {
+          root: {
+            borderRadius: '12px',
+          },
+        },
+      },
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: '8px',
+            textTransform: 'none',
+          },
+        },
+      },
+    },
   });
 
   return (
     <ThemeProvider theme={appTheme}>
       <CssBaseline />
-
       {currentPage === 'main' ? (
         <Box
           sx={{
-            minHeight: '80vh',
+            minHeight: '100vh',
             bgcolor: 'background.default',
             px: { xs: 2, md: 6 },
-            py: 2,
+            py: 4,
             maxWidth: '1800px',
             margin: '0 auto',
           }}
@@ -90,11 +111,11 @@ const App: React.FC = () => {
             sx={{
               backgroundImage: 'linear-gradient(135deg,rgba(69, 75, 248, 1) 0%,rgba(38, 5, 167, 1) 100%)',
               color: '#fff',
-              py: { xs: 5, md: 6 },
+              py: { xs: 5, md: 8 },
               px: { xs: 3, md: 6 },
               borderRadius: 3,
               mb: 5,
-              boxShadow: 4,
+              boxShadow: 6,
               position: 'relative',
               display: 'flex',
               flexDirection: 'column',
@@ -102,7 +123,7 @@ const App: React.FC = () => {
               textAlign: 'center',
             }}
           >
-            {/* Dark Mode Toggle */}
+            {/* Header Controls */}
             <Box
               sx={{
                 position: 'absolute',
@@ -111,39 +132,35 @@ const App: React.FC = () => {
                 right: 16,
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                
+                alignItems: 'center',
               }}
             >
               {/* Left Logo */}
               <img
-                src="/asset/Yokogawa-Logo.png"
+                src="/asset/ajalabs.png"
                 alt="Left Logo"
-                style={{ height: 50 }}
+                style={{ height: 30, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}
               />
 
-              {/* Right Logo with Toggle Below */}
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              {/* Right Logo with Toggle */}
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <img
-                  src="/asset/vittora_white.png"
+                  src="/asset/Yokogawa-Logo W.png"
                   alt="Right Logo"
-                  style={{ height: 40, marginBottom: 8 }}
+                  style={{ height: 40, marginRight: 16, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}
                 />
-               <FormControlLabel
-                control={
-                  <Switch
-                    checked={darkMode}
-                    onChange={handleThemeToggle}
-                    color="default"
-                  />
-                }
-                label={darkMode ? <DarkModeIcon /> : <LightModeIcon />}
-                labelPlacement="start"
-                sx={{
-                  color: '#fff',
-                  mt: 1,
-                }}
-              />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={darkMode}
+                      onChange={handleThemeToggle}
+                      color="default"
+                    />
+                  }
+                  label={darkMode ? <DarkModeIcon sx={{ color: '#fff' }} /> : <LightModeIcon sx={{ color: '#fff' }} />}
+                  labelPlacement="start"
+                  sx={{ color: '#fff' }}
+                />
               </Box>
             </Box>
 
@@ -171,100 +188,115 @@ const App: React.FC = () => {
             </Typography>
           </Box>
 
-          {/* Reset Button */}
-          <Box textAlign="right" mb={2}>
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<RestartAltIcon />}
-              onClick={() => setConfirmOpen(true)}
-            >
-              Reset / Upload New File
-            </Button>
+          {/* Action Buttons Section */}
+{/* Action Buttons Section - Combined all 3 in one horizontal row */}
+<Box
+  sx={{
+    display: 'flex',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 2,
+    mb: 3,
+    flexWrap: 'wrap', // optional for responsiveness
+  }}
+>
+    <Button
+    variant="outlined"
+    color="primary"
+    onClick={() => setUseDatabase(!useDatabase)}
+    startIcon={<SettingsIcon />}
+  >
+    {useDatabase ? 'Switch to Excel Mode' : 'Switch to Database Mode'}
+  </Button>
+
+  <Button
+    variant="contained"
+    color="primary"
+    endIcon={<ArrowForwardIosIcon />}
+    onClick={() => setCurrentPage('adjustment')}
+  >
+    Pass Adjustment Entries
+  </Button>
+
+  <Button
+    variant="outlined"
+    color="error"
+    startIcon={<RestartAltIcon />}
+    onClick={() => setConfirmOpen(true)}
+  >
+    Reset / Upload New File
+  </Button>
+
+</Box>
+
+
+            {/* Confirm Dialog */}
+            <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+              <DialogTitle>Confirm Reset</DialogTitle>
+              <DialogContent>
+                <Typography>Are you sure you want to reset and upload a new file? This action cannot be undone.</Typography>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+                <Button color="error" onClick={handleReset}>
+                  Yes, Reset
+                </Button>
+              </DialogActions>
+            </Dialog>
+
+            {/* Upload Section - Only show in Excel mode */}
+            {!useDatabase && (
+              <Card sx={{ mb: 4 }}>
+                <CardContent>
+                  <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                    <UploadFileIcon sx={{ mr: 1 }} />
+                    Upload Trial Balance
+                  </Typography>
+                  <Divider sx={{ my: 2 }} />
+                  <ExcelUpload onDataParsed={setExcelData} />
+                </CardContent>
+              </Card>
+            )}
+
+
+            {/* Column Mapper - Only show in Excel mode */}
+            {!useDatabase && excelData.length > 0 && mappedData.length === 0 && (
+              <Paper elevation={3} sx={{ p: 4 }}>
+                <Typography variant="h6" gutterBottom>
+                  Map Columns
+                </Typography>
+                <ColumnMapper
+                  columns={columns}
+                  rawData={excelData}
+                  onConfirm={handleConfirm}
+                />
+              </Paper>
+            )}
+
+            {/* Mapping Success - Only show in Excel mode */}
+            {!useDatabase && mappedData.length > 0 && (
+              <Paper elevation={3} sx={{ p: 4 }}>
+                <Typography variant="h6" color="success.main">
+                  ✅ Columns Mapped! Ready for Statements
+                </Typography>
+              </Paper>
+            )}
+
+            {/* Financial Statements Output */}
+            {(useDatabase || mappedData.length > 0) && (
+              <Paper elevation={3} sx={{ p: 4 }}>
+                <FinancialStatements
+                  data={mappedData}
+                  amountKeys={amountKeys}
+                  useDatabase={useDatabase}
+                />
+              </Paper>
+            )}
           </Box>
-
-          {/* Database Mode Toggle */}
-          <Box textAlign="right" mb={2}>
-            <Button
-              variant="outlined"
-              color="primary"
-              onClick={() => setUseDatabase(!useDatabase)}
-              sx={{ mr: 2 }}
-            >
-              {useDatabase ? 'Switch to Excel Mode' : 'Switch to Database Mode'}
-            </Button>
-            
-            {/* Pass Adjustment Entries Button */}
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<RestartAltIcon />}
-              onClick={() => setCurrentPage('adjustment')}
-            >
-              Pass Adjustment Entries
-            </Button>
-          </Box>
-
-          {/* Confirm Dialog */}
-          <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
-            <DialogTitle>Confirm Reset</DialogTitle>
-            <DialogContent>
-              Are you sure you want to reset and upload a new file?
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
-              <Button color="error" onClick={handleReset}>
-                Yes, Reset
-              </Button>
-            </DialogActions>
-          </Dialog>
-
-          {/* Upload Section - Only show in Excel mode */}
-          {!useDatabase && (
-            <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-              <ExcelUpload onDataParsed={setExcelData} />
-            </Paper>
-          )}
-
-          {/* Column Mapper - Only show in Excel mode */}
-          {!useDatabase && excelData.length > 0 && mappedData.length === 0 && (
-            <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-              <ColumnMapper
-                columns={columns}
-                rawData={excelData}
-                onConfirm={handleConfirm}
-              />
-            </Paper>
-          )}
-
-          {/* Mapping Success - Only show in Excel mode */}
-          {!useDatabase && mappedData.length > 0 && (
-            <Paper sx={{ p: 2, mb: 3 }}>
-              <Typography variant="h6" color="success.main">
-                ✅ Columns Mapped! Ready for Statements
-              </Typography>
-            </Paper>
-          )}
-
-          {/* Financial Statements Output */}
-          {(useDatabase || mappedData.length > 0) && (
-            <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-              <FinancialStatements 
-                data={mappedData} 
-                amountKeys={amountKeys} 
-                useDatabase={useDatabase}
-              />
-            </Paper>
-          )}
-        </Box>
       ) : (
-        <AdjustmentJournalPage
-          onBack={() => setCurrentPage('main')}
-        />
+        <AdjustmentJournalPage onBack={() => setCurrentPage('main')} />
       )}
     </ThemeProvider>
   );
-
 };
-
 export default App;
