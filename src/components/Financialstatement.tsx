@@ -580,9 +580,10 @@ const getValueForKey = (
   itemKey: string
 ): { valueCurrent: number | null; valuePrevious: number | null } => {
   const editedNote = editedNotes?.find((n) => n.noteNumber === noteKey);
-  if (!editedNote) return { valueCurrent: null, valuePrevious: null };
 
-  const findItem = (items: (HierarchicalItem | TableContent | string)[]): { valueCurrent: number | null; valuePrevious: number | null } => {
+  const findItem = (
+    items: (HierarchicalItem | TableContent | string)[]
+  ): { valueCurrent: number | null; valuePrevious: number | null } => {
     for (const item of items) {
       if (typeof item !== 'string' && 'key' in item && item.key === itemKey) {
         return {
@@ -600,7 +601,20 @@ const getValueForKey = (
     return { valueCurrent: null, valuePrevious: null };
   };
 
-  return findItem(editedNote.content);
+  // ✅ First try to get from editedNotes
+  if (editedNote) {
+    const editedValue = findItem(editedNote.content);
+    if (editedValue.valueCurrent !== null || editedValue.valuePrevious !== null) {
+      return editedValue;
+    }
+  }
+
+  // ✅ Fallback to financialVar2
+  const fallback = financialVar2.find((item) => item.key === itemKey);
+  return {
+    valueCurrent: fallback?.amountCurrent ?? null,
+    valuePrevious: fallback?.amountPrevious ?? null,
+  };
 };
 
 const findNarrativeText = (
@@ -1121,16 +1135,11 @@ inCOMTAS2.push(calculateRowTotal(inCOMTAS2));
   };
 };
 const calculateNote5 = (): FinancialNote => {
-  const note5_1 = financialVar2.find(item => item.key === 'note5-nc-emp')
-  ? getValueForKey(5, 'note5-nc-emp')
-  : { valueCurrent: 0, valuePrevious: 0 };
+  const note5_1 = getValueForKey(5, 'note5-nc-emp');
+  const note5_2 = getValueForKey(5, 'note5-c-emp');
 
-const note5_2 = financialVar2.find(item => item.key === 'note5-c-emp')
-  ? getValueForKey(5, 'note5-c-emp')
-  : { valueCurrent: 0, valuePrevious: 0 };
-
-  const nonCurrentTotal = { current: note5_1.valueCurrent??0, previous: note5_1.valuePrevious??0 };
-  const currentTotal = { current:note5_2.valueCurrent??0, previous:note5_2.valuePrevious??0 };
+  const nonCurrentTotal = { current: note5_1.valueCurrent, previous: note5_1.valuePrevious };
+  const currentTotal = { current:note5_2.valueCurrent, previous:note5_2.valuePrevious };
 
   return {
     noteNumber: 5,
@@ -8742,7 +8751,7 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, amountK
       setDatabaseData(transformedData);
       
       // Fetch financial variables
-      const fvResponse = await fetch('http://localhost:5000/api/financial-variables');
+      const fvResponse = await fetch('http://localhost:5000/api/financial-variables1');
       if (!fvResponse.ok) {
         throw new Error('Failed to fetch financial variables');
       }
@@ -8752,8 +8761,8 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, amountK
       const transformedFV: FinancialVarRow[] = fvData.length > 0 
         ? fvData.map((item: any) => ({
             key: item.key,
-            amountCurrent: parseFloat(item[period1]) || 0,
-            amountPrevious: parseFloat(item[period2]) || 0,
+            amountCurrent: parseFloat(item[period1]) ,
+            amountPrevious: parseFloat(item[period2]),
           }))
         : []; // Return empty array if no financial variables data
       
@@ -8774,7 +8783,7 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, amountK
         const response = await fetch('http://localhost:5000/api/journal/updated');
         const data = await response.json();
         setManualJE(data);
-        const response1 = await fetch('http://localhost:5000/api/financial_variables');
+        const response1 = await fetch('http://localhost:5000/api/financial-variables1');
         const data1 = await response1.json();
         setFinancialVar(data1);
       } catch (error) {
@@ -8808,8 +8817,8 @@ console.log("manualJE",manualJE)
       };
     }
     return {
-      currentPeriod: 'For the year ended 31 March 2024',
-      previousPeriod: 'For the year ended 31 March 2023'
+      currentPeriod: currentAmountKeys.amountCurrentKey,
+      previousPeriod: currentAmountKeys.amountPreviousKey
     };
   };
 

@@ -119,6 +119,9 @@ const AdjustmentJournalPage: React.FC<AdjustmentJournalPageProps> = ({ onBack })
           {!showEntryControls && (
             <Button variant="contained" onClick={() => setShowEntryControls(true)}>Add Journal Entry</Button>
           )}
+          <Button variant="outlined" onClick={() => setShowEntriesDialog(true)} style={{ marginLeft: '10px' }}>
+                  View Entries
+                </Button>
 
           {showEntryControls && (
             <Stack direction="row" spacing={2} alignItems="center" my={2}>
@@ -209,9 +212,7 @@ const AdjustmentJournalPage: React.FC<AdjustmentJournalPageProps> = ({ onBack })
                 <Button variant="contained" onClick={handlePostEntries} disabled={isPosting}>
                   {isPosting ? 'Posting...' : 'Post Entries'}
                 </Button>
-                <Button variant="outlined" onClick={() => setShowEntriesDialog(true)} style={{ marginLeft: '10px' }}>
-                  View Entries
-                </Button>
+                
                 {error && <Typography color="error">{error}</Typography>}
               </Stack>
             </>

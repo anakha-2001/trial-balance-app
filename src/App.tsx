@@ -88,7 +88,7 @@ const App: React.FC = () => {
           {/* Header */}
           <Box
             sx={{
-              backgroundImage: 'linear-gradient(135deg,rgb(165, 195, 224) 0%,rgb(118, 174, 219) 100%)',
+              backgroundImage: 'linear-gradient(135deg,rgba(69, 75, 248, 1) 0%,rgba(38, 5, 167, 1) 100%)',
               color: '#fff',
               py: { xs: 5, md: 6 },
               px: { xs: 3, md: 6 },
@@ -103,8 +103,33 @@ const App: React.FC = () => {
             }}
           >
             {/* Dark Mode Toggle */}
-            <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
-              <FormControlLabel
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 16,
+                left: 16,
+                right: 16,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                
+              }}
+            >
+              {/* Left Logo */}
+              <img
+                src="/asset/Yokogawa-Logo.png"
+                alt="Left Logo"
+                style={{ height: 50 }}
+              />
+
+              {/* Right Logo with Toggle Below */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                <img
+                  src="/asset/vittora_white.png"
+                  alt="Right Logo"
+                  style={{ height: 40, marginBottom: 8 }}
+                />
+               <FormControlLabel
                 control={
                   <Switch
                     checked={darkMode}
@@ -114,8 +139,12 @@ const App: React.FC = () => {
                 }
                 label={darkMode ? <DarkModeIcon /> : <LightModeIcon />}
                 labelPlacement="start"
-                sx={{ color: 'white' }}
+                sx={{
+                  color: '#fff',
+                  mt: 1,
+                }}
               />
+              </Box>
             </Box>
 
             <Typography
