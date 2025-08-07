@@ -25,6 +25,8 @@ import { createPortal } from 'react-dom';
 import { on } from 'events';
 import { useNavigate } from 'react-router-dom';
 import { FinancialRow } from './Columnmapper';
+import CashFlowEditor from './CashflowEditor'; 
+
 
 // --- 1. TYPE DEFINITIONS (FIXED) ---
 
@@ -65,6 +67,7 @@ interface TemplateItem {
   keywords?: string[];
   formula?: (string | number)[];
   id?: string;
+  isEditableRow?:boolean;
 }
 // Represents the final, processed item with calculated values.
 export interface HierarchicalItem extends TemplateItem {
@@ -77,6 +80,15 @@ export interface HierarchicalItem extends TemplateItem {
   isNarrative?: boolean;
   isEditableText?: boolean;
 }
+
+type CashFlowItem = {
+  key?: string;
+  id?: string;
+  valueCurrent?: number | null;
+  valuePrevious?: number | null;
+  children?: CashFlowItem[];
+}
+
 export interface FinancialNote {
     noteNumber: number;
     title: string;
@@ -244,60 +256,60 @@ const INCOME_STATEMENT_STRUCTURE: TemplateItem[] = [
 ];
 const CASH_FLOW_STRUCTURE: TemplateItem[] = [
     { key: 'cf-op', label: 'A. Cash flow from operating activities', isSubtotal: true,children:[
-    { key: 'cf-op-pro', label: 'Profit for the year', id:'pro',isSubtotal: true}, // This will be populated from income statement PAT
+    { key: 'cf-op-pro', label: 'Profit for the year', id:'pro',isSubtotal: true,isEditableRow:true}, // This will be populated from income statement PAT
     { key: 'cf-op-sub', label: 'Adjustments for:',id:'sub', 
       children: [
         { key: 'cf-op-sub-tax', label: 'Tax Expense',note:34,id:'tax' },
         { key: 'cf-op-sub-dep', label: 'Depreciation and amortisation', note:23 ,id:'dep'},
-        { key: 'cf-op-sub-prov', label: 'Provision/ Liabilities no longer required written back',id:'prov' },
+        { key: 'cf-op-sub-prov', label: 'Provision/ Liabilities no longer required written back',id:'prov',isEditableRow:true },
         { key: 'cf-op-sub-interest', label: 'Interest Income from bank deposits and financial assets',note:19 ,id:'in'},
         { key: 'cf-op-sub-interest-2', label: 'Interest Expense on lease liabilities',note:22,id:'in2' },
         { key: 'cf-op-sub-prov-2', label: 'Provision for doubtful trade receivables/(provision written back) (net)',note:24,id:'prov2' },
         { key: 'cf-op-sub-loss', label: 'Loss on fixed assets sold / scrapped / written off ',note:24,id:'loss' },
         { key: 'cf-op-sub-prov-3', label: 'Provision for expected loss on construction contracts ',note:24,id:'prov3' },
         { key: 'cf-op-sub-prov-4', label: 'Provision for expected loss on onerous contracts ',note:24,id:'prov4' },
-        { key: 'cf-op-sub-loss-1', label: 'Net unrealised exchange (gain)/loss ',id:'loss2'},
+        { key: 'cf-op-sub-loss-1', label: 'Net unrealised exchange (gain)/loss ',id:'loss2',isEditableRow:true},
         ]},
 
-        { key: 'cf-op-profit', label: 'Operating profit before working capital changes',isSubtotal:true,id:'profit'},
+        { key: 'cf-op-profit', label: 'Operating profit before working capital changes',isSubtotal:true,id:'profit',isEditableRow:true},
         { key: 'cf-op-mov', label: 'Movements in working capital', isSubtotal:true,children: [
-            { key: 'cf-op-mov-inv', label: 'Decrease/(Increase) in inventories',id:'inv',  },
-            { key: 'cf-op-mov-rec', label: '(Increase)/decrease in trade receivables',id:'rec',  },
-            { key: 'cf-op-mov-short', label: 'Decrease/(Increase) in short-term loans',id:'short',  },
-            { key: 'cf-op-mov-nonfinancial', label: 'Decrease/(Increase) in non-current other financial assets',id:'nonfinancial'  },
-            { key: 'cf-op-mov-nonasset', label: 'Decrease/(Increase) in other non-current assets',id:'nonasset' },
-            { key: 'cf-op-mov-long', label: 'Decrease/(Increase) in long-term loans', id:'long'},
-            { key: 'cf-op-mov-financial', label: 'Decrease/(Increase) in current other financial assets', id:'financial' },
-            { key: 'cf-op-mov-current', label: 'Decrease/(Increase) in other current assets', id:'current' },
-            { key: 'cf-op-mov-pay', label: 'Increase/(decrease) in trade payables',id:'pay'  },
-            { key: 'cf-op-mov-currentlib', label: 'Increase/(Decrease) in other current liabilities',id:'currentlib'  },
-            { key: 'cf-op-mov-otherlib', label: 'Increase/(Decrease) in other Current financial liabilities',id:'otherlib'  },
-            { key: 'cf-op-mov-long-prov', label: 'Increase/(Decrease) in Long-term provisions', id:'prov' },
-            { key: 'cf-op-mov-short-prov', label: 'Increase/(Decrease) in short-term provisions',id:'prov2'  },
+            { key: 'cf-op-mov-inv', label: 'Decrease/(Increase) in inventories',id:'inv',isEditableRow: true  },
+            { key: 'cf-op-mov-rec', label: '(Increase)/decrease in trade receivables',id:'rec',isEditableRow: true   },
+            { key: 'cf-op-mov-short', label: 'Decrease/(Increase) in short-term loans',id:'short',isEditableRow: true   },
+            { key: 'cf-op-mov-nonfinancial', label: 'Decrease/(Increase) in non-current other financial assets',id:'nonfinancial',isEditableRow: true   },
+            { key: 'cf-op-mov-nonasset', label: 'Decrease/(Increase) in other non-current assets',id:'nonasset',isEditableRow: true  },
+            { key: 'cf-op-mov-long', label: 'Decrease/(Increase) in long-term loans', id:'long',isEditableRow: true },
+            { key: 'cf-op-mov-financial', label: 'Decrease/(Increase) in current other financial assets', id:'financial',isEditableRow: true  },
+            { key: 'cf-op-mov-current', label: 'Decrease/(Increase) in other current assets', id:'current',isEditableRow: true  },
+            { key: 'cf-op-mov-pay', label: 'Increase/(decrease) in trade payables',id:'pay' ,isEditableRow: true  },
+            { key: 'cf-op-mov-currentlib', label: 'Increase/(Decrease) in other current liabilities',id:'currentlib' ,isEditableRow: true  },
+            { key: 'cf-op-mov-otherlib', label: 'Increase/(Decrease) in other Current financial liabilities',id:'otherlib' ,isEditableRow: true  },
+            { key: 'cf-op-mov-long-prov', label: 'Increase/(Decrease) in Long-term provisions', id:'prov' ,isEditableRow: true },
+            { key: 'cf-op-mov-short-prov', label: 'Increase/(Decrease) in short-term provisions',id:'prov2',isEditableRow: true   },
         ]},
-        { key: 'cf-op-cgo', label: 'Cash generated from operations', isSubtotal: true,id:'cgo', },
-        { key: 'cf-op-direct-tax', label: 'Direct taxes paid (net of refunds)',id:'tax'  },
+        { key: 'cf-op-cgo', label: 'Cash generated from operations', isSubtotal: true,id:'cgo',isEditableRow:true },
+        { key: 'cf-op-direct-tax', label: 'Direct taxes paid (net of refunds)',id:'tax',isEditableRow:true  },
         { key: 'cf-op-total', label: 'Net cash generated from operations (A)',isSubtotal:true,formula :['cgo','+','tax'] ,id:'totalA'},
         ]},
     { key: 'cf-inv', label: 'B. Cash flow from investing activities',  isSubtotal: true, children: [
-        { key: 'cf-inv-capex', label: 'Purchase of property, plant and equipment, including CWIP and capital advances ',id:'capex', children:[
-          { key: 'cf-inv-capex-ppe', label: 'Proceeds from sale of property, plant and equipment', id:'ppe'},
-          { key: 'cf-inv-capex-cce', label: 'Other bank balances not considered as cash and cash equivalents',id:'cce'  },
-          { key: 'cf-inv-capex-interest', label: 'Interest received',id:'inter'  },
+        { key: 'cf-inv-capex', label: 'Purchase of property, plant and equipment, including CWIP and capital advances ',id:'capex',isEditableRow:true, children:[
+          { key: 'cf-inv-capex-ppe', label: 'Proceeds from sale of property, plant and equipment', id:'ppe',isEditableRow:true},
+          { key: 'cf-inv-capex-cce', label: 'Other bank balances not considered as cash and cash equivalents',id:'cce',isEditableRow:true  },
+          { key: 'cf-inv-capex-interest', label: 'Interest received',id:'inter',isEditableRow:true  },
         ]},
-    { key: 'cf-op-cgo-total', label: 'Net cash (used in) from investing activities (B)', isSubtotal:true,id:'totalB'},
+    { key: 'cf-op-cgo-total', label: 'Net cash (used in) from investing activities (B)', isSubtotal:true,id:'totalB',isEditableRow:true},
     ]},
     { key: 'cf-fin', label: 'C. Cash flow from financing activities',  isSubtotal: true, children: [
-        { key: 'cf-fin-lib', label: 'Payment Towards Lease Liabilities ',id:'lib'  },
-        { key: 'cf-fin-dividend', label: 'Payment of Dividend',id:'div'  },
+        { key: 'cf-fin-lib', label: 'Payment Towards Lease Liabilities ',id:'lib',isEditableRow:true  },
+        { key: 'cf-fin-dividend', label: 'Payment of Dividend',id:'div',isEditableRow:true  },
         { key: 'cf-fin-total', label: 'Net cash used in financing activities (C)', isSubtotal:true,formula:['lib','+','div'] ,id:'totalC'},
     ]},
     
-    { key: 'cf-foreign', label: 'Effect of exchange differences on restatement of foreign currency cash and cash equivalents', isSubtotal: true },
+    { key: 'cf-foreign', label: 'Effect of exchange differences on restatement of foreign currency cash and cash equivalents', isSubtotal: true ,isEditableRow:true},
     { key: 'cf-net-total', label: 'Net increase in cash and cash equivalents (A+B+C)',isSubtotal:true,children:[
-      { key: 'cf-net-total-prev', label: 'Cash and cash equivalents at the beginning of the year', },
+      { key: 'cf-net-total-prev', label: 'Cash and cash equivalents at the beginning of the year',isEditableRow:true },
     ]},
-    { key: 'cf-cce-prev', label: 'Cash and cash equivalents at the end of the year (Refer note 11)',isSubtotal:true },
+    { key: 'cf-cce-prev', label: 'Cash and cash equivalents at the end of the year (Refer note 11)',isSubtotal:true,isEditableRow:true },
     { key: 'cf-cce', label: 'Components of cash and cash equivalents',isSubtotal:true,children:[
       { key: 'cf-cce-cih', label: 'Cash in hand', id:'cih'},
       { key: 'cf-cce-bank', label: 'Balances with banks',  },
@@ -542,8 +554,17 @@ const ACCOUNTING_POLICIES_CONTENT: AccountingPolicy[] = [
     },
 ];
 // --- 4. CORE DATA PROCESSING HOOK (FIXED) ---
-const useFinancialData = (rawData: MappedRow[], financialVar2:FinancialVarRow[],editedNotes: FinancialNote[] | null): FinancialData => {
+const useFinancialData = (rawData: MappedRow[], financialVar2:FinancialVarRow[],editedNotes: FinancialNote[] | null,editedCashFlow: HierarchicalItem[] | null): FinancialData => {
   return useMemo(() => {
+     // --- CONSOLE LOGGING FOR DEBUGGING ---
+    console.log('MAIN APP: useFinancialData is recalculating...');
+    if (editedCashFlow) {
+        console.log('MAIN APP: ...using EDITED cash flow data:', editedCashFlow);
+    } else {
+        console.log('MAIN APP: ...using CALCULATED cash flow data.');
+    }
+    console.log("editedNotes", editedNotes);
+    
     const enrichedData = rawData.map(row => ({ ...row, amountCurrent: row.amountCurrent || 0, amountPrevious: row.amountPrevious || 0 }));
 
 const getAmount = (
@@ -610,7 +631,51 @@ const getValueForKey = (
     }
   }
 
+
   // ✅ Fallback to financialVar2
+  const fallback = financialVar2.find((item) => item.key === itemKey);
+  return {
+    valueCurrent: fallback?.amountCurrent ?? null,
+    valuePrevious: fallback?.amountPrevious ?? null,
+  };
+};
+
+const getCashFlowValueByIdOrKey = (
+  itemKey: string,
+  editedCashFlow: CashFlowItem[] | null,
+): { valueCurrent: number | null; valuePrevious: number | null } => {
+
+  const findItemRecursive = (
+    items: CashFlowItem[] | undefined
+  ): { valueCurrent: number | null; valuePrevious: number | null } | null => {
+    if (!items) return null;
+
+    for (const item of items) {
+      const matches = item.id === itemKey || item.key === itemKey;
+
+      if (matches) {
+        return {
+          valueCurrent: item.valueCurrent ?? null,
+          valuePrevious: item.valuePrevious ?? null,
+        };
+      }
+
+      if (item.children && item.children.length > 0) {
+        const found = findItemRecursive(item.children);
+        if (found) return found;
+      }
+    }
+
+    return null;
+  };
+
+  // 🔍 Check in editedCashFlow first
+  if (editedCashFlow) {
+    const fromEdited = findItemRecursive(editedCashFlow);
+    if (fromEdited) return fromEdited;
+  }
+
+  // 🔍 Fallback to original
   const fallback = financialVar2.find((item) => item.key === itemKey);
   return {
     valueCurrent: fallback?.amountCurrent ?? null,
@@ -666,6 +731,52 @@ const getTableValue = (
 
   return null;
 };
+
+    const findItemInTree = (nodes: HierarchicalItem[], key: string): HierarchicalItem | null => {
+      for (const node of nodes) {
+        if (node.key === key) return node;
+        if (node.children) {
+          const found = findItemInTree(node.children, key);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    /**
+     * Gets the value for a cash flow item. It prioritizes manually edited values
+     * and falls back to the automatically calculated ones if no edit exists.
+     */
+    const getCashFlowValue = (
+      itemKey: string,
+      calculatedCashFlowTree: HierarchicalItem[],
+      editedCashFlowTree: HierarchicalItem[] | null
+    ): { valueCurrent: number | null; valuePrevious: number | null } => {
+      
+      // 1. Primary Source: Look for the value in the manually edited data.
+      if (editedCashFlowTree) {
+        const editedItem = findItemInTree(editedCashFlowTree, itemKey);
+        if (editedItem) {
+          return {
+            valueCurrent: editedItem.valueCurrent,
+            valuePrevious: editedItem.valuePrevious,
+          };
+        }
+      }
+
+      // 2. Fallback Source: If not found in edits, find the original, calculated value.
+      const calculatedItem = findItemInTree(calculatedCashFlowTree, itemKey);
+      if (calculatedItem) {
+        return {
+          valueCurrent: calculatedItem.valueCurrent,
+          valuePrevious: calculatedItem.valuePrevious,
+        };
+      }
+
+      // 3. Absolute Fallback: If the key doesn't exist anywhere (should not happen).
+      return { valueCurrent: 0, valuePrevious: 0 };
+    };
+
 const totals = new Map<string, { current: number, previous: number }>();
 const calculateNote3 = (): FinancialNote => {
   // Updated calculateRowTotal to sum columns 1 to 7 (exclusive of 'Total' column at index 8)
@@ -7576,10 +7687,16 @@ else if (node.key === 'is-except') {
 
 // #cashflow
 
+// else if (node.key === 'cf-op-pro') {
+//         valueCurrent = null;
+//         valuePrevious = null;
+//       }
 else if (node.key === 'cf-op-pro') {
-        valueCurrent = 22560.10;
-        valuePrevious = 7458.01;
-      }
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-pro', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
+}
 else if (node.key === 'cf-op-sub-tax') {
   const benefit = note34.content.find((item): item is HierarchicalItem => typeof item === 'object' && item !== null && 'key' in item && item.key === 'note34-oci-dbt');
   if (benefit) {
@@ -7595,9 +7712,12 @@ else if (node.key === 'cf-op-sub-dep') {
   }
 }
 else if (node.key === 'cf-op-sub-prov') {
-        valueCurrent = -12166.54;
-        valuePrevious = 0;
-      }
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-sub-prov', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
+}
+
 else if (node.key === 'cf-op-sub-interest') {
   const yr = note19.content.find(
     (item): item is HierarchicalItem => typeof item === 'object' && item !== null && 'key' in item && item.key === 'note19-interest-breakup'
@@ -7647,9 +7767,12 @@ else if (node.key === 'cf-op-sub-prov-4') {
   }
 }
 else if (node.key === 'cf-op-sub-loss-1') {
-        valueCurrent = -76.80;
-        valuePrevious = 732.58;
-      }
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-sub-loss-1', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
+}
+
 else if (node.key==='cf-op'){
   valueCurrent=null;
   valuePrevious=null;
@@ -7663,107 +7786,178 @@ else if (node.key==='cf-op-sub'){
   valueCurrent=null;
   valuePrevious=null;
 }
-else if (node.key==='cf-op-mov-inv'){
-  valueCurrent=1558.37;
-  valuePrevious=-3805.23;
+// else if (node.key==='cf-op-mov-inv'){
+//   valueCurrent=null;
+//   valuePrevious=null;
+// }
+else if (node.key === 'cf-op-mov-inv') {
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-mov-inv', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
 
 else if (node.key==='cf-op-mov-rec'){
-  valueCurrent=-8412.56;
-  valuePrevious=1093.92;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-mov-rec', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
 else if (node.key==='cf-op-mov-short'){
-  valueCurrent=-3.66;
-  valuePrevious=0.09;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-mov-short', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
+
 else if (node.key==='cf-op-mov-nonfinancial'){
-  valueCurrent=-1836.00;
-  valuePrevious=-73.19;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-mov-nonfinancial', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
 else if (node.key==='cf-op-mov-nonasset'){
-  valueCurrent=-2.93;
-  valuePrevious=126.75;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-mov-nonasset', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
+
 else if (node.key==='cf-op-mov-long'){
-  valueCurrent=2.57;
-  valuePrevious=1.91;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-mov-long', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
+
 else if (node.key==='cf-op-mov-financial'){
-  valueCurrent=-12220.97;
-  valuePrevious=-7213.34;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-mov-financial', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
+
 else if (node.key==='cf-op-mov-current'){
-  valueCurrent=2040.51;
-  valuePrevious=-1096.87;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-mov-current', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
+
 else if (node.key==='cf-op-mov-pay'){
-  valueCurrent=7242.02;
-  valuePrevious=9236.29;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-mov-pay', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
+
 else if (node.key==='cf-op-mov-currentlib'){
-  valueCurrent=4676.58;
-  valuePrevious=1781.27;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-mov-currentlib', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
+
 else if (node.key==='cf-op-mov-otherlib'){
-  valueCurrent=48.19;
-  valuePrevious=-2.56;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-mov-otherlib', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
+
 else if (node.key==='cf-op-mov-long-prov'){
-  valueCurrent=324.58;
-  valuePrevious=58.21;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-mov-long-prov', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
+
 else if (node.key==='cf-op-mov-short-prov'){
-  valueCurrent=-101.09;
-  valuePrevious=-53.61;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-mov-short-prov', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
+
 else if (node.key==='cf-op-direct-tax'){
-  valueCurrent=-8467.04;
-  valuePrevious=-5119.83;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-direct-tax', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
+
 else if (node.key==='cf-inv'){
   valueCurrent=null;
   valuePrevious=null;
 }
+
 else if (node.key==='cf-inv-capex'){
-  valueCurrent=-3146.69;
-  valuePrevious=-2754.78;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-inv-capex', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
+
+// else if (node.key==='cf-inv-capex'){
+//   valueCurrent=null;
+//   valuePrevious=null;
+// }
 else if (node.key==='cf-inv-capex-ppe'){
-  valueCurrent=43.93;
-  valuePrevious=21.45;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-inv-capex-ppe', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
+
 else if (node.key==='cf-inv-capex-cce'){
-  valueCurrent=6178.75;
-  valuePrevious=-16756.93;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-inv-capex-cce', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
 else if (node.key==='cf-inv-capex-interest'){
-  valueCurrent=1311.79;
-  valuePrevious=699.67;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-inv-capex-interest', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
+
+
 else if (node.key==='cf-fin'){
   valueCurrent=null;
   valuePrevious=null;
 }
 else if (node.key==='cf-fin-lib'){
-  valueCurrent=-1035.75;
-  valuePrevious=-841.85;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-fin-lib', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
 else if (node.key==='cf-fin-dividend'){
-  valueCurrent=-3729.65;
-  valuePrevious=0;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-fin-dividend', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
 else if (node.key==='cf-foreign'){
-  valueCurrent=416.94;
-  valuePrevious=353.54;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-foreign', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
 else if (node.key==='cf-net-total-prev'){
-  valueCurrent=3723.25;
-  valuePrevious=14296.55;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-net-total-prev', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
 else if (node.key==='cf-cce-prev'){
-  valueCurrent=12743.41;
-  valuePrevious=3723.25;
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-cce-prev', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
+
 else if (node.key==='cf-cce'){
   valueCurrent=null;
   valuePrevious=null;
@@ -7809,24 +8003,41 @@ else if (node.key === 'cf-cce-fixed') {
     valuePrevious = child.valuePrevious ?? 0;
   }
 }
-else if (node.key==='cf-op-profit'){
-  valueCurrent=24132.27;
-  valuePrevious=13771.99;
-} else if (node.key==='cf-op-cgo'){
-  valueCurrent=17447.88;
-  valuePrevious=13825.33;
+// else if (node.key==='cf-op-profit'){
+//   valueCurrent=null;
+//   valuePrevious=null;
+// }
+else if (node.key === 'cf-op-profit') {
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-profit', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
-else if (node.key==='cf-op-cgo-total'){
-  valueCurrent=4387.78;
-  valuePrevious=-18790.59;
+
+else if (node.key === 'cf-op-cgo') {
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-cgo', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
-else if (node.key==='cf-net-total'){
-  valueCurrent=8603.22;
-  valuePrevious=-10926.97;
+
+else if (node.key === 'cf-op-cgo-total') {
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-op-cgo-total', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
-else if (node.key==='cf-cce-total'){
-  valueCurrent=12743.41;
-  valuePrevious=3723.25;
+else if (node.key === 'cf-net-total') {
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-net-total', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
+}
+else if (node.key === 'cf-cce-total') {
+  const { valueCurrent: editedCurrent, valuePrevious: editedPrevious } =
+    getCashFlowValueByIdOrKey('cf-cce-total', editedCashFlow);
+  valueCurrent = editedCurrent;
+  valuePrevious = editedPrevious;
 }
       
 else if (node.keywords) {
@@ -7858,7 +8069,7 @@ if (node.id) {
       return { ...node, valueCurrent, valuePrevious, children };
     };
 
-
+    const calculatedCashFlow = CASH_FLOW_STRUCTURE.map(node => processNode(node, enrichedData, getAmount));
      return {
       balanceSheet: BALANCE_SHEET_STRUCTURE.map(node => processNode(node, enrichedData, getAmount)),
       incomeStatement: INCOME_STATEMENT_STRUCTURE.map(node => processNode(node, enrichedData, getAmount)),
@@ -7866,7 +8077,7 @@ if (node.id) {
       notes: allNotes,
       accountingPolicies: ACCOUNTING_POLICIES_CONTENT,
     };
-  }, [rawData,editedNotes]);
+  }, [rawData,editedNotes,editedCashFlow]);
 };
 // --- 5. UI COMPONENTS ---
 const DrillDownTable = ({ title, data, expandedKeys, onToggleRow, handleEditNotes, periodHeaders }: {
@@ -7876,6 +8087,7 @@ const DrillDownTable = ({ title, data, expandedKeys, onToggleRow, handleEditNote
   onToggleRow: (key: string) => void;
   handleEditNotes: (note?: number | string) => void; // Pass note number if needed
   periodHeaders: { currentPeriod: string; previousPeriod: string };
+  
 }) => {
   const navigate = useNavigate();  
   const renderRow = (row: HierarchicalItem, depth: number) => {
@@ -8528,6 +8740,11 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, amountK
   const [manualJE, setManualJE] = useState([]);
   const [financialVar, setFinancialVar] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  //cashflow state
+  const [isCashFlowEditorOpen, setCashFlowEditorOpen] = useState(false);
+  const [cashFlowEditorContainer, setCashFlowEditorContainer] = useState<HTMLElement | null>(null);
+  const [editedCashFlow, setEditedCashFlow] = useState<HierarchicalItem[] | null>(null);
   
   // Database state
   const [databaseData, setDatabaseData] = useState<MappedRow[]>([]);
@@ -8704,7 +8921,7 @@ console.log("manualJE",manualJE)
 
   console.log("financialVar2",financialVar2)
   console.log('renamedData', renamedData1);
-  const financialData = useFinancialData(renamedData, financialVar2, editedNotes);
+  const financialData = useFinancialData(renamedData, financialVar2, editedNotes,editedCashFlow);
 
   const allExpandableKeys = useMemo(() => {
     const bsKeys = getAllExpandableKeys(financialData.balanceSheet);
@@ -8722,9 +8939,9 @@ console.log("manualJE",manualJE)
   if (useDatabase && !selectedPeriods) {
     return (
       <Box>
-        {/* <Typography variant="h5" gutterBottom>
+        <Typography variant="h5" gutterBottom>
           Database Mode - Select Periods
-        </Typography> */}
+        </Typography>
         <PeriodSelector onPeriodsSelected={fetchDatabaseData} />
         {dbError && (
           <Alert severity="error" sx={{ mt: 2 }}>
@@ -8744,9 +8961,9 @@ console.log("manualJE",manualJE)
   if (useDatabase && databaseData.length === 0) {
     return (
       <Box>
-        {/* <Typography variant="h5" gutterBottom>
+        <Typography variant="h5" gutterBottom>
           Database Mode - Select Periods
-        </Typography> */}
+        </Typography>
         <PeriodSelector onPeriodsSelected={fetchDatabaseData} />
         {dbError && (
           <Alert severity="error" sx={{ mt: 2 }}>
@@ -8777,6 +8994,47 @@ console.log("manualJE",manualJE)
       setExpandedKeys(new Set(allExpandableKeys));
     }
   };
+
+  const handleShowCashFlow = () => {
+  const newWindow = window.open('', '_blank', 'width=1400,height=800,scrollbars=yes,resizable=yes');
+
+  if (newWindow) {
+      newWindow.document.title = 'Edit Cash Flow Statement';
+      const container = newWindow.document.createElement('div');
+      newWindow.document.body.appendChild(container);
+      newWindow.document.body.style.margin = '0';
+      
+      const styles = Array.from(document.getElementsByTagName('style'));
+      styles.forEach(style => {
+          newWindow.document.head.appendChild(style.cloneNode(true));
+      });
+      const links = Array.from(document.getElementsByTagName('link'));
+      links.forEach(link => {
+          if (link.rel === 'stylesheet') {
+              newWindow.document.head.appendChild(link.cloneNode(true));
+          }
+      });
+
+      // This sets the state to trigger rendering the NEW editor
+      setTimeout(() => {
+          setCashFlowEditorContainer(container); // <-- Uses new state setter
+          setCashFlowEditorOpen(true);          // <-- Uses new state setter
+      }, 0);
+
+      newWindow.addEventListener('beforeunload', () => {
+          setCashFlowEditorOpen(false);         // <-- Uses new state setter
+          setCashFlowEditorContainer(null);     // <-- Uses new state setter
+      });
+  }
+};
+
+
+// const handleSaveCashFlow = (updatedData: HierarchicalItem[]) => {
+//     console.log('Parent: Before save:', financialData.cashFlow);
+//     console.log('Parent: Received data:', updatedData);
+//     setEditedCashFlow(updatedData);
+//     handleCloseCashFlowEditor();
+// };
 
 const handleEditNotes = (noteId?: number | string) => {
   const newWindow = window.open('', '_blank', 'width=1400,height=800,scrollbars=yes,resizable=yes');
@@ -8830,6 +9088,15 @@ const handleEditNotes = (noteId?: number | string) => {
     setNotesEditorOpen(false);
     setEditorContainer(null);
   };
+  const handleCloseCashFlowEditor = () => {
+  if (cashFlowEditorContainer) {
+      const cashFlowWindow = cashFlowEditorContainer.ownerDocument.defaultView;
+      cashFlowWindow?.close();
+  }
+  setCashFlowEditorOpen(false);
+  setCashFlowEditorContainer(null);
+};
+
 
   const handleSaveChanges = (updatedNotes: FinancialNote[]) => {
     setEditedNotes(updatedNotes);
@@ -8906,6 +9173,94 @@ const handleEditNotes = (noteId?: number | string) => {
   handleCloseEditor();
   };
 
+
+  const mergeCashFlowData = (
+  original: HierarchicalItem[],
+  edited: HierarchicalItem[]
+): HierarchicalItem[] => {
+  const getEditedItemByKey = (
+    key: string,
+    items: HierarchicalItem[]
+  ): { valueCurrent: number | null; valuePrevious: number | null } | null => {
+    for (const item of items) {
+      if (item.key === key) {
+        return {
+          valueCurrent: item.valueCurrent ?? null,
+          valuePrevious: item.valuePrevious ?? null
+        };
+      }
+
+      if (item.children) {
+        const result = getEditedItemByKey(key, item.children);
+        if (result) return result;
+      }
+    }
+    return null;
+  };
+
+  const deepMerge = (items: HierarchicalItem[]): HierarchicalItem[] => {
+    return items.map((item) => {
+      const editedValues = getEditedItemByKey(item.key, edited);
+
+      const updatedItem = {
+        ...item,
+        ...(editedValues ? {
+          valueCurrent: editedValues.valueCurrent,
+          valuePrevious: editedValues.valuePrevious
+        } : {})
+      };
+
+      if (item.children) {
+        updatedItem.children = deepMerge(item.children);
+      }
+
+      return updatedItem;
+    });
+  };
+
+  return deepMerge(original);
+};
+
+
+  const handleSaveCashFlow = (updatedCashFlow: HierarchicalItem[]) => {
+  // 1. Save locally
+  setEditedCashFlow(updatedCashFlow);
+  // // 2. (Optional) Extract a flat version if needed for server
+  // const flattenCashFlowItems = (
+  //   items: HierarchicalItem[]
+  // ): { key: string; valueCurrent: number | null; valuePrevious: number | null }[] => {
+  //   const flat: any[] = [];
+
+  //   const recurse = (children: HierarchicalItem[]) => {
+  //     for (const item of children) {
+  //       flat.push({
+  //         key: item.key,
+  //         valueCurrent: item.valueCurrent ?? null,
+  //         valuePrevious: item.valuePrevious ?? null,
+  //       });
+
+  //       if (item.children) recurse(item.children as HierarchicalItem[]);
+  //     }
+  //   };
+
+  //   recurse(items);
+  //   return flat;
+  // };
+
+  // const flatCashFlow = flattenCashFlowItems(updatedCashFlow);
+
+  // // 3. Format for backend
+  // const renamedForServer = flatCashFlow.map(row => ({
+  //   key: row.key,
+  //   [currentAmountKeys.amountCurrentKey]: row.valueCurrent,
+  //   [currentAmountKeys.amountPreviousKey]: row.valuePrevious,
+  // }));
+  handleCloseCashFlowEditor();
+
+  
+};
+
+
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h4" sx={{ mt: 2, mb: 2, textAlign: 'center' }}>Financial Statements</Typography>
@@ -8917,10 +9272,38 @@ const handleEditNotes = (noteId?: number | string) => {
         >
           {expandedKeys.size === allExpandableKeys.length ? 'Collapse All' : 'Expand All'}
         </Button>
+        {/* <Button variant="contained" color="primary" onClick={handleShowCashFlow}>
+            Edit Cash Flow
+        </Button> */}
+        
         <Button variant="contained" color="info" onClick={() => handleEditNotes()}>
           Edit Notes
         </Button>
       </Box>
+
+        {/* ADD THIS PORTAL for the Cash Flow editor */}
+      {isCashFlowEditorOpen && cashFlowEditorContainer && (
+        createPortal(
+          <CashFlowEditor
+            cashFlowData={financialData.cashFlow}
+            onSave=
+            {(updatedData) => {
+              // console.log("testing");
+              setEditedCashFlow(updatedData);
+              // handleSaveCashFlow
+              // // setCashFlowEditorOpen(false);
+              handleSaveCashFlow(updatedData);
+              // console.log("here2",editedCashFlow);
+              // console.log("here3",financialData.cashFlow);
+
+            }}
+            onClose={handleCloseCashFlowEditor}
+          />,
+          cashFlowEditorContainer
+        )
+      )}
+
+
       {isNotesEditorOpen && editorContainer && (
         createPortal(
           <NotesEditor
@@ -8934,8 +9317,14 @@ const handleEditNotes = (noteId?: number | string) => {
         )
       )}
 
-                <DrillDownTable title="Balance Sheet" data={financialData.balanceSheet} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} handleEditNotes={handleEditNotes} periodHeaders={periodHeaders}/>
-          <DrillDownTable title="Statement of Profit and Loss" data={financialData.incomeStatement} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} handleEditNotes={handleEditNotes} periodHeaders={periodHeaders} />
+        <DrillDownTable title="Balance Sheet" data={financialData.balanceSheet} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} handleEditNotes={handleEditNotes} periodHeaders={periodHeaders}/>
+          
+        <DrillDownTable title="Statement of Profit and Loss" data={financialData.incomeStatement} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} handleEditNotes={handleEditNotes} periodHeaders={periodHeaders} />
+          <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent:'right'}}>
+        <Button variant="contained" color="primary" onClick={handleShowCashFlow}>
+          Edit Cash Flow
+            </Button>
+        </Box>
           <DrillDownTable title="Cash Flow Statement" data={financialData.cashFlow} expandedKeys={expandedKeys} onToggleRow={handleToggleRow} handleEditNotes={handleEditNotes} periodHeaders={periodHeaders}/>
 
       <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'center' }}>
