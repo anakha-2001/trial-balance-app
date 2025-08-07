@@ -38,11 +38,20 @@ export type FinancialRow = {
   amountCurrent: number;
   amountPrevious: number;
 };
+export type TextRow = {
+  key: string;
+  amountCurrent: string;
+};
 
 type FinancialMapConfig = {
   key: 'key';
   amountCurrent: 'currentAmount';
   amountPrevious: 'previousAmount';
+};
+
+type TextVarConfig = {
+  key: 'Keys';
+  amountCurrent: 'currentAmount';
 };
 
 type Props = {
@@ -103,6 +112,8 @@ const ColumnMapper: React.FC<Props> = ({ columns, rawData, onConfirm }) => {
   const [amountMeta, setAmountMeta] = useState(initialAmountMeta);
 
   const [financialVar, setFinancialVar] = useState<any[]>([]);
+  const [textVar, setTextVar] = useState<any[]>([]);
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -111,6 +122,9 @@ const ColumnMapper: React.FC<Props> = ({ columns, rawData, onConfirm }) => {
         const response = await fetch('http://localhost:5000/api/financial_variables');
         const data = await response.json();
         setFinancialVar(data);
+        const response1 = await fetch('http://localhost:5000/api/text_keys');
+        const data1 = await response1.json();
+        setTextVar(data1);
       } catch (error) {
         console.error('Error fetching journal entry:', error);
       } finally {
@@ -121,12 +135,16 @@ const ColumnMapper: React.FC<Props> = ({ columns, rawData, onConfirm }) => {
     FetchFVs();
   }, []);
   console.log('loaded Financial Var Data', financialVar)
-
+  console.log('loaded textVar Data', textVar)
   const financialMap: FinancialMapConfig = {
     key: 'key',
     amountCurrent: 'currentAmount',
     amountPrevious: 'previousAmount',
   };
+  const textMap: TextVarConfig={
+    key: 'Keys',
+    amountCurrent: 'currentAmount',
+  }
 
   const handleConfirm = async () => {
     const requiredFields: (keyof MappedRow)[] = ['Level 1 Desc', 'Level 2 Desc', 'amountCurrent'];
@@ -186,8 +204,42 @@ const ColumnMapper: React.FC<Props> = ({ columns, rawData, onConfirm }) => {
       } as FinancialRow; // Type assertion for dynamic keys
     });
 
+    const textVar1: TextRow[] = textVar.map((row) => {
+      const getMappedValue = (mappedColumn: string | undefined): string => {
+        if (mappedColumn && row.hasOwnProperty(mappedColumn)) {
+          const value = row[mappedColumn];
+          return value !== null && value !== undefined && value !== '0'
+            ? value.toString()
+            : '';
+        }
+        return '';
+      };
+
+      const getAmountValue = (amountKey: string): string | null => {
+        if (row.hasOwnProperty(amountKey) && row[amountKey] != null) {
+          return cleanAmount(row[amountKey]).toString();
+        }
+        return null;
+      };
+
+      const keyColumn = textMap['key']; // e.g., 'Keys'
+      const keyValue = getMappedValue(keyColumn);
+
+      const amountValue = getAmountValue(amountCurrentKey); // e.g., 'FY 2023-24'
+
+      return {
+        key: keyValue,
+        [amountCurrentKey]: amountValue,
+      } as TextRow;
+    });
 
 
+
+
+
+
+
+    console.log("textVar1",textVar1)
     console.log('updated Financial Var Data', financialVar1)
     console.log("FInal Mapped Data", mappedData);
     onConfirm(mappedData, amountCurrentKey, amountPreviousKey);
@@ -205,6 +257,14 @@ const ColumnMapper: React.FC<Props> = ({ columns, rawData, onConfirm }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({financialVar1}),
+      });
+
+      await fetch('http://localhost:5000/api/text-variables', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ textVar1 }),
       });
       alert('Data successfully sent to the server!');
     } catch (error) {

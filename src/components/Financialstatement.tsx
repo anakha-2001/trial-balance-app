@@ -557,13 +557,13 @@ const ACCOUNTING_POLICIES_CONTENT: AccountingPolicy[] = [
 const useFinancialData = (rawData: MappedRow[], financialVar2:FinancialVarRow[],editedNotes: FinancialNote[] | null,editedCashFlow: HierarchicalItem[] | null): FinancialData => {
   return useMemo(() => {
      // --- CONSOLE LOGGING FOR DEBUGGING ---
-    console.log('MAIN APP: useFinancialData is recalculating...');
-    if (editedCashFlow) {
-        console.log('MAIN APP: ...using EDITED cash flow data:', editedCashFlow);
-    } else {
-        console.log('MAIN APP: ...using CALCULATED cash flow data.');
-    }
-    console.log("editedNotes", editedNotes);
+    // console.log('MAIN APP: useFinancialData is recalculating...');
+    // if (editedCashFlow) {
+    //     console.log('MAIN APP: ...using EDITED cash flow data:', editedCashFlow);
+    // } else {
+    //     console.log('MAIN APP: ...using CALCULATED cash flow data.');
+    // }
+    // console.log("editedNotes", editedNotes);
     
     const enrichedData = rawData.map(row => ({ ...row, amountCurrent: row.amountCurrent || 0, amountPrevious: row.amountPrevious || 0 }));
 
@@ -595,8 +595,6 @@ const getAmount = (
   }, 0);
   
 };
-
-
 const getValueForKey = (
   noteKey: number,
   itemKey: string
@@ -974,8 +972,26 @@ const calculateNote3 = (): FinancialNote => {
         valuePrevious: null,
         isSubtotal: true,
       },
-      'a) Unless otherwise stated all the assets are owned by the Company and none of the assets have been given on operating lease by the Company.',
-      'b) Charge as on 31 March 2023 ₹1,774.36 lakhs towards Freehold land and buildings has been released during the year.',
+      {
+        key: 'note3-text-a',
+        label: '',
+        narrativeText:getNarrativeTextByKey('note3-text-a')??`a)Unless otherwise stated all the assets are owned by the Company and none of the assets have been given on operating lease by the Company.` ,
+        isNarrative: true,
+        isEditableText: true,
+        valueCurrent: null,
+        valuePrevious: null,
+
+        },
+        {
+        key: 'note3-text-b',
+        label: '',
+        narrativeText: getNarrativeTextByKey('note3-text-b')??`b) Charge as on 31 March 2023 ₹1,774.36 lakhs towards Freehold land and buildings has been released during the year. `,
+        isNarrative: true,
+        isEditableText: true,
+        valueCurrent: null,
+        valuePrevious: null,
+
+      },
       {
         key: 'note3-Capital',
         label: 'Capital Work-in-Progress',
@@ -990,8 +1006,16 @@ const calculateNote3 = (): FinancialNote => {
         headers: cwipHeaders,
         rows: cwipAgeingTableRows
       },
-      'There is no such case, wherein Capital-work-in progress, whose completion is overdue or has exceeded its cost compared to its original plan.',
-      'The capital work-in-progress completion schedule for the year ended 31 March 2024 is as follows:',
+      {
+        key: 'note3-text-c',
+        label: '',
+        narrativeText:getNarrativeTextByKey('note3-text-c')?? `There is no such case, wherein Capital-work-in progress, whose completion is overdue or has exceeded its cost compared to its original plan.The capital work-in-progress completion schedule for the year ended 31 March 2024 is as follows:`,
+        isNarrative: true,
+        isEditableText: true,
+        valueCurrent: null,
+        valuePrevious: null,
+
+      },
       {
         type: 'table',
         isEditable: true,
