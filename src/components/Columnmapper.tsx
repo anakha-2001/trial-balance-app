@@ -233,12 +233,6 @@ const ColumnMapper: React.FC<Props> = ({ columns, rawData, onConfirm }) => {
       } as TextRow;
     });
 
-
-
-
-
-
-
     console.log("textVar1",textVar1)
     console.log('updated Financial Var Data', financialVar1)
     console.log("FInal Mapped Data", mappedData);
@@ -259,13 +253,7 @@ const ColumnMapper: React.FC<Props> = ({ columns, rawData, onConfirm }) => {
         body: JSON.stringify({financialVar1}),
       });
 
-      await fetch('http://localhost:5000/api/text-variables', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ textVar1 }),
-      });
+      
       alert('Data successfully sent to the server!');
     } catch (error) {
       console.error('Error sending data to the server:', error);

@@ -8783,6 +8783,7 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, amountK
       setDbLoading(true);
       setDbError('');
       
+      console.log(`http://localhost:5000/api/trial-balance/data?period1=${encodeURIComponent(period1)}&period2=${encodeURIComponent(period2)}`)
       // Fetch trial balance data
       const response = await fetch(`http://localhost:5000/api/trial-balance/data?period1=${encodeURIComponent(period1)}&period2=${encodeURIComponent(period2)}`);
       if (!response.ok) {
