@@ -152,13 +152,13 @@ const CashFlowEditor: React.FC<CashFlowEditorProps> = ({ cashFlowData, onSave, o
 
   return (
     <div> 
-    <Box>
+    <Box sx={{ p: 5, backgroundColor: 'grey.100', minHeight: '100vh', maxWidth:3300 }}>
       <AppBar position="sticky">
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             Edit Cash Flow Statement
           </Typography>
-          <Button color="inherit" onClick={handleSave} variant="contained">
+          <Button color="info" onClick={handleSave} variant="contained">
             Save Changes
           </Button>
           <Button color="inherit" onClick={onClose} sx={{ ml: 2 }}>

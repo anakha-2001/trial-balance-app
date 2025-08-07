@@ -297,13 +297,16 @@ const handleValueChange = (
     <div>
 
     
-    <Box sx={{ p: 3, backgroundColor: 'grey.100', minHeight: '100vh', maxWidth:3000 }}>
-      <AppBar position="sticky">
+    <Box sx={{ p: 5, backgroundColor: 'grey.100', minHeight: '100vh', maxWidth:3500 }}>
+      <AppBar position="sticky"sx={{ 
+        background: 'linear-gradient(135deg, rgba(69, 75, 248, 1) 0%, rgba(38, 5, 167, 1) 100%)',
+
+      }}>
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             Edit Financial Notes
           </Typography>
-          <Button color="inherit" onClick={handleSave} variant="contained">
+          <Button color="info" onClick={handleSave} variant="contained">
             Save Changes
           </Button>
           <Button color="inherit" onClick={onClose} sx={{ ml: 2 }}>
@@ -311,7 +314,7 @@ const handleValueChange = (
           </Button>
         </Toolbar>
       </AppBar>
-      <Box sx={{ mt: 10, maxWidth: 3500, mx: 'auto' }}> {/* Offset for AppBar */}
+      <Box sx={{ mt: 3, maxWidth: 3500, mx: 'auto' }}> {/* Offset for AppBar */}
         {editableNotes .filter(note => !selectedNoteId || String(note.noteNumber) === selectedNoteId) .map((note, noteIndex) => (
           <Paper key={note.noteNumber} sx={{ mb: 3, p: 2 }} data-note-id={note.noteNumber}>
             <Typography variant="h5" gutterBottom>
