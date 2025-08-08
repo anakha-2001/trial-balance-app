@@ -6725,9 +6725,10 @@ const useFinancialData = (
           {
             key: "note27-text-a",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note27-text-a") ??
-              `As per Section 135 of the Companies Act, 2013, a CSR committee has been formed by the Company. The areas for CSR activities are promoting education, healthcare and woman economic empowerment, providing disaster relief and undertaking rural development projects.`,
+            narrativeText: getNarrativeTextByKey(
+              "note27-text-a",
+              `As per Section 135 of the Companies Act, 2013, a CSR committee has been formed by the Company. The areas for CSR activities are promoting education, healthcare and woman economic empowerment, providing disaster relief and undertaking rural development projects.`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -6957,9 +6958,10 @@ const useFinancialData = (
           {
             key: "note28-text-a",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note28-text-a") ??
-              `The Company makes Provident Fund and Superannuation Fund contributions to defined contribution plans for qualifying employees. Under the Schemes, the Company is required to contribute a specified percentage of the payroll costs to fund the benefits.  The Company recognised ₹ 798.70 Lakhs (Year ended 31 March 2023 ₹ 696.11 Lakhs) for Provident Fund contributions and ₹ 401.01 Lakhs (Year ended 31 March 2023 ₹ 349.60 Lakhs) for Superannuation Fund contributions. The contributions payable to these plans by the Company are at rates specified in the rules of the schemes. `,
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-a",
+              `The Company makes Provident Fund and Superannuation Fund contributions to defined contribution plans for qualifying employees. Under the Schemes, the Company is required to contribute a specified percentage of the payroll costs to fund the benefits.  The Company recognised ₹ 798.70 Lakhs (Year ended 31 March 2023 ₹ 696.11 Lakhs) for Provident Fund contributions and ₹ 401.01 Lakhs (Year ended 31 March 2023 ₹ 349.60 Lakhs) for Superannuation Fund contributions. The contributions payable to these plans by the Company are at rates specified in the rules of the schemes. `
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -6977,9 +6979,10 @@ const useFinancialData = (
           {
             key: "note28-text-b",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note28-text-b") ??
-              `The Gratuity scheme is a final salary defined benefit plan, that provides for a lumpsum payment at the time of separation; based on scheme rules the benefits are calculated on the basis of last drawn salary and the period of service at the time of separation and paid as lumpsum. There is a vesting period of 5 years.`,
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-b",
+              `The Gratuity scheme is a final salary defined benefit plan, that provides for a lumpsum payment at the time of separation; based on scheme rules the benefits are calculated on the basis of last drawn salary and the period of service at the time of separation and paid as lumpsum. There is a vesting period of 5 years.`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -6988,9 +6991,10 @@ const useFinancialData = (
           {
             key: "note28-text-c",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note28-text-c") ??
-              "These plans typically expose the company to actuarial risks such as:",
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-c",
+              "These plans typically expose the company to actuarial risks such as:"
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -6999,9 +7003,10 @@ const useFinancialData = (
           {
             key: "note28-text-d",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note28-text-d") ??
-              `(i) Investment Risk: The fund is managed by LIC, fund manager. So the details of composition of plan assets managed by the fund manager is not available with the company. However, the fall in plan assets will increase the defined benefit obligation.`,
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-d",
+              `(i) Investment Risk: The fund is managed by LIC, fund manager. So the details of composition of plan assets managed by the fund manager is not available with the company. However, the fall in plan assets will increase the defined benefit obligation.`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -7010,9 +7015,10 @@ const useFinancialData = (
           {
             key: "note28-text-e",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note28-text-e") ??
-              `(ii) Interest rates risks: the defined benefit obligation calculated uses a discount rate based on government bonds. If bond yields fall, the defined benefit will tend to increase.`,
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-e",
+              `(ii) Interest rates risks: the defined benefit obligation calculated uses a discount rate based on government bonds. If bond yields fall, the defined benefit will tend to increase.`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -7021,9 +7027,10 @@ const useFinancialData = (
           {
             key: "note28-text-f",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note28-text-f") ??
-              `(iii) Salary Inflation risks: The present value of the defined benefit plan liability is calculated by reference to the future salaries of plans participants. As such increase in salary will increase the defined benefit obligation.`,
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-f",
+              `(iii) Salary Inflation risks: The present value of the defined benefit plan liability is calculated by reference to the future salaries of plans participants. As such increase in salary will increase the defined benefit obligation.`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -7032,9 +7039,10 @@ const useFinancialData = (
           {
             key: "note28-text-g",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note28-text-g") ??
-              `(iv) Demographic risks: The present value of the defined benefit plan liability is calculated by reference to the best estimate of the mortality of plan participants during their employment as the increase in life  expectancy of the plan participants will increase the plan's liability.`,
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-g",
+              `(iv) Demographic risks: The present value of the defined benefit plan liability is calculated by reference to the best estimate of the mortality of plan participants during their employment as the increase in life  expectancy of the plan participants will increase the plan's liability.`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -7043,9 +7051,10 @@ const useFinancialData = (
           {
             key: "note28-text-h",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note28-text-h") ??
-              `In respect of the plan, the most recent actuary valuation of plan assets and the present values of the defined benefit obligation were carried out as at March 31,2024 and  March 31, 2023 . The present value of the defined benefit obligation, and the related service cost and the past service cost, were measured using the projected unit credit method.`,
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-h",
+              `In respect of the plan, the most recent actuary valuation of plan assets and the present values of the defined benefit obligation were carried out as at March 31,2024 and  March 31, 2023 . The present value of the defined benefit obligation, and the related service cost and the past service cost, were measured using the projected unit credit method.`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -7443,9 +7452,10 @@ const useFinancialData = (
           {
             key: "note28-text-i",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note28-text-i") ??
-              `Significant actuarial assumptions for the determination of the defined benefit obligation are discount rate, expected salary increase and mortality. The sensitivity analysis below have been determined based on reasonably possible changes of the assumptions occurring at the end of the reporting period, while holding all other assumptions constant. The results of sensitivity analysis is given below:`,
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-i",
+              `Significant actuarial assumptions for the determination of the defined benefit obligation are discount rate, expected salary increase and mortality. The sensitivity analysis below have been determined based on reasonably possible changes of the assumptions occurring at the end of the reporting period, while holding all other assumptions constant. The results of sensitivity analysis is given below:`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -7472,9 +7482,10 @@ const useFinancialData = (
           {
             key: "note28-text-j",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note28-text-j") ??
-              `Sensitivity analysis presented above may not be representative of the actual change in the defined benefit obligation as it is unlikely that the change in assumptions would occur in isolation of one another as some of the assumptions may be correlated. There are no changes from the previous period in the methods and assumptions used in preparing the sensitivity analysis.`,
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-j",
+              `Sensitivity analysis presented above may not be representative of the actual change in the defined benefit obligation as it is unlikely that the change in assumptions would occur in isolation of one another as some of the assumptions may be correlated. There are no changes from the previous period in the methods and assumptions used in preparing the sensitivity analysis.`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -7484,9 +7495,10 @@ const useFinancialData = (
           {
             key: "note28-text-k",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note28-text-k") ??
-              `There has been no change in the process used by the Company to manage its risks from prior periods.`,
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-k",
+              `There has been no change in the process used by the Company to manage its risks from prior periods.`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -7495,9 +7507,10 @@ const useFinancialData = (
           {
             key: "note28-text-l",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note28-text-l") ??
-              `Expected future cash outflows towards the plans are as follows:`,
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-l",
+              `Expected future cash outflows towards the plans are as follows:`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -8188,10 +8201,11 @@ const useFinancialData = (
           {
             key: "note30-text-a",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note30-text-a") ??
+            narrativeText: getNarrativeTextByKey(
+              "note30-text-a",
               `As part of structural reform global project, the Yokogawa Group has established Structure between the Parent Company and its Subsidiaries wherein for each Global Business Function, a corresponding Regional Business/Process Function will be responsible for routine business/process operations. These Regional Business/Process Functions will make operating decisions in ratification with Managing Director of the Company and have been identified as the Chief Operating Decision Maker (CODM) as defined by Ind AS 108, operating segments. 
-The Company has identified geographic segments as operating and reportable segment. Revenues and expenses directly attributable to the geographic segment are reported under such segments. Assets and liabilities that are directly attributable or allocable to the segments are disclosed under the reportable segments. All other assets and liabilities are disclosed as unallocable. Fixed assets that are used interchangeably amongst segments are not allocated to the reportable segments. Geographical revenues are allocated based on the location of the customer. Geographic segments of the Company includes Japan, Singapore, Middle East & others.`,
+The Company has identified geographic segments as operating and reportable segment. Revenues and expenses directly attributable to the geographic segment are reported under such segments. Assets and liabilities that are directly attributable or allocable to the segments are disclosed under the reportable segments. All other assets and liabilities are disclosed as unallocable. Fixed assets that are used interchangeably amongst segments are not allocated to the reportable segments. Geographical revenues are allocated based on the location of the customer. Geographic segments of the Company includes Japan, Singapore, Middle East & others.`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -9286,9 +9300,10 @@ The Company has identified geographic segments as operating and reportable segme
           {
             key: "note35-text-a",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note35-text-a") ??
-              `The Company is equity financed which is evident from the capital structure table. Further, the Company has always been a net cash Company with cash and bank balances along with liquid investments.`,
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-a",
+              `The Company is equity financed which is evident from the capital structure table. Further, the Company has always been a net cash Company with cash and bank balances along with liquid investments.`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -9339,9 +9354,10 @@ The Company has identified geographic segments as operating and reportable segme
           {
             key: "note35-text-b",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note35-text-b") ??
-              `The Company's activities expose it to a variety of financial risks: market risk, credit risk and liquidity risk. The Company's focus is to foresee the unpredictability of financial markets and seek to minimize potential adverse effects on it's financial performance. The primary market risk to the Company is foreign exchange exposure risk. The Company's exposure to credit risk is influenced mainly by the individual characteristic of each customer. `,
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-b",
+              `The Company's activities expose it to a variety of financial risks: market risk, credit risk and liquidity risk. The Company's focus is to foresee the unpredictability of financial markets and seek to minimize potential adverse effects on it's financial performance. The primary market risk to the Company is foreign exchange exposure risk. The Company's exposure to credit risk is influenced mainly by the individual characteristic of each customer.`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -9351,12 +9367,13 @@ The Company has identified geographic segments as operating and reportable segme
           {
             key: "note35-text-c",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note35-text-c") ??
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-c",
               `The Company's financial risk management is supported by the finance department and enterprise risk management committee:
  - protect the Company's financial results and position from financial risks
  - maintain market risks within acceptable parameters, while optimising returns; and
- - protect the Company's financial investments, while maximising returns.`,
+ - protect the Company's financial investments, while maximising returns.`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -9366,9 +9383,10 @@ The Company has identified geographic segments as operating and reportable segme
           {
             key: "note35-text-d",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note35-text-d") ??
-              `The Company does not actively engage in the trading of financial assets for speculative purposes nor does it write options. The most significant financial risks to which the Company is exposed are described below.`,
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-d",
+              `The Company does not actively engage in the trading of financial assets for speculative purposes nor does it write options. The most significant financial risks to which the Company is exposed are described below.`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -9385,9 +9403,10 @@ The Company has identified geographic segments as operating and reportable segme
           {
             key: "note35-text-e",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note35-text-e") ??
-              `Credit risk is the risk of financial loss to the Company arising from counter party failure to meet its contractual obligations. Credit risk encompasses of both, the direct risk of default and the risk of deterioration of creditworthiness as well as concentration of risks. Credit risk is controlled by analysing credit limits and creditworthiness of customers on a continuous basis to whom the credit has been granted after necessary approvals for credit. `,
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-e",
+              `Credit risk is the risk of financial loss to the Company arising from counter party failure to meet its contractual obligations. Credit risk encompasses of both, the direct risk of default and the risk of deterioration of creditworthiness as well as concentration of risks. Credit risk is controlled by analysing credit limits and creditworthiness of customers on a continuous basis to whom the credit has been granted after necessary approvals for credit. `
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -9405,10 +9424,11 @@ The Company has identified geographic segments as operating and reportable segme
           {
             key: "note35-text-f",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note35-text-f") ??
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-f",
               `The Company assess the customers credit quality by taking into account their financial position, past experience and other factors. The Company’s exposure to credit risk is influenced mainly by the individual characteristics of each customer. The demographics of the customer, including the default risk of the industry and country in which the customer operates, also has an influence on credit risk assessment.
-Trade receivables are typically unsecured and are derived from revenue earned from customers primarily located in India and Japan. Credit risk has always been managed by the Company through credit approvals, establishing credit limits and continuously monitoring the creditworthiness of customers to which the Company grants credit terms in the normal course of business. On account of adoption of Ind AS 109, Financial Instruments, the Company uses expected credit loss model to assess the impairment loss or gain. The provision for expected credit loss takes into account available external and internal credit risk factors and Company's historical experience for customers.`,
+Trade receivables are typically unsecured and are derived from revenue earned from customers primarily located in India and Japan. Credit risk has always been managed by the Company through credit approvals, establishing credit limits and continuously monitoring the creditworthiness of customers to which the Company grants credit terms in the normal course of business. On account of adoption of Ind AS 109, Financial Instruments, the Company uses expected credit loss model to assess the impairment loss or gain. The provision for expected credit loss takes into account available external and internal credit risk factors and Company's historical experience for customers.`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -9497,9 +9517,10 @@ Trade receivables are typically unsecured and are derived from revenue earned fr
           {
             key: "note35-text-g",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note35-text-g") ??
-              `Liquidity risk is the risk that the Company will not be able to meet its financial obligations as they become due. The Company’s approach to managing liquidity is to ensure that it will have sufficient funds to meet its liabilities when due without incurring unacceptable losses. In doing this, management considers both normal and stressed conditions. A material and sustained shortfall in the cash flow could undermine the Company’s credit rating and impair investor confidence. The Company’s treasury department is responsible for liquidity, funding as well as settlement management. In addition, processes and policies related to such risks are overseen by senior management.`,
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-g",
+              `Liquidity risk is the risk that the Company will not be able to meet its financial obligations as they become due. The Company’s approach to managing liquidity is to ensure that it will have sufficient funds to meet its liabilities when due without incurring unacceptable losses. In doing this, management considers both normal and stressed conditions. A material and sustained shortfall in the cash flow could undermine the Company’s credit rating and impair investor confidence. The Company’s treasury department is responsible for liquidity, funding as well as settlement management. In addition, processes and policies related to such risks are overseen by senior management.`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -9555,13 +9576,14 @@ Trade receivables are typically unsecured and are derived from revenue earned fr
           {
             key: "note35-text-h",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note35-text-h") ??
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-h",
               `The Company's size and operations result in it being exposed to the following market risks that arise from its use of financial instruments:
               • interest rate risk
               • price risk
               • currency risk
-           The above risks may affect the Company's income and expenses, or the value of its financial instruments. The objective of the Company’s management of market risk is to maintain this risk within acceptable parameters, while optimising returns. The Company’s exposure to, and management of, these risks is explained below:`,
+           The above risks may affect the Company's income and expenses, or the value of its financial instruments. The objective of the Company’s management of market risk is to maintain this risk within acceptable parameters, while optimising returns. The Company’s exposure to, and management of, these risks is explained below:`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -9723,9 +9745,10 @@ Trade receivables are typically unsecured and are derived from revenue earned fr
           {
             key: "note35-text-i",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note35-text-i") ??
-              `The following table details the Company’s sensitivity to a 1% increase and decrease in the ₹ against the relevant foreign currencies. 1% is the sensitivity rate used when reporting foreign currency risk internally to key management personnel and represents management’s assessment of the reasonably possible change in foreign exchange rates. The sensitivity analysis includes only outstanding foreign currency denominated monetary items and adjusts their translation at the year-end for a 1% change in foreign currency rates, with all other variables held constant. A positive number below indicates an increase in profit or equity where ₹ strengthens 1% against the relevant currency. For a 1% weakening of ₹ against the relevant currency, there would be a comparable impact on profit or equity, and the balances below would be negative.`,
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-i",
+              `The following table details the Company’s sensitivity to a 1% increase and decrease in the ₹ against the relevant foreign currencies. 1% is the sensitivity rate used when reporting foreign currency risk internally to key management personnel and represents management’s assessment of the reasonably possible change in foreign exchange rates. The sensitivity analysis includes only outstanding foreign currency denominated monetary items and adjusts their translation at the year-end for a 1% change in foreign currency rates, with all other variables held constant. A positive number below indicates an increase in profit or equity where ₹ strengthens 1% against the relevant currency. For a 1% weakening of ₹ against the relevant currency, there would be a comparable impact on profit or equity, and the balances below would be negative.`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -9768,9 +9791,10 @@ Trade receivables are typically unsecured and are derived from revenue earned fr
           {
             key: "note35-text-j",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note35-text-j") ??
-              `Fair value is the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between Market participants at the measurement date, regardless of whether that price is directly observable or estimated using another valuation technique. In estimating the fair value of an asset or a liability, the Company takes into account the characteristics of the asset or liability if Market participants would take those characteristics into account when pricing the asset or liability, at the measurement date. Fair value for measurement and/or disclosure purposes in these financial statements is determined on such a basis, except for leasing transactions that are within the scope of Ind AS 116, and measurements that have some similarities to fair value but are not fair value, such as net realisable value in Ind AS 2 or value in use in Ind AS 36.`,
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-j",
+              `Fair value is the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between Market participants at the measurement date, regardless of whether that price is directly observable or estimated using another valuation technique. In estimating the fair value of an asset or a liability, the Company takes into account the characteristics of the asset or liability if Market participants would take those characteristics into account when pricing the asset or liability, at the measurement date. Fair value for measurement and/or disclosure purposes in these financial statements is determined on such a basis, except for leasing transactions that are within the scope of Ind AS 116, and measurements that have some similarities to fair value but are not fair value, such as net realisable value in Ind AS 2 or value in use in Ind AS 36.`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -9780,9 +9804,10 @@ Trade receivables are typically unsecured and are derived from revenue earned fr
           {
             key: "note35-text-k",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note35-text-k") ??
-              `In addition, for financial reporting purposes, fair value measurements are categorised into Level 1, 2, or 3 based on the degree to which the inputs to the fair value measurements are observable and the significance of the inputs to the fair value measurement in its entirety, which are described as follows:`,
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-k",
+              `In addition, for financial reporting purposes, fair value measurements are categorised into Level 1, 2, or 3 based on the degree to which the inputs to the fair value measurements are observable and the significance of the inputs to the fair value measurement in its entirety, which are described as follows:`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -9792,9 +9817,10 @@ Trade receivables are typically unsecured and are derived from revenue earned fr
           {
             key: "note35-text-l",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note35-text-l") ??
-              `- Level 1 inputs are quoted prices (unadjusted) in active Markets for identical assets or liabilities that the entity can access at the measurement date;`,
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-l",
+              `- Level 1 inputs are quoted prices (unadjusted) in active Markets for identical assets or liabilities that the entity can access at the measurement date;`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -9804,9 +9830,10 @@ Trade receivables are typically unsecured and are derived from revenue earned fr
           {
             key: "note35-text-m",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note35-text-m") ??
-              `- Level 2 inputs are inputs, other than quoted prices included within Level 1, that are observable for the asset or liability, either directly or indirectly; and`,
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-m",
+              `- Level 2 inputs are inputs, other than quoted prices included within Level 1, that are observable for the asset or liability, either directly or indirectly; and`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -9816,9 +9843,10 @@ Trade receivables are typically unsecured and are derived from revenue earned fr
           {
             key: "note35-text-n",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note35-text-n") ??
-              `- Level 3 inputs are unobservable inputs for the asset or liability.`,
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-n",
+              `- Level 3 inputs are unobservable inputs for the asset or liability.`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -9828,9 +9856,10 @@ Trade receivables are typically unsecured and are derived from revenue earned fr
           {
             key: "note35-text-o",
             label: "",
-            narrativeText:
-              getNarrativeTextByKey("note35-text-o") ??
-              `The fair value hierachy of Financial Instruments of the company are measured under Level 3 .`,
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-o",
+              `The fair value hierachy of Financial Instruments of the company are measured under Level 3 .`
+            ),
             isNarrative: true,
             isEditableText: true,
             valueCurrent: null,
@@ -11683,11 +11712,11 @@ const RenderPdfRow = ({
 const PDFDocumentComponent = ({
   data,
   periodHeaders,
-}: {
-  data: FinancialData;
-  periodHeaders: { currentPeriod: string; previousPeriod: string };
-}) => (
-  <Document>
+  }: {
+    data: FinancialData;
+    periodHeaders: { currentPeriod: string; previousPeriod: string };
+  }) => (
+    <Document>
     <Page size="A4" style={PDF_STYLES.page}>
       <Text style={PDF_STYLES.title}>Financial Statements</Text>
 
@@ -12051,19 +12080,20 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
   }, []);
   console.log("manualJE", manualJE);
 
-  // Determine which data source to use
-  const currentData = useDatabase ? databaseData : data || [];
-  const currentAmountKeys = useDatabase
-    ? { amountCurrentKey: "amountCurrent", amountPreviousKey: "amountPrevious" }
-    : amountKeys || { amountCurrentKey: "", amountPreviousKey: "" };
-  const currentFinancialVar = useDatabase ? financialVarData : financialVar;
-  const currentTextVar = useDatabase ? textVarData : textVar;
-
-  // Function to format period names for display
   const formatPeriodName = (periodName: string): string => {
     // Return the original period name as selected from database
     return periodName;
   };
+
+  
+
+  // Determine which data source to use
+  const currentData = useDatabase ? databaseData : data || [];
+  const currentAmountKeys = useDatabase
+  ? { amountCurrentKey: selectedPeriods?.period1 || "", amountPreviousKey: selectedPeriods?.period2 || "" }
+  : amountKeys || { amountCurrentKey: "", amountPreviousKey: "" };
+  const currentFinancialVar = useDatabase ? financialVarData : financialVar;
+  const currentTextVar = useDatabase ? textVarData : textVar;
 
   // Get formatted period names for headers
   const getPeriodHeaders = () => {
@@ -12079,8 +12109,14 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
     };
   };
 
+  
+
   const periodHeaders = getPeriodHeaders();
 
+  // Function to format period names for display
+  
+  console.log("currentAmountKeys",currentAmountKeys)
+  console.log("periodHeaders",periodHeaders)
   // Move hooks to top level
   const renamedData = currentData.map((row) => {
     if (useDatabase) {
