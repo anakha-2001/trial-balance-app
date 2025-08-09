@@ -167,6 +167,8 @@ const RenderMuiNoteTable = ({
                     onChange={(e) =>
                       onTableChange(noteIndex, itemIndex, rowIndex, colIndex, e.target.value)
                     }
+                    multiline={data.isTextTable} // Add this for multi-line text editing
+                    rows={data.isTextTable ? 4 : 1} // Give text fields more space
                   />
                 ) : (
                   cell 
@@ -315,7 +317,11 @@ const handleValueChange = (
         </Toolbar>
       </AppBar>
       <Box sx={{ mt: 3, maxWidth: 3500, mx: 'auto' }}> {/* Offset for AppBar */}
-        {editableNotes .filter(note => !selectedNoteId || String(note.noteNumber) === selectedNoteId) .map((note, noteIndex) => (
+         {editableNotes.filter(note => !selectedNoteId || String(note.noteNumber) === selectedNoteId).map((note) => {
+    
+    // This new line finds the REAL index of the note in the full array
+    const originalNoteIndex = editableNotes.findIndex(n => n.noteNumber === note.noteNumber);
+     return (
           <Paper key={note.noteNumber} sx={{ mb: 3, p: 2 }} data-note-id={note.noteNumber}>
             <Typography variant="h5" gutterBottom>
               Note {note.noteNumber}: {note.title}
@@ -351,7 +357,7 @@ const handleValueChange = (
                         <TableCell colSpan={3} sx={{ p: 0 }}>
                           <RenderMuiNoteTable
     data={item as TableContent}
-    noteIndex={noteIndex}
+    noteIndex={originalNoteIndex}
     itemIndex={itemIndex}
     onTableChange={handleTableChange}
   />
@@ -390,7 +396,7 @@ const handleValueChange = (
           const newText = e.target.value;
           setEditableNotes((prev) => {
             const updated = _.cloneDeep(prev);
-            const targetNote = updated[noteIndex];
+            const targetNote = updated[originalNoteIndex];
             const targetItem = targetNote.content[itemIndex];
             if (typeof targetItem === 'object' && 'key' in targetItem) {
               (targetItem as any).narrativeText = newText;
@@ -430,7 +436,8 @@ const handleValueChange = (
               </Typography>
             )}
           </Paper>
-        ))}
+        );
+         })}
       </Box>
     </Box>
     </div>
