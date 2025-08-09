@@ -1153,14 +1153,8 @@ const useFinancialData = (
   editedCashFlow: HierarchicalItem[] | null
 ): FinancialData => {
   return useMemo(() => {
-    // --- CONSOLE LOGGING FOR DEBUGGING ---
-    // console.log('MAIN APP: useFinancialData is recalculating...');
-    // if (editedCashFlow) {
-    //     console.log('MAIN APP: ...using EDITED cash flow data:', editedCashFlow);
-    // } else {
-    //     console.log('MAIN APP: ...using CALCULATED cash flow data.');
-    // }
-    // console.log("editedNotes", editedNotes);
+    
+    console.log("editedNotes", editedNotes);
 
     const enrichedData = rawData.map((row) => ({
       ...row,
@@ -1422,34 +1416,34 @@ const useFinancialData = (
      * Gets the value for a cash flow item. It prioritizes manually edited values
      * and falls back to the automatically calculated ones if no edit exists.
      */
-    const getCashFlowValue = (
-      itemKey: string,
-      calculatedCashFlowTree: HierarchicalItem[],
-      editedCashFlowTree: HierarchicalItem[] | null
-    ): { valueCurrent: number | null; valuePrevious: number | null } => {
-      // 1. Primary Source: Look for the value in the manually edited data.
-      if (editedCashFlowTree) {
-        const editedItem = findItemInTree(editedCashFlowTree, itemKey);
-        if (editedItem) {
-          return {
-            valueCurrent: editedItem.valueCurrent,
-            valuePrevious: editedItem.valuePrevious,
-          };
-        }
-      }
+    // const getCashFlowValue = (
+    //   itemKey: string,
+    //   calculatedCashFlowTree: HierarchicalItem[],
+    //   editedCashFlowTree: HierarchicalItem[] | null
+    // ): { valueCurrent: number | null; valuePrevious: number | null } => {
+    //   // 1. Primary Source: Look for the value in the manually edited data.
+    //   if (editedCashFlowTree) {
+    //     const editedItem = findItemInTree(editedCashFlowTree, itemKey);
+    //     if (editedItem) {
+    //       return {
+    //         valueCurrent: editedItem.valueCurrent,
+    //         valuePrevious: editedItem.valuePrevious,
+    //       };
+    //     }
+    //   }
 
-      // 2. Fallback Source: If not found in edits, find the original, calculated value.
-      const calculatedItem = findItemInTree(calculatedCashFlowTree, itemKey);
-      if (calculatedItem) {
-        return {
-          valueCurrent: calculatedItem.valueCurrent,
-          valuePrevious: calculatedItem.valuePrevious,
-        };
-      }
+    //   // 2. Fallback Source: If not found in edits, find the original, calculated value.
+    //   const calculatedItem = findItemInTree(calculatedCashFlowTree, itemKey);
+    //   if (calculatedItem) {
+    //     return {
+    //       valueCurrent: calculatedItem.valueCurrent,
+    //       valuePrevious: calculatedItem.valuePrevious,
+    //     };
+    //   }
 
-      // 3. Absolute Fallback: If the key doesn't exist anywhere (should not happen).
-      return { valueCurrent: 0, valuePrevious: 0 };
-    };
+    //   // 3. Absolute Fallback: If the key doesn't exist anywhere (should not happen).
+    //   return { valueCurrent: 0, valuePrevious: 0 };
+    // };
 
     const totals = new Map<string, { current: number; previous: number }>();
     const calculateNote3 = (): FinancialNote => {
@@ -10972,9 +10966,9 @@ Trade receivables are typically unsecured and are derived from revenue earned fr
       return { ...node, valueCurrent, valuePrevious, children };
     };
 
-    const calculatedCashFlow = CASH_FLOW_STRUCTURE.map((node) =>
-      processNode(node, enrichedData, getAmount)
-    );
+    // const calculatedCashFlow = CASH_FLOW_STRUCTURE.map((node) =>
+    //   processNode(node, enrichedData, getAmount)
+    // );
     return {
       balanceSheet: BALANCE_SHEET_STRUCTURE.map((node) =>
         processNode(node, enrichedData, getAmount)
@@ -11279,6 +11273,13 @@ const handleExportExcel = async (
                 })
             );
           }
+
+          // ✅ Add narrative text right here
+          if (item.narrativeText) {
+            const narrativeRow = worksheet.addRow([`Narrative: ${item.narrativeText}`]);
+            narrativeRow.getCell(1).alignment = { wrapText: true };
+            narrativeRow.font = { italic: true, color: { argb: "FF555555" } };
+          }
           if (item.children) {
             // Pass only hierarchical children
             addNoteContent(item.children, depth + 1);
@@ -11528,6 +11529,12 @@ const RenderPdfNoteRow = ({
             : formatCurrency(item.valuePrevious)}
         </Text>
       </View>
+      {/* Narrative text (if present) */}
+        {item.narrativeText && (
+          <Text style={PDF_STYLES.noteParagraph}>
+            {item.narrativeText}
+          </Text>
+        )}
       {item.children?.map((child) => (
         <RenderPdfNoteRow key={child.key} item={child} depth={depth + 1} />
       ))}
@@ -11593,7 +11600,7 @@ const RenderPdfNote = ({ note }: { note: FinancialNote }) => {
         {!isTableNote && (
           <View style={PDF_STYLES.tableHeader}>
             <Text style={PDF_STYLES.noteColParticulars}> </Text>
-            <Text style={PDF_STYLES.noteColAmount}>As at 31 March 2024</Text>
+            <Text style={PDF_STYLES.noteColAmount}></Text>
             <Text style={PDF_STYLES.noteColAmount}>As at 31 March 2023</Text>
           </View>
         )}
