@@ -2758,6 +2758,7 @@ const useFinancialData = (
       },
       'The trade receivables ageing schedule for the year ended as on 31 March 2024 is as follows :',
       {
+        key:'note9-table1',
         type: 'table',
         isEditable: true,
         headers: ageingHeaders,
@@ -3696,6 +3697,7 @@ const useFinancialData = (
          isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null },
       'The trade payables ageing schedule for the years ended as on 31 March is as follows :',
       {
+        key:'note14-table1',
         type: 'table',
         isEditable: true,
         headers: ageingHeaders,
@@ -7112,6 +7114,7 @@ const useFinancialData = (
       },
       'Gratuity',
       {
+        key:'note28-table1',
         type: "table",
         isEditable: true, // Make this table editable
         headers: sensitivityHeaders,
@@ -7150,6 +7153,7 @@ const useFinancialData = (
         valuePrevious: null,
       },
       {
+        key:'note28-table2',
         type: "table",
         isEditable: true, // Make this table editable
         headers: outflowHeaders,
@@ -7792,6 +7796,7 @@ const useFinancialData = (
         valuePrevious: null,
       },
       {
+        key:'note30-table1',
         type: "table",
         isEditable: true, // MAKE THE TABLE EDITABLE
         headers: headers,
@@ -7968,6 +7973,7 @@ const useFinancialData = (
         valuePrevious: null,
       },
       {
+        key:'note33-table1',
         type: "table",
         isEditable: true, // This flag enables editing in your NotesEditor
         headers: headers,
@@ -8553,6 +8559,7 @@ const useFinancialData = (
       { key: 'note35-category', label: 'B.    Categories of financial Instruments', valueCurrent: null, valuePrevious: null, isSubtotal:true },
       `The fair value of financial instruments by categories as at 31 March 2023, 31 March 2022 is as below:`,
       {
+        key:'note35-table1',
         type: 'table',
         isEditable: true,
         headers: categoryHeaders,
@@ -8595,12 +8602,14 @@ const useFinancialData = (
          isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null },
       `The following table shows the maturity analysis of the Company's financial liabilities based on contractually agreed undiscounted cash flows:`,
       {
+        key:'note35-table2',
         type: 'table',
         isEditable: true,
         headers: maturityHeaders24,
         rows: [ maturityTrade24, maturityLease24, maturityOther24, maturityTotal24 ]
       },
       {
+        key:'note35-table3',
         type: 'table',
         isEditable: true,
         headers: maturityHeaders23,
@@ -8615,6 +8624,7 @@ const useFinancialData = (
            The above risks may affect the Company's income and expenses, or the value of its financial instruments. The objective of the Company’s management of market risk is to maintain this risk within acceptable parameters, while optimising returns. The Company’s exposure to, and management of, these risks is explained below:`),
             isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null },
        {
+        key:'note35-table4',
          type: 'table',
          isEditable: true,
          isTextTable: true,
@@ -8624,6 +8634,7 @@ const useFinancialData = (
      
       'The following table sets forth information relating to foreign currency exposures as at 31 March 2024 and 31 March 2023 :',
       {
+        key:'note35-table5',
         type: 'table',
         isEditable: true,
         headers: ['Particulars Included In', ...exposureHeaders],
@@ -8641,6 +8652,7 @@ const useFinancialData = (
       { key: 'note35-text-i', label: '', narrativeText: getNarrativeTextByKey('note35-text-i',`The following table details the Company’s sensitivity to a 1% increase and decrease in the ₹ against the relevant foreign currencies. 1% is the sensitivity rate used when reporting foreign currency risk internally to key management personnel and represents management’s assessment of the reasonably possible change in foreign exchange rates. The sensitivity analysis includes only outstanding foreign currency denominated monetary items and adjusts their translation at the year-end for a 1% change in foreign currency rates, with all other variables held constant. A positive number below indicates an increase in profit or equity where ₹ strengthens 1% against the relevant currency. For a 1% weakening of ₹ against the relevant currency, there would be a comparable impact on profit or equity, and the balances below would be negative.`),
          isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null, },
       {
+        key:'note35-table6',
         type: 'table',
         isEditable: true,
         headers: sensitivityHeaders,
