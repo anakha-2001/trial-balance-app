@@ -1413,38 +1413,7 @@ const useFinancialData = (
       return null;
     };
 
-    /**
-     * Gets the value for a cash flow item. It prioritizes manually edited values
-     * and falls back to the automatically calculated ones if no edit exists.
-     */
-    // const getCashFlowValue = (
-    //   itemKey: string,
-    //   calculatedCashFlowTree: HierarchicalItem[],
-    //   editedCashFlowTree: HierarchicalItem[] | null
-    // ): { valueCurrent: number | null; valuePrevious: number | null } => {
-    //   // 1. Primary Source: Look for the value in the manually edited data.
-    //   if (editedCashFlowTree) {
-    //     const editedItem = findItemInTree(editedCashFlowTree, itemKey);
-    //     if (editedItem) {
-    //       return {
-    //         valueCurrent: editedItem.valueCurrent,
-    //         valuePrevious: editedItem.valuePrevious,
-    //       };
-    //     }
-    //   }
-
-    //   // 2. Fallback Source: If not found in edits, find the original, calculated value.
-    //   const calculatedItem = findItemInTree(calculatedCashFlowTree, itemKey);
-    //   if (calculatedItem) {
-    //     return {
-    //       valueCurrent: calculatedItem.valueCurrent,
-    //       valuePrevious: calculatedItem.valuePrevious,
-    //     };
-    //   }
-
-    //   // 3. Absolute Fallback: If the key doesn't exist anywhere (should not happen).
-    //   return { valueCurrent: 0, valuePrevious: 0 };
-    // };
+    
 
     const totals = new Map<string, { current: number; previous: number }>();
     const calculateNote3 = (): FinancialNote => {
@@ -1699,6 +1668,7 @@ const useFinancialData = (
         footer: "Note : Figures in brackets relate to previous year.",
         content: [
           {
+            key:'note3-table1',
             type: "table",
             isEditable: true,
             headers: ppeHeaders,
@@ -1744,6 +1714,7 @@ const useFinancialData = (
           },
           "The capital work-in-progress ageing schedule for the year ended 31 March 2024 is as follows:",
           {
+            key:'note3-table2',
             type: "table",
             isEditable: true,
             headers: cwipHeaders,
@@ -1762,6 +1733,7 @@ const useFinancialData = (
             valuePrevious: null,
           },
           {
+            key:'note3-table3',
             type: "table",
             isEditable: true,
             headers: cwipHeaders,
@@ -1949,6 +1921,7 @@ const useFinancialData = (
     footer: 'Note: Figures in brackets relate to previous year.',
     content: [
       {
+        key:'note4-table1',
         type: 'table',
         isEditable: true,
         headers: rouHeaders,
@@ -1968,6 +1941,7 @@ const useFinancialData = (
         valueCurrent: null, valuePrevious: null, isSubtotal: true,
       },
       {
+        key:'note4-table2',
         type: 'table',
         isEditable: true,
         headers: intangibleHeaders,
@@ -1988,6 +1962,7 @@ const useFinancialData = (
       },
       'The intangibles under development ageing schedule for the year ended 31 March 2024 is as follows :',
       {
+        key:'note4-table3',
         type: 'table',
         isEditable: true,
         headers: devHeaders,
@@ -2009,6 +1984,7 @@ const useFinancialData = (
       },
       'The intangibles under development completion schedule for the year ended 31 March 2024 is as follows :',
       {
+        key:'note4-table4',
         type: 'table',
         isEditable: true,
         headers: completionHeaders,
@@ -3283,6 +3259,7 @@ const useFinancialData = (
             isSubtotal: true,
           },
           {
+            key:'note12-table1',
             type: "table",
             headers: [
               "",
@@ -3340,6 +3317,7 @@ const useFinancialData = (
           "(a) Reconciliation of the number of shares and amount outstanding at the beginning and at the end of the reporting period:",
           // Second table for the reconciliation details
           {
+            key:'note12-table2',
             type: "table",
             headers: [
               "",
@@ -3382,6 +3360,7 @@ const useFinancialData = (
           },
           "(c) Details of shares held by the holding company",
           {
+            key:'note12-table3',
             type: "table",
             headers: [
               "",
@@ -3403,6 +3382,7 @@ const useFinancialData = (
           },
           "(d) Details of shares held by each shareholder holding more than 5% shares:",
           {
+            key:'note12-table4',
             type: "table",
             headers: [
               "",
@@ -3442,6 +3422,7 @@ const useFinancialData = (
 
           `(g) Promoter's Shareholding as on 31 March 2024 :`,
           {
+            key:'note12-table5',
             type: "table",
             headers: [
               "SL.No",
@@ -3468,6 +3449,7 @@ const useFinancialData = (
             isSubtotal: true,
           },
           {
+            key:'note12-table6',
             type: "table",
             headers: [
               "SL.No",
@@ -6604,6 +6586,7 @@ const useFinancialData = (
         valuePrevious: null,
       },
       {
+        key:'note27-table1',
         type: "table",
         isEditable: true, // Make table editable
         headers: headers2024,
@@ -6614,6 +6597,7 @@ const useFinancialData = (
         ],
       },
       {
+        key:'note27-table2',
         type: "table",
         isEditable: true, // Make table editable
         headers: headers2023,
@@ -11374,6 +11358,85 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
     };
 
     generateTextVarPayload();
+
+     // 5. === GET TABLE CONTENT BY KEY ===
+  const getTableContentByKey = (key: string): TableContent | null => {
+    for (const note of updatedNotes) {
+      const result = findTableInContent(note.content, key);
+      if (result) {
+        return result;
+      }
+    }
+    return null;
+  };
+
+  const findTableInContent = (
+    items: (HierarchicalItem | TableContent | string)[],
+    key: string
+  ): TableContent | null => {
+    for (const item of items) {
+      if (typeof item !== "string" && "key" in item && item.key === key) {
+        // Use a type guard to ensure the item is a TableContent
+        if (
+          "type" in item &&
+          item.type === "table" &&
+          "headers" in item &&
+          "rows" in item
+        ) {
+          // TypeScript now recognizes this as a valid TableContent object
+          return item as TableContent;
+        }
+      }
+
+      // Check if the item has children and recursively search
+      if (typeof item !== "string" && "children" in item && item.children) {
+        const result = findTableInContent(item.children, key);
+        if (result) {
+          return result;
+        }
+      }
+    }
+    return null;
+  };
+
+  // 6. === UPDATE TABLE VARIABLES ===
+  const generateTablePayload = () => {
+
+    
+     const updatedTables = textVar2.map((row) => {
+        const { key } = row;
+        // console.log("key",key)
+        const tableContent = getTableContentByKey(key);
+        if (tableContent) {
+          return {
+            key,
+              [currentAmountKeys.amountCurrentKey]: tableContent.rows,
+            };
+          }
+          return null;
+        })
+        .filter((table) => table !== null);
+
+    console.log("tableUploadData", JSON.stringify(updatedTables));
+
+    fetch("http://localhost:5000/api/update-text-vars", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedTables),
+      })
+        .then((response) => {
+          if (!response.ok) throw new Error("Failed to update text vars");
+          return response.json();
+        })
+        .then((data) => {
+          console.log("✅ Text variables updated:", data);
+        })
+        .catch((error) => {
+          console.error("❌ Error updating text variables:", error);
+        });
+  };
+
+  generateTablePayload();
 
     // 5. === CLOSE EDITOR ===
     handleCloseEditor();
