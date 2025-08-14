@@ -11,12 +11,11 @@ import {
 } from '@mui/material';
 import TextField from '@mui/material/TextField';
 // import axios from 'axios';
-
+import Papa from 'papaparse';
 const UserForm = () => {
   const [columns, setColumns] = useState<string[]>([]);
   const [rawData, setRawData] = useState<any[]>([]);
   const [mappedData, setMappedData] = useState<any[]>([]);
-
 }
 
 // The raw data from the uploaded file can have any keys.
@@ -42,36 +41,29 @@ export type TextRow = {
   key: string;
   amountCurrent: string;
 };
-
 type FinancialMapConfig = {
   key: 'key';
   amountCurrent: 'currentAmount';
   amountPrevious: 'previousAmount';
 };
-
 type TextVarConfig = {
   key: 'Keys';
   amountCurrent: 'currentAmount';
 };
-
 type Props = {
   columns: string[];
   rawData: RawRow[];
   onConfirm: (mappedData: MappedRow[],amountCurrentKey: string, amountPreviousKey: string) => void;
 };
-
 const periodTypes = ['Financial Year Ended (FYE)', 'Quarter Ended (QE)', 'Year to Date (YTD)', 'Calendar Year Ended (CYE)'] as const;
-
 type AmountMeta = {
   periodType: string;
   date: string;
 };
-
 const initialAmountMeta: Record<'amountCurrent' | 'amountPrevious', AmountMeta> = {
   amountCurrent: { periodType: '', date: '' },
   amountPrevious: { periodType: '', date: '' },
 };
-
 const ColumnMapper: React.FC<Props> = ({ columns, rawData, onConfirm }) => {
   // --- UPDATED: Fields are now configured with aliases from your specific file ---
   const fields: { key: keyof MappedRow; label: string; aliases: string[] }[] = [
@@ -117,14 +109,16 @@ const ColumnMapper: React.FC<Props> = ({ columns, rawData, onConfirm }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const FetchFVs = async () => {
+        const FetchFVs = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/financial_variables');
-        const data = await response.json();
+        const response = await fetch('/Manual_Variables_List.csv');
+        const text = await response.text();
+        const data = Papa.parse(text, { header: true }).data;
         setFinancialVar(data);
-        const response1 = await fetch('http://localhost:5000/api/text_keys');
-        const data1 = await response1.json();
-        setTextVar(data1);
+    const response1 = await fetch('/Text_Keys.csv');
+    const text1 = await response1.text();
+    const data1 = Papa.parse(text1, { header: true }).data;
+    setTextVar(data1);
       } catch (error) {
         console.error('Error fetching journal entry:', error);
       } finally {
