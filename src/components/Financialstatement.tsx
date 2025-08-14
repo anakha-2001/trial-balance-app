@@ -1398,6 +1398,34 @@ const useFinancialData = (
 
       return null;
     };
+    const getTableValue1 = (
+      noteKey: number,
+      key:string,
+      rowLabel: string
+    ): string[] | null => {
+      const textVarItem = textVar.find((item) => item.key === key);
+      console.log("textVarItem", textVarItem);
+      const editedNote = editedNotes?.find((n) => n.noteNumber === noteKey);
+      if (!editedNote) return null;
+
+      for (const item of editedNote.content) {
+        if (
+          typeof item === "object" &&
+          "type" in item &&
+          item.type === "table"
+        ) {
+          const table = item as TableContent;
+          if (table.isEditable) {
+            const foundRow = table.rows.find(
+              (row) => row[0]?.trim() === rowLabel.trim()
+            );
+            if (foundRow) return foundRow;
+          }
+        }
+      }
+
+      return null;
+    };
 
     const findItemInTree = (
       nodes: HierarchicalItem[],
@@ -1485,13 +1513,14 @@ const useFinancialData = (
 
       // This is the updated, dynamic `row` function
       const row = (label: string, columnCount: number): string[] => {
-        const edited = getTableValue(3, label);
+        const edited = getTableValue1(3,"note3-table1", label);
         if (edited) return edited;
         const emptyRow = Array(columnCount).fill("");
         const r = [...emptyRow];
         r[0] = label;
         return r;
       };
+      console.log("row", row);
 
       // --- First Table Headers (PPE) ---
       const ppeHeaders = [
@@ -10865,6 +10894,7 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
         throw new Error("Failed to fetch text variables");
       }
       const tvData = await tvResponse.json();
+      console.log("tvData", tvData);
       setTextVarData(tvData);
 
       setSelectedPeriods({ period1, period2 });
@@ -11415,21 +11445,22 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
   const generateTablePayload = () => {
 
     
-     const updatedTables = textVar2.map((row) => {
-        const { key } = row;
-        // console.log("key",key)
-        const tableContent = getTableContentByKey(key);
-        if (tableContent) {
-          return {
-            key,
-              [currentAmountKeys.amountCurrentKey]: tableContent.rows,
-            };
-          }
-          return null;
-        })
-        .filter((table) => table !== null);
+     const updatedTables = textVar2
+  .map((row) => {
+    const { key } = row;
+    const tableContent = getTableContentByKey(key);
+    if (tableContent) {
+      return {
+        key,
+        [currentAmountKeys.amountCurrentKey]: JSON.stringify(tableContent.rows) // convert to JSON string
+      };
+    }
+    return null;
+  })
+  .filter(Boolean);
 
-    console.log("tableUploadData", JSON.stringify(updatedTables));
+  console.log("tableUploadData", updatedTables);
+
 
     fetch("http://localhost:5000/api/update-text-vars", {
         method: "POST",
