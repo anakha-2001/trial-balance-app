@@ -1154,7 +1154,6 @@ const useFinancialData = (
   editedCashFlow: HierarchicalItem[] | null
 ): FinancialData => {
   return useMemo(() => {
-    
     console.log("editedNotes", editedNotes);
 
     const enrichedData = rawData.map((row) => ({
@@ -1400,27 +1399,58 @@ const useFinancialData = (
     };
     const getTableValue1 = (
       noteKey: number,
-      key:string,
+      keys: [string, ...string[]],
       rowLabel: string
     ): string[] | null => {
-      const textVarItem = textVar.find((item) => item.key === key);
-      console.log("textVarItem", textVarItem);
+      // 1️⃣ First try from editedNotes
       const editedNote = editedNotes?.find((n) => n.noteNumber === noteKey);
-      if (!editedNote) return null;
+      if (editedNote && editedNote.content?.length > 0) {
+        for (const item of editedNote.content) {
+          if (
+            typeof item === "object" &&
+            "type" in item &&
+            item.type === "table"
+          ) {
+            const table = item as TableContent;
+            if (table.isEditable) {
+              const foundRow = table.rows.find(
+                (row) => row[0]?.trim() === rowLabel.trim()
+              );
+              if (foundRow) return foundRow;
+            }
+          }
+        }
+      }
 
-      for (const item of editedNote.content) {
+      // 2️⃣ Fallback: check all keys in textVar
+      for (const key of keys) {
+        const textVarItem = textVar.find((item) => item.key === key);
+        if (!textVarItem) continue;
+
+        // If table is stored as JSON string in amountCurrent
         if (
-          typeof item === "object" &&
-          "type" in item &&
-          item.type === "table"
+          "amountCurrent" in textVarItem &&
+          typeof textVarItem.amountCurrent === "string"
         ) {
-          const table = item as TableContent;
-          if (table.isEditable) {
-            const foundRow = table.rows.find(
+          try {
+            const parsedRows = JSON.parse(
+              textVarItem.amountCurrent
+            ) as string[][];
+            const foundRow = parsedRows.find(
               (row) => row[0]?.trim() === rowLabel.trim()
             );
             if (foundRow) return foundRow;
+          } catch (err) {
+            console.error(`Error parsing table for key ${key}`, err);
           }
+        }
+
+        // If it's already in rows format
+        if ("rows" in textVarItem && Array.isArray(textVarItem.rows)) {
+          const foundRow = textVarItem.rows.find(
+            (row) => row[0]?.trim() === rowLabel.trim()
+          );
+          if (foundRow) return foundRow;
         }
       }
 
@@ -1509,7 +1539,11 @@ const useFinancialData = (
 
       // This is the updated, dynamic `row` function
       const row = (label: string, columnCount: number): string[] => {
-        const edited = getTableValue1(3,"note3-table1", label);
+        const edited = getTableValue1(
+          3,
+          ["note3-table1", "note3-table2", "note3-table3"],
+          label
+        );
         if (edited) return edited;
         const emptyRow = Array(columnCount).fill("");
         const r = [...emptyRow];
@@ -1693,7 +1727,7 @@ const useFinancialData = (
         footer: "Note : Figures in brackets relate to previous year.",
         content: [
           {
-            key:'note3-table1',
+            key: "note3-table1",
             type: "table",
             isEditable: true,
             headers: ppeHeaders,
@@ -1739,7 +1773,7 @@ const useFinancialData = (
           },
           "The capital work-in-progress ageing schedule for the year ended 31 March 2024 is as follows:",
           {
-            key:'note3-table2',
+            key: "note3-table2",
             type: "table",
             isEditable: true,
             headers: cwipHeaders,
@@ -1758,7 +1792,7 @@ const useFinancialData = (
             valuePrevious: null,
           },
           {
-            key:'note3-table3',
+            key: "note3-table3",
             type: "table",
             isEditable: true,
             headers: cwipHeaders,
@@ -1768,7 +1802,7 @@ const useFinancialData = (
       };
     };
     const calculateNote4 = (): FinancialNote => {
-  const calculateRowTotal = (row: string[]): string => {
+      const calculateRowTotal = (row: string[]): string => {
         const sum = row
           .slice(0, 4)
           .reduce(
@@ -1780,249 +1814,393 @@ const useFinancialData = (
           maximumFractionDigits: 2,
         });
       };
-  const parseNum = (val: string | undefined): number => {
-    if (!val) return 0;
-    return parseFloat(String(val).replace(/,/g, '')) || 0;
-  };
+      const parseNum = (val: string | undefined): number => {
+        if (!val) return 0;
+        return parseFloat(String(val).replace(/,/g, "")) || 0;
+      };
 
-  const row = (label: string, columnCount: number): string[] => {
-    const edited = getTableValue(4, label);
-    if (edited) return edited;
-    const emptyRow = Array(columnCount).fill('');
-    emptyRow[0] = label;
-    return emptyRow;
-  };
+      const row = (label: string, columnCount: number): string[] => {
+        const edited = getTableValue1(
+          4,
+          ["note4-table1", "note4-table2", "note4-table3", "note4-table4"],
+          label
+        );
+        if (edited) return edited;
+        const emptyRow = Array(columnCount).fill("");
+        emptyRow[0] = label;
+        return emptyRow;
+      };
 
-  // --- TABLE 1: Right of Use (ROU) Assets ---
-  const rouHeaders = ['', 'Buildings', 'Vehicles', 'Total'];
-  const rouColumnCount = rouHeaders.length;
+      // --- TABLE 1: Right of Use (ROU) Assets ---
+      const rouHeaders = ["", "Buildings", "Vehicles", "Total"];
+      const rouColumnCount = rouHeaders.length;
 
-  const calculateRouRowTotal = (r: string[]): string => {
-    const sum = parseNum(r[1]) + parseNum(r[2]);
-    return sum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
-  
-  const calculateRouBalance = (rows: string[][]): string[] => {
-      const buildingsTotal = rows.reduce((sum, r) => sum + parseNum(r[1]), 0);
-      const vehiclesTotal = rows.reduce((sum, r) => sum + parseNum(r[2]), 0);
-      const grandTotal = buildingsTotal + vehiclesTotal;
-      return [
-        '',
-        buildingsTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-        vehiclesTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-        grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      const calculateRouRowTotal = (r: string[]): string => {
+        const sum = parseNum(r[1]) + parseNum(r[2]);
+        return sum.toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+      };
+
+      const calculateRouBalance = (rows: string[][]): string[] => {
+        const buildingsTotal = rows.reduce((sum, r) => sum + parseNum(r[1]), 0);
+        const vehiclesTotal = rows.reduce((sum, r) => sum + parseNum(r[2]), 0);
+        const grandTotal = buildingsTotal + vehiclesTotal;
+        return [
+          "",
+          buildingsTotal.toLocaleString("en-IN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }),
+          vehiclesTotal.toLocaleString("en-IN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }),
+          grandTotal.toLocaleString("en-IN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }),
+        ];
+      };
+
+      const calculateRouDifference = (
+        row1: string[],
+        row2: string[]
+      ): string[] => {
+        const buildingsDiff = parseNum(row1[1]) - parseNum(row2[1]);
+        const vehiclesDiff = parseNum(row1[2]) - parseNum(row2[2]);
+        const totalDiff = parseNum(row1[3]) - parseNum(row2[3]);
+        return [
+          "",
+          buildingsDiff.toLocaleString("en-IN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }),
+          vehiclesDiff.toLocaleString("en-IN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }),
+          totalDiff.toLocaleString("en-IN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }),
+        ];
+      };
+
+      const rouGrossRows1 = [
+        row("Balance as at 1 April 2022 (ROU)", rouColumnCount),
+        row("Additions (ROU)", rouColumnCount),
+        row("Disposals/Adjustments (ROU)", rouColumnCount),
       ];
-  };
-
-  const calculateRouDifference = (row1: string[], row2: string[]): string[] => {
-      const buildingsDiff = parseNum(row1[1]) - parseNum(row2[1]);
-      const vehiclesDiff = parseNum(row1[2]) - parseNum(row2[2]);
-      const totalDiff = parseNum(row1[3]) - parseNum(row2[3]);
-       return [
-        '',
-        buildingsDiff.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-        vehiclesDiff.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-        totalDiff.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      rouGrossRows1.forEach((r) => {
+        if (r.length > 3) r[3] = calculateRouRowTotal(r);
+      });
+      const rouBalance23 = [
+        "Balance as at 31 March 2023 (ROU)",
+        ...calculateRouBalance(rouGrossRows1).slice(1),
       ];
-  };
 
-  const rouGrossRows1 = [
-    row('Balance as at 1 April 2022 (ROU)', rouColumnCount),
-    row('Additions (ROU)', rouColumnCount),
-    row('Disposals/Adjustments (ROU)', rouColumnCount),
-  ];
-  rouGrossRows1.forEach(r => { if(r.length > 3) r[3] = calculateRouRowTotal(r) });
-  const rouBalance23 = ['Balance as at 31 March 2023 (ROU)', ...calculateRouBalance(rouGrossRows1).slice(1)];
-  
-  const rouGrossRows2 = [
-    row('Additions FY24 (ROU)', rouColumnCount),
-    row('Deletions (ROU)', rouColumnCount),
-  ];
-  rouGrossRows2.forEach(r => { if(r.length > 3) r[3] = calculateRouRowTotal(r) });
-  const rouBalance24 = ['Balance as at 31 March 2024 (ROU)', ...calculateRouBalance([rouBalance23, ...rouGrossRows2]).slice(1)];
+      const rouGrossRows2 = [
+        row("Additions FY24 (ROU)", rouColumnCount),
+        row("Deletions (ROU)", rouColumnCount),
+      ];
+      rouGrossRows2.forEach((r) => {
+        if (r.length > 3) r[3] = calculateRouRowTotal(r);
+      });
+      const rouBalance24 = [
+        "Balance as at 31 March 2024 (ROU)",
+        ...calculateRouBalance([rouBalance23, ...rouGrossRows2]).slice(1),
+      ];
 
-  const rouDepRows1 = [
-      row('Balance as at 1 April 2022 (ROU dep)', rouColumnCount),
-      row('Amortisation (ROU)', rouColumnCount),
-      row('Eliminated on disposal (ROU)', rouColumnCount),
-  ];
-  rouDepRows1.forEach(r => { if(r.length > 3) r[3] = calculateRouRowTotal(r) });
-  const rouDepBalance23 = ['Balance as at 31 March 2023 (ROU dep)', ...calculateRouBalance(rouDepRows1).slice(1)];
+      const rouDepRows1 = [
+        row("Balance as at 1 April 2022 (ROU dep)", rouColumnCount),
+        row("Amortisation (ROU)", rouColumnCount),
+        row("Eliminated on disposal (ROU)", rouColumnCount),
+      ];
+      rouDepRows1.forEach((r) => {
+        if (r.length > 3) r[3] = calculateRouRowTotal(r);
+      });
+      const rouDepBalance23 = [
+        "Balance as at 31 March 2023 (ROU dep)",
+        ...calculateRouBalance(rouDepRows1).slice(1),
+      ];
 
-  const rouDepRows2 = [
-      row('Amortisation FY24 (ROU)', rouColumnCount),
-      row('Deletions (ROU dep)', rouColumnCount),
-  ];
-  rouDepRows2.forEach(r => { if(r.length > 3) r[3] = calculateRouRowTotal(r) });
-  const rouDepBalance24 = ['Balance as at 31 March 2024 (ROU dep)', ...calculateRouBalance([rouDepBalance23, ...rouDepRows2]).slice(1)];
+      const rouDepRows2 = [
+        row("Amortisation FY24 (ROU)", rouColumnCount),
+        row("Deletions (ROU dep)", rouColumnCount),
+      ];
+      rouDepRows2.forEach((r) => {
+        if (r.length > 3) r[3] = calculateRouRowTotal(r);
+      });
+      const rouDepBalance24 = [
+        "Balance as at 31 March 2024 (ROU dep)",
+        ...calculateRouBalance([rouDepBalance23, ...rouDepRows2]).slice(1),
+      ];
 
-  const rouNetBalance23 = ['As at 31 March 2023', ...calculateRouDifference(rouBalance23, rouDepBalance23).slice(1)];
-  const rouNetBalance24 = ['As at 31 March 2024', ...calculateRouDifference(rouBalance24, rouDepBalance24).slice(1)];
+      const rouNetBalance23 = [
+        "As at 31 March 2023",
+        ...calculateRouDifference(rouBalance23, rouDepBalance23).slice(1),
+      ];
+      const rouNetBalance24 = [
+        "As at 31 March 2024",
+        ...calculateRouDifference(rouBalance24, rouDepBalance24).slice(1),
+      ];
 
-  // --- TABLE 2: Other Intangible Assets ---
-  const intangibleHeaders = ['', 'Computer Software'];
-  const intangibleColumnCount = intangibleHeaders.length;
+      // --- TABLE 2: Other Intangible Assets ---
+      const intangibleHeaders = ["", "Computer Software"];
+      const intangibleColumnCount = intangibleHeaders.length;
 
-  const intangibleGrossRows1 = [
-      row('Balance as at 1 April 2022 (Int)', intangibleColumnCount),
-      row('Additions (Int)', intangibleColumnCount),
-      row('Disposal (Int)', intangibleColumnCount),
-  ];
-  const intangibleBalance23 = ['Balance as at 31 March 2023 (Int)', parseNum(intangibleGrossRows1[0][1]) + parseNum(intangibleGrossRows1[1][1]) - parseNum(intangibleGrossRows1[2][1])];
-  const intangibleGrossRows2 = [
-      row('Additions FY24 (Int)', intangibleColumnCount),
-      row('Disposal FY24 (Int)', intangibleColumnCount),
-  ];
-  const intangibleBalance24 = ['Balance as at 31 March 2024 (Int)', parseNum(String(intangibleBalance23[1])) + parseNum(intangibleGrossRows2[0][1]) - parseNum(intangibleGrossRows2[1][1])];
-  const intangibleAmortRows1 = [
-      row('Balance as at 1 April 2022 (Int amort)', intangibleColumnCount),
-      row('Amortisation charge (Int)', intangibleColumnCount),
-      row('Eliminated on disposal (Int amort)', intangibleColumnCount),
-  ];
-  const intangibleAmortBalance23 = ['Balance as at 31 March 2023 (Int amort)', parseNum(intangibleAmortRows1[0][1]) + parseNum(intangibleAmortRows1[1][1]) - parseNum(intangibleAmortRows1[2][1])];
-  const intangibleAmortRows2 = [
-      row('Amortisation charge FY24 (Int)', intangibleColumnCount),
-      row('Eliminated on disposal FY24 (Int amort)', intangibleColumnCount),
-  ];
-  const intangibleAmortBalance24 = ['Balance as at 31 March 2024 (Int amort)', parseNum(String(intangibleAmortBalance23[1])) + parseNum(intangibleAmortRows2[0][1]) - parseNum(intangibleAmortRows2[1][1])];
-  const intangibleNetBalance23 = ['As at 31 March 2023', parseNum(String(intangibleBalance23[1])) - parseNum(String(intangibleAmortBalance23[1]))];
-  const intangibleNetBalance24 = ['As at 31 March 2024', parseNum(String(intangibleBalance24[1])) - parseNum(String(intangibleAmortBalance24[1]))];
+      const intangibleGrossRows1 = [
+        row("Balance as at 1 April 2022 (Int)", intangibleColumnCount),
+        row("Additions (Int)", intangibleColumnCount),
+        row("Disposal (Int)", intangibleColumnCount),
+      ];
+      const intangibleBalance23 = [
+        "Balance as at 31 March 2023 (Int)",
+        parseNum(intangibleGrossRows1[0][1]) +
+          parseNum(intangibleGrossRows1[1][1]) -
+          parseNum(intangibleGrossRows1[2][1]),
+      ];
+      const intangibleGrossRows2 = [
+        row("Additions FY24 (Int)", intangibleColumnCount),
+        row("Disposal FY24 (Int)", intangibleColumnCount),
+      ];
+      const intangibleBalance24 = [
+        "Balance as at 31 March 2024 (Int)",
+        parseNum(String(intangibleBalance23[1])) +
+          parseNum(intangibleGrossRows2[0][1]) -
+          parseNum(intangibleGrossRows2[1][1]),
+      ];
+      const intangibleAmortRows1 = [
+        row("Balance as at 1 April 2022 (Int amort)", intangibleColumnCount),
+        row("Amortisation charge (Int)", intangibleColumnCount),
+        row("Eliminated on disposal (Int amort)", intangibleColumnCount),
+      ];
+      const intangibleAmortBalance23 = [
+        "Balance as at 31 March 2023 (Int amort)",
+        parseNum(intangibleAmortRows1[0][1]) +
+          parseNum(intangibleAmortRows1[1][1]) -
+          parseNum(intangibleAmortRows1[2][1]),
+      ];
+      const intangibleAmortRows2 = [
+        row("Amortisation charge FY24 (Int)", intangibleColumnCount),
+        row("Eliminated on disposal FY24 (Int amort)", intangibleColumnCount),
+      ];
+      const intangibleAmortBalance24 = [
+        "Balance as at 31 March 2024 (Int amort)",
+        parseNum(String(intangibleAmortBalance23[1])) +
+          parseNum(intangibleAmortRows2[0][1]) -
+          parseNum(intangibleAmortRows2[1][1]),
+      ];
+      const intangibleNetBalance23 = [
+        "As at 31 March 2023",
+        parseNum(String(intangibleBalance23[1])) -
+          parseNum(String(intangibleAmortBalance23[1])),
+      ];
+      const intangibleNetBalance24 = [
+        "As at 31 March 2024",
+        parseNum(String(intangibleBalance24[1])) -
+          parseNum(String(intangibleAmortBalance24[1])),
+      ];
 
-  // --- TABLE 3 & 4: Intangibles under Development ---
-  const devHeaders = [
-    'Intangibles under development',
-    'Amount in Intangibles under\nDevelopment for a period of Less\nthan 1 year',
-    'Amount in Intangibles under\nDevelopment for a period of 1-2\nyears',
-    'Amount in Intangibles under\nDevelopment for a period of 2-3\nyears',
-    'Amount in Intangibles under\nDevelopment for a period of More\nthan 3 years',
-    'Total',
-  ];
-  const devColCount = devHeaders.length;
+      // --- TABLE 3 & 4: Intangibles under Development ---
+      const devHeaders = [
+        "Intangibles under development",
+        "Amount in Intangibles under\nDevelopment for a period of Less\nthan 1 year",
+        "Amount in Intangibles under\nDevelopment for a period of 1-2\nyears",
+        "Amount in Intangibles under\nDevelopment for a period of 2-3\nyears",
+        "Amount in Intangibles under\nDevelopment for a period of More\nthan 3 years",
+        "Total",
+      ];
+      const devColCount = devHeaders.length;
 
-  const calculateDevRowTotal = (r: string[]): string => {
-    const sum = parseNum(r[1]) + parseNum(r[2]) + parseNum(r[3]) + parseNum(r[4]);
-    return sum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
+      const calculateDevRowTotal = (r: string[]): string => {
+        const sum =
+          parseNum(r[1]) + parseNum(r[2]) + parseNum(r[3]) + parseNum(r[4]);
+        return sum.toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+      };
 
-  // Ageing Table
-  const devAgeingRow1 = row('TAS Software Application Development (Intangible under development) ', devColCount);
-  const devAgeingRow2 = row('', devColCount);
-  devAgeingRow1[5] = calculateDevRowTotal(devAgeingRow1);
-  devAgeingRow2[5] = calculateDevRowTotal(devAgeingRow2);
-  const totalAgeing24 = ['Total as on 31 March 2024', '0.00', '0.00', '0.00', '0.00', '0.00'];
-  for(let i=1; i<6; i++) {
-    const sum = parseNum(devAgeingRow1[i]) + parseNum(devAgeingRow2[i]);
-    totalAgeing24[i] = sum.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-  }
-  const totalAgeing23 = row('Total as on 31 March 2023', devColCount);
+      // Ageing Table
+      const devAgeingRow1 = row(
+        "TAS Software Application Development (Intangible under development) ",
+        devColCount
+      );
+      const devAgeingRow2 = row("", devColCount);
+      devAgeingRow1[5] = calculateDevRowTotal(devAgeingRow1);
+      devAgeingRow2[5] = calculateDevRowTotal(devAgeingRow2);
+      const totalAgeing24 = [
+        "Total as on 31 March 2024",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+      ];
+      for (let i = 1; i < 6; i++) {
+        const sum = parseNum(devAgeingRow1[i]) + parseNum(devAgeingRow2[i]);
+        totalAgeing24[i] = sum.toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+        });
+      }
+      const totalAgeing23 = row("Total as on 31 March 2023", devColCount);
 
-  // Completion Table
-  const completionHeaders = [
-    'Intangibles under development',
-    'To be completed in Less than 1\nyear',
-    'To be completed in 1-2\nyears',
-    'To be completed in 2-3\nyears',
-    'To be completed in More than 3\nyears',
-    'Total',
-  ];
-  const completionColCount = completionHeaders.length;
+      // Completion Table
+      const completionHeaders = [
+        "Intangibles under development",
+        "To be completed in Less than 1\nyear",
+        "To be completed in 1-2\nyears",
+        "To be completed in 2-3\nyears",
+        "To be completed in More than 3\nyears",
+        "Total",
+      ];
+      const completionColCount = completionHeaders.length;
 
-  const devCompletionRow1 = row('TAS Software Application Development (Intangible under development) ', completionColCount);
-  const devCompletionRow2 = row('', completionColCount);
-  devCompletionRow1[5] = calculateDevRowTotal(devCompletionRow1);
-  devCompletionRow2[5] = calculateDevRowTotal(devCompletionRow2);
-  const totalCompletion24 = ['Total as on 31 March 2024', '0.00', '0.00', '0.00', '0.00', '0.00'];
-  for(let i=1; i<6; i++) {
-    const sum = parseNum(devCompletionRow1[i]) + parseNum(devCompletionRow2[i]);
-    totalCompletion24[i] = sum.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-  }
-  const totalCompletion23 = row('Total as on 31 March 2023 ', completionColCount);
+      const devCompletionRow1 = row(
+        "TAS Software Application Development (Intangible under development) ",
+        completionColCount
+      );
+      const devCompletionRow2 = row("", completionColCount);
+      devCompletionRow1[5] = calculateDevRowTotal(devCompletionRow1);
+      devCompletionRow2[5] = calculateDevRowTotal(devCompletionRow2);
+      const totalCompletion24 = [
+        "Total as on 31 March 2024",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+      ];
+      for (let i = 1; i < 6; i++) {
+        const sum =
+          parseNum(devCompletionRow1[i]) + parseNum(devCompletionRow2[i]);
+        totalCompletion24[i] = sum.toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+        });
+      }
+      const totalCompletion23 = row(
+        "Total as on 31 March 2023 ",
+        completionColCount
+      );
 
-  return {
-    noteNumber: 4,
-    title: 'Note 4a Right of Use (ROU) Assets',
-    totalCurrent: 0,
-    totalPrevious: 0,
-    footer: 'Note: Figures in brackets relate to previous year.',
-    content: [
-      {
-        key:'note4-table1',
-        type: 'table',
-        isEditable: true,
-        headers: rouHeaders,
-        rows: [
-          ['Gross carrying value'], ...rouGrossRows1, rouBalance23,
-          ['Balance as at 1 April 2023', ...rouBalance23.slice(1)],
-          ...rouGrossRows2, rouBalance24,
-          ['Accumulated Depreciation'], ...rouDepRows1, rouDepBalance23,
-          ['Balance as at 1 April 2023 (dep)', ...rouDepBalance23.slice(1)],
-          ...rouDepRows2, rouDepBalance24,
-          ['Net carrying value'], rouNetBalance23, rouNetBalance24,
-        ].map(r => r.map(c => String(c)))
-      },
-      {
-        key: 'note4-intangiable',
-        label: 'Note 4b Other Intangible assets',
-        valueCurrent: null, valuePrevious: null, isSubtotal: true,
-      },
-      {
-        key:'note4-table2',
-        type: 'table',
-        isEditable: true,
-        headers: intangibleHeaders,
-        rows: [
-          ['Gross carrying value'], ...intangibleGrossRows1, intangibleBalance23.map(String),
-          ['Balance as at 1 April 2023 (Int)', intangibleBalance23[1].toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
-          ...intangibleGrossRows2, intangibleBalance24.map(String),
-          ['Accumulated amortisation'], ...intangibleAmortRows1, intangibleAmortBalance23.map(String),
-          ['Balance as at 1 April 2023 (Int amort)', intangibleAmortBalance23[1].toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
-          ...intangibleAmortRows2, intangibleAmortBalance24.map(String),
-          ['Net carrying value'], intangibleNetBalance23.map(String), intangibleNetBalance24.map(String),
-        ].map(r => r.map(c => String(c)))
-      }, 
-      {
-        key: 'note4-intangiable-devlopment',
-        label: 'Note 4c Intangibles under Development',
-        valueCurrent: null, valuePrevious: null, isSubtotal: true,
-      },
-      'The intangibles under development ageing schedule for the year ended 31 March 2024 is as follows :',
-      {
-        key:'note4-table3',
-        type: 'table',
-        isEditable: true,
-        headers: devHeaders,
-        rows: [
-          devAgeingRow1,
-          devAgeingRow2,
-          totalAgeing24,
-          totalAgeing23
-        ]
-      },
-      {
-        key: 'note4-text-a',
-        label: '',
-        narrativeText: getNarrativeTextByKey('note4-text-a', `There is no such case, wherein Intangibles Under Development , whose completion is overdue or has exceeded its cost compared to its original plan .`),
-        isNarrative: true,
-        isEditableText: true,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      'The intangibles under development completion schedule for the year ended 31 March 2024 is as follows :',
-      {
-        key:'note4-table4',
-        type: 'table',
-        isEditable: true,
-        headers: completionHeaders,
-        rows: [
-          devCompletionRow1,
-          devCompletionRow2,
-          totalCompletion24,
-          totalCompletion23
-        ]
-      },
-    ]
-  };
-};
+      return {
+        noteNumber: 4,
+        title: "Note 4a Right of Use (ROU) Assets",
+        totalCurrent: 0,
+        totalPrevious: 0,
+        footer: "Note: Figures in brackets relate to previous year.",
+        content: [
+          {
+            key: "note4-table1",
+            type: "table",
+            isEditable: true,
+            headers: rouHeaders,
+            rows: [
+              ["Gross carrying value"],
+              ...rouGrossRows1,
+              rouBalance23,
+              ["Balance as at 1 April 2023", ...rouBalance23.slice(1)],
+              ...rouGrossRows2,
+              rouBalance24,
+              ["Accumulated Depreciation"],
+              ...rouDepRows1,
+              rouDepBalance23,
+              ["Balance as at 1 April 2023 (dep)", ...rouDepBalance23.slice(1)],
+              ...rouDepRows2,
+              rouDepBalance24,
+              ["Net carrying value"],
+              rouNetBalance23,
+              rouNetBalance24,
+            ].map((r) => r.map((c) => String(c))),
+          },
+          {
+            key: "note4-intangiable",
+            label: "Note 4b Other Intangible assets",
+            valueCurrent: null,
+            valuePrevious: null,
+            isSubtotal: true,
+          },
+          {
+            key: "note4-table2",
+            type: "table",
+            isEditable: true,
+            headers: intangibleHeaders,
+            rows: [
+              ["Gross carrying value"],
+              ...intangibleGrossRows1,
+              intangibleBalance23.map(String),
+              [
+                "Balance as at 1 April 2023 (Int)",
+                intangibleBalance23[1].toLocaleString("en-IN", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                }),
+              ],
+              ...intangibleGrossRows2,
+              intangibleBalance24.map(String),
+              ["Accumulated amortisation"],
+              ...intangibleAmortRows1,
+              intangibleAmortBalance23.map(String),
+              [
+                "Balance as at 1 April 2023 (Int amort)",
+                intangibleAmortBalance23[1].toLocaleString("en-IN", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                }),
+              ],
+              ...intangibleAmortRows2,
+              intangibleAmortBalance24.map(String),
+              ["Net carrying value"],
+              intangibleNetBalance23.map(String),
+              intangibleNetBalance24.map(String),
+            ].map((r) => r.map((c) => String(c))),
+          },
+          {
+            key: "note4-intangiable-devlopment",
+            label: "Note 4c Intangibles under Development",
+            valueCurrent: null,
+            valuePrevious: null,
+            isSubtotal: true,
+          },
+          "The intangibles under development ageing schedule for the year ended 31 March 2024 is as follows :",
+          {
+            key: "note4-table3",
+            type: "table",
+            isEditable: true,
+            headers: devHeaders,
+            rows: [devAgeingRow1, devAgeingRow2, totalAgeing24, totalAgeing23],
+          },
+          {
+            key: "note4-text-a",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note4-text-a",
+              `There is no such case, wherein Intangibles Under Development , whose completion is overdue or has exceeded its cost compared to its original plan .`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          "The intangibles under development completion schedule for the year ended 31 March 2024 is as follows :",
+          {
+            key: "note4-table4",
+            type: "table",
+            isEditable: true,
+            headers: completionHeaders,
+            rows: [
+              devCompletionRow1,
+              devCompletionRow2,
+              totalCompletion24,
+              totalCompletion23,
+            ],
+          },
+        ],
+      };
+    };
     const calculateNote5 = (): FinancialNote => {
       const note5_1 = getValueForKey(5, "note5-nc-emp");
       const note5_2 = getValueForKey(5, "note5-c-emp");
@@ -2688,140 +2866,261 @@ const useFinancialData = (
           },
         ],
       };
-    };  
+    };
     const calculateNote9 = (): FinancialNote => {
-  // --- Hierarchical Item Calculations (YOUR ORIGINAL LOGIC - UNCHANGED) ---
-  const tradeReceivables = getAmount('amountCurrent', ['trade receivables'], ['trade receivables']);
-  const tradeReceivablesPrev = getAmount('amountPrevious', ['trade receivables'], ['trade receivables']);
-  const doubtfulDebts = getAmount('amountCurrent', ['trade receivables'], ['allowances for doubtful debts']);
-  const doubtfulDebtsPrev = getAmount('amountPrevious', ['trade receivables'], ['allowances for doubtful debts']);
-  const consideredGoodCurrent = tradeReceivables - (-doubtfulDebts);
-  const consideredGoodPrevious = tradeReceivablesPrev - (-doubtfulDebtsPrev);
-  const creditImpairedCurrent = -doubtfulDebts;
-  const creditImpairedPrevious = -doubtfulDebtsPrev;
-  const subtotalCurrent = consideredGoodCurrent + creditImpairedCurrent;
-  const subtotalPrevious = consideredGoodPrevious + creditImpairedPrevious;
-  const allowanceCurrent = -doubtfulDebts;
-  const allowancePrevious = -doubtfulDebtsPrev;
-  const totalCurrent = subtotalCurrent - allowanceCurrent;
-  const totalPrevious = subtotalPrevious - allowancePrevious;
+      // --- Hierarchical Item Calculations (YOUR ORIGINAL LOGIC - UNCHANGED) ---
+      const tradeReceivables = getAmount(
+        "amountCurrent",
+        ["trade receivables"],
+        ["trade receivables"]
+      );
+      const tradeReceivablesPrev = getAmount(
+        "amountPrevious",
+        ["trade receivables"],
+        ["trade receivables"]
+      );
+      const doubtfulDebts = getAmount(
+        "amountCurrent",
+        ["trade receivables"],
+        ["allowances for doubtful debts"]
+      );
+      const doubtfulDebtsPrev = getAmount(
+        "amountPrevious",
+        ["trade receivables"],
+        ["allowances for doubtful debts"]
+      );
+      const consideredGoodCurrent = tradeReceivables - -doubtfulDebts;
+      const consideredGoodPrevious = tradeReceivablesPrev - -doubtfulDebtsPrev;
+      const creditImpairedCurrent = -doubtfulDebts;
+      const creditImpairedPrevious = -doubtfulDebtsPrev;
+      const subtotalCurrent = consideredGoodCurrent + creditImpairedCurrent;
+      const subtotalPrevious = consideredGoodPrevious + creditImpairedPrevious;
+      const allowanceCurrent = -doubtfulDebts;
+      const allowancePrevious = -doubtfulDebtsPrev;
+      const totalCurrent = subtotalCurrent - allowanceCurrent;
+      const totalPrevious = subtotalPrevious - allowancePrevious;
 
-  // --- Editable Table Logic (FINAL VERSION) ---
-  const options = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
-  const formatValue = (num: number) => num.toLocaleString('en-IN', options);
-  const formatPrevValue = (num: number) => {
-    if (num < 0) {
-      return `(${Math.abs(num).toLocaleString('en-IN', options)})`;
-    }
-    return num.toLocaleString('en-IN', options);
-  };
+      // --- Editable Table Logic (FINAL VERSION) ---
+      const options = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+      const formatValue = (num: number) => num.toLocaleString("en-IN", options);
+      const formatPrevValue = (num: number) => {
+        if (num < 0) {
+          return `(${Math.abs(num).toLocaleString("en-IN", options)})`;
+        }
+        return num.toLocaleString("en-IN", options);
+      };
 
-  const parseNum = (val: string | undefined, isPrevious = false): number => {
-    if (!val) return 0;
-    const parts = String(val).split('\n');
-    let targetPart = isPrevious ? (parts[1] || '0') : (parts[0] || '0');
-    
-    const isNegative = targetPart.includes('(') || targetPart.includes('-');
-    // Remove formatting but keep the minus sign and decimal point
-    targetPart = targetPart.replace(/[^0-9.-]/g, '');
-    let num = parseFloat(targetPart) || 0;
-    
-    if (isNegative && num > 0) {
-      num = num;
-    }
-    return num;
-  };
-  
-  const row = (label: string, columnCount: number): string[] => {
-    const edited = getTableValue(9, label);
-    if (edited) return edited;
-    
-    // ✅ FIX #1: Initialize with empty strings for blank fields by default.
-    const emptyRow = Array(columnCount).fill(''); 
-    emptyRow[0] = label;
-    return emptyRow;
-  };
-  
-  const ageingHeaders = ['PARTICULARS', 'Not due', 'Less than 6 months', '6 months - 1 year', '1-2 years', '2-3 years', 'More than 3 years', 'Total'];
-  const ageingColumnCount = ageingHeaders.length;
+      const parseNum = (
+        val: string | undefined,
+        isPrevious = false
+      ): number => {
+        if (!val) return 0;
+        const parts = String(val).split("\n");
+        let targetPart = isPrevious ? parts[1] || "0" : parts[0] || "0";
 
-  const undisputedGood = row('Undisputed Trade receivables - considered good', ageingColumnCount);
-  const undisputedImpaired = row('Undisputed Trade receivables – credit impaired', ageingColumnCount);
-  const disputedGood = row('Disputed Trade Receivables – considered good', ageingColumnCount);
-  const disputedRisk = row('Disputed Trade Receivables – significant increase in credit risk', ageingColumnCount);
-  const disputedImpaired = row('Disputed Trade Receivables – credit impaired', ageingColumnCount);
-  const allowanceRow = row('Less: Allowance for credit loss', ageingColumnCount);
+        const isNegative = targetPart.includes("(") || targetPart.includes("-");
+        // Remove formatting but keep the minus sign and decimal point
+        targetPart = targetPart.replace(/[^0-9.-]/g, "");
+        let num = parseFloat(targetPart) || 0;
 
-  // calculating right sum
-  const allDataRows = [undisputedGood, undisputedImpaired, disputedGood, disputedRisk, disputedImpaired];
+        if (isNegative && num > 0) {
+          num = num;
+        }
+        return num;
+      };
 
-  allDataRows.forEach(r => {
-    let currentSum = 0;
-    let prevSum = 0;
-    for (let i = 1; i <= 6; i++) {
-        currentSum += parseNum(r[i], false);
-        prevSum += parseNum(r[i], true);
-    }
-    r[7] = `${formatValue(currentSum)}\n${formatPrevValue(prevSum)}`;
-  });
-  
-  //cslculating bottom sum
-  const mainTotalRow = ['Total', ...Array(7).fill('')];
-  for (let i = 1; i <= 7; i++) {
-    const currentSum = allDataRows.reduce((acc, r) => acc + parseNum(r[i], false), 0);
-    const prevSum = allDataRows.reduce((acc, r) => acc + parseNum(r[i], true), 0);
-    mainTotalRow[i] = `${formatValue(currentSum)}\n${formatPrevValue(prevSum)}`;
-  }
+      const row = (label: string, columnCount: number): string[] => {
+        const edited = getTableValue1(9, ["note9-table1"], label);
+        if (edited) return edited;
 
-  let allowanceCurrentSum = 0;
-  let allowancePrevSum = 0;
-  for (let i = 1; i <= 6; i++) {
-      allowanceCurrentSum += parseNum(allowanceRow[i], false);
-      allowancePrevSum += parseNum(allowanceRow[i], true);
-  }
-  allowanceRow[7] = `${formatValue(allowanceCurrentSum)}\n${formatPrevValue(allowancePrevSum)}`;
-  
-  // ✅ FIX #4: Create two separate, single-value rows for the final totals.
-  const totalReceivables24 = ['Total Trade Receivables as on 31 March 2024', '', '', '', '', '', '', formatValue(parseNum(mainTotalRow[7], false) - parseNum(allowanceRow[7], false))];
-  const totalReceivables23 = ['Total Trade Receivables as on 31 March 2023', '', '', '', '', '', '', formatPrevValue(parseNum(mainTotalRow[7], true) - parseNum(allowanceRow[7], true))];
+        // ✅ FIX #1: Initialize with empty strings for blank fields by default.
+        const emptyRow = Array(columnCount).fill("");
+        emptyRow[0] = label;
+        return emptyRow;
+      };
 
-  return {
-    noteNumber: 9,
-    title: 'Trade receivables (unsecured)',
-    totalCurrent: totalCurrent,
-    totalPrevious: totalPrevious,
-    footer:'Note: Figures in brackets relate to previous year.',
-    content: [
-      { key: 'note9-good', label: 'Trade Receivables - Considered good', valueCurrent: consideredGoodCurrent, valuePrevious: consideredGoodPrevious },
-      { key: 'note9-impaired', label: 'Trade Receivables - Credit impaired', valueCurrent: creditImpairedCurrent, valuePrevious: creditImpairedPrevious },
-      { key: 'note9-subtotal', label: '', isSubtotal: true, valueCurrent: subtotalCurrent, valuePrevious: subtotalPrevious },
-      { key: 'note9-allowance', label: 'Less: Allowances for credit impairment', valueCurrent: allowanceCurrent, valuePrevious: allowancePrevious },
-      { key: 'note9-total', label: 'Total', isGrandTotal: true, valueCurrent: totalCurrent, valuePrevious: totalPrevious },
-      'Expected credit loss',
-       {
-        key:'note9-text-a',
-        label:'',
-        narrativeText:getNarrativeTextByKey('note9-text-a',`The Company uses a provision matrix to determine impairment loss on portfolio of its trade receivable.The provision matrix is based on its historically observed default rates over the expected life of the trade receivables and is adjusted for forward-looking estimates. At regular intervals, the historically observed default rates are updated and changes in forward-looking estimates are analysed.`),
-        isNarrative:true,
-        isEditableText:true,
-        valueCurrent:null,
-        valuePrevious:null,
-      },
+      const ageingHeaders = [
+        "PARTICULARS",
+        "Not due",
+        "Less than 6 months",
+        "6 months - 1 year",
+        "1-2 years",
+        "2-3 years",
+        "More than 3 years",
+        "Total",
+      ];
+      const ageingColumnCount = ageingHeaders.length;
 
-      'The trade receivables ageing schedule for the year ended as on 31 March 2024 is as follows :',
-      {
-        key:'note9-table1',
-        type: 'table',
-        isEditable: true,
-        headers: ageingHeaders,
-        rows: [
-          undisputedGood, undisputedImpaired, disputedGood, disputedRisk, disputedImpaired,
-          mainTotalRow, allowanceRow, totalReceivables24, totalReceivables23,
-        ]
+      const undisputedGood = row(
+        "Undisputed Trade receivables - considered good",
+        ageingColumnCount
+      );
+      const undisputedImpaired = row(
+        "Undisputed Trade receivables – credit impaired",
+        ageingColumnCount
+      );
+      const disputedGood = row(
+        "Disputed Trade Receivables – considered good",
+        ageingColumnCount
+      );
+      const disputedRisk = row(
+        "Disputed Trade Receivables – significant increase in credit risk",
+        ageingColumnCount
+      );
+      const disputedImpaired = row(
+        "Disputed Trade Receivables – credit impaired",
+        ageingColumnCount
+      );
+      const allowanceRow = row(
+        "Less: Allowance for credit loss",
+        ageingColumnCount
+      );
+
+      // calculating right sum
+      const allDataRows = [
+        undisputedGood,
+        undisputedImpaired,
+        disputedGood,
+        disputedRisk,
+        disputedImpaired,
+      ];
+
+      allDataRows.forEach((r) => {
+        let currentSum = 0;
+        let prevSum = 0;
+        for (let i = 1; i <= 6; i++) {
+          currentSum += parseNum(r[i], false);
+          prevSum += parseNum(r[i], true);
+        }
+        r[7] = `${formatValue(currentSum)}\n${formatPrevValue(prevSum)}`;
+      });
+
+      //cslculating bottom sum
+      const mainTotalRow = ["Total", ...Array(7).fill("")];
+      for (let i = 1; i <= 7; i++) {
+        const currentSum = allDataRows.reduce(
+          (acc, r) => acc + parseNum(r[i], false),
+          0
+        );
+        const prevSum = allDataRows.reduce(
+          (acc, r) => acc + parseNum(r[i], true),
+          0
+        );
+        mainTotalRow[i] = `${formatValue(currentSum)}\n${formatPrevValue(
+          prevSum
+        )}`;
       }
-    ]
-  };
-    };   
+
+      let allowanceCurrentSum = 0;
+      let allowancePrevSum = 0;
+      for (let i = 1; i <= 6; i++) {
+        allowanceCurrentSum += parseNum(allowanceRow[i], false);
+        allowancePrevSum += parseNum(allowanceRow[i], true);
+      }
+      allowanceRow[7] = `${formatValue(allowanceCurrentSum)}\n${formatPrevValue(
+        allowancePrevSum
+      )}`;
+
+      // ✅ FIX #4: Create two separate, single-value rows for the final totals.
+      const totalReceivables24 = [
+        "Total Trade Receivables as on 31 March 2024",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        formatValue(
+          parseNum(mainTotalRow[7], false) - parseNum(allowanceRow[7], false)
+        ),
+      ];
+      const totalReceivables23 = [
+        "Total Trade Receivables as on 31 March 2023",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        formatPrevValue(
+          parseNum(mainTotalRow[7], true) - parseNum(allowanceRow[7], true)
+        ),
+      ];
+
+      return {
+        noteNumber: 9,
+        title: "Trade receivables (unsecured)",
+        totalCurrent: totalCurrent,
+        totalPrevious: totalPrevious,
+        footer: "Note: Figures in brackets relate to previous year.",
+        content: [
+          {
+            key: "note9-good",
+            label: "Trade Receivables - Considered good",
+            valueCurrent: consideredGoodCurrent,
+            valuePrevious: consideredGoodPrevious,
+          },
+          {
+            key: "note9-impaired",
+            label: "Trade Receivables - Credit impaired",
+            valueCurrent: creditImpairedCurrent,
+            valuePrevious: creditImpairedPrevious,
+          },
+          {
+            key: "note9-subtotal",
+            label: "",
+            isSubtotal: true,
+            valueCurrent: subtotalCurrent,
+            valuePrevious: subtotalPrevious,
+          },
+          {
+            key: "note9-allowance",
+            label: "Less: Allowances for credit impairment",
+            valueCurrent: allowanceCurrent,
+            valuePrevious: allowancePrevious,
+          },
+          {
+            key: "note9-total",
+            label: "Total",
+            isGrandTotal: true,
+            valueCurrent: totalCurrent,
+            valuePrevious: totalPrevious,
+          },
+          "Expected credit loss",
+          {
+            key: "note9-text-a",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note9-text-a",
+              `The Company uses a provision matrix to determine impairment loss on portfolio of its trade receivable.The provision matrix is based on its historically observed default rates over the expected life of the trade receivables and is adjusted for forward-looking estimates. At regular intervals, the historically observed default rates are updated and changes in forward-looking estimates are analysed.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+
+          "The trade receivables ageing schedule for the year ended as on 31 March 2024 is as follows :",
+          {
+            key: "note9-table1",
+            type: "table",
+            isEditable: true,
+            headers: ageingHeaders,
+            rows: [
+              undisputedGood,
+              undisputedImpaired,
+              disputedGood,
+              disputedRisk,
+              disputedImpaired,
+              mainTotalRow,
+              allowanceRow,
+              totalReceivables24,
+              totalReceivables23,
+            ],
+          },
+        ],
+      };
+    };
     const calculateNote10 = (): FinancialNote => {
       // Non-current
       const nonCurrentGovt = {
@@ -3272,173 +3571,268 @@ const useFinancialData = (
       };
     };
     const calculateNote12 = (): FinancialNote => {
-  // Create a normal editable row
-  const createEditableRow = (label: string, columnCount: number): string[] => {
-    const edited = getTableValue(12, label);
-    if (edited) return edited;
-    const emptyRow = Array(columnCount).fill('');
-    emptyRow[0] = label;
-    return emptyRow;
-  };
+      // Create a normal editable row
+      const createEditableRow = (
+        label: string,
+        columnCount: number
+      ): string[] => {
+        const edited = getTableValue1(
+          12,
+          [
+            "note12-table1",
+            "note12-table2",
+            "note12-table3",
+            "note12-table4",
+            "note12-table5",
+            "note12-table6",
+          ],
+          label
+        );
+        if (edited) return edited;
+        const emptyRow = Array(columnCount).fill("");
+        emptyRow[0] = label;
+        return emptyRow;
+      };
 
-  const parseNum = (val: string): number =>
-    parseFloat(val.replace(/,/g, "")) || 0;
+      const parseNum = (val: string): number =>
+        parseFloat(val.replace(/,/g, "")) || 0;
 
-  const calculateBalance = (rows: string[][], columnCount: number): string[] => {
-    const result: number[] = [];
-    for (let i = 1; i < columnCount; i++) {
-      const colSum = rows.reduce((sum, row) => sum + parseNum(row[i]), 0);
-      result.push(colSum);
-    }
-    return [
-      "",
-      ...result.map((val) =>
-        val.toLocaleString("en-IN", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })
-      ),
-    ];
-  };
+      const calculateBalance = (
+        rows: string[][],
+        columnCount: number
+      ): string[] => {
+        const result: number[] = [];
+        for (let i = 1; i < columnCount; i++) {
+          const colSum = rows.reduce((sum, row) => sum + parseNum(row[i]), 0);
+          result.push(colSum);
+        }
+        return [
+          "",
+          ...result.map((val) =>
+            val.toLocaleString("en-IN", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          ),
+        ];
+      };
 
-  // ===== Table 1: Equity Share Capital =====
-  const table1Headers = ['', 'As at 31 March 2024\nNumber', '\nAmount', 'As at 31 March 2023\nNumber', '\nAmount'];
-  const table1ColumnCount = table1Headers.length;
+      // ===== Table 1: Equity Share Capital =====
+      const table1Headers = [
+        "",
+        "As at 31 March 2024\nNumber",
+        "\nAmount",
+        "As at 31 March 2023\nNumber",
+        "\nAmount",
+      ];
+      const table1ColumnCount = table1Headers.length;
 
-  const equitySharesRow = createEditableRow('Equity shares of ₹ 10 each', table1ColumnCount);
-  const unclassifiedSharesRow = createEditableRow('Unclassified shares of ₹ 10 each', table1ColumnCount);
-  const issuedCapitalRow = createEditableRow('Issued Share Capital\nEquity shares of ₹ 10 each', table1ColumnCount);
-  const subscribedCapitalRow = createEditableRow('Subscribed and fully paid up\nEquity shares of ₹ 10 each', table1ColumnCount);
-  const issuedSubscribedRows = [subscribedCapitalRow];
-  const totalIssuedSubscribedRow = calculateBalance(issuedSubscribedRows, table1ColumnCount);
+      const equitySharesRow = createEditableRow(
+        "Equity shares of ₹ 10 each",
+        table1ColumnCount
+      );
+      const unclassifiedSharesRow = createEditableRow(
+        "Unclassified shares of ₹ 10 each",
+        table1ColumnCount
+      );
+      const issuedCapitalRow = createEditableRow(
+        "Issued Share Capital\nEquity shares of ₹ 10 each",
+        table1ColumnCount
+      );
+      const subscribedCapitalRow = createEditableRow(
+        "Subscribed and fully paid up\nEquity shares of ₹ 10 each",
+        table1ColumnCount
+      );
+      const issuedSubscribedRows = [subscribedCapitalRow];
+      const totalIssuedSubscribedRow = calculateBalance(
+        issuedSubscribedRows,
+        table1ColumnCount
+      );
 
-  // ===== Table 2: Reconciliation =====
-  const table2Headers = ['', 'As at 31 March 2024\nNumber', '\nAmount', 'As at 31 March 2023\nNumber', '\nAmount'];
-  const table2ColumnCount = table2Headers.length;
-  const balanceBeginningRow = createEditableRow('Balances as at the beginning of the year', table2ColumnCount);
-  const balanceEndRow = createEditableRow('Balance at the end of the year', table2ColumnCount);
+      // ===== Table 2: Reconciliation =====
+      const table2Headers = [
+        "",
+        "As at 31 March 2024\nNumber",
+        "\nAmount",
+        "As at 31 March 2023\nNumber",
+        "\nAmount",
+      ];
+      const table2ColumnCount = table2Headers.length;
+      const balanceBeginningRow = createEditableRow(
+        "Balances as at the beginning of the year",
+        table2ColumnCount
+      );
+      const balanceEndRow = createEditableRow(
+        "Balance at the end of the year",
+        table2ColumnCount
+      );
 
-  // ===== Table 3: Holding Company =====
-  const table3Headers = ['', 'As at 31 March 2024\nNumber', '\nAmount', 'As at 31 March 2023\nNumber', '\nAmount'];
-  const table3ColumnCount = table3Headers.length;
-  const yokogawaHoldingRow = createEditableRow('Yokogawa Electric Corporation', table3ColumnCount);
+      // ===== Table 3: Holding Company =====
+      const table3Headers = [
+        "",
+        "As at 31 March 2024\nNumber",
+        "\nAmount",
+        "As at 31 March 2023\nNumber",
+        "\nAmount",
+      ];
+      const table3ColumnCount = table3Headers.length;
+      const yokogawaHoldingRow = createEditableRow(
+        "Yokogawa Electric Corporation",
+        table3ColumnCount
+      );
 
-  // ===== Table 4: Shareholders > 5% =====
-  const table4Headers = ['', 'As at 31 March 2024\nNumber', '\nPercentage', 'As at 31 March 2023\nNumber', '\nPercentage'];
-  const table4ColumnCount = table4Headers.length;
-  const yokogawaShareholderRow = createEditableRow('Yokogawa Electric Corporation and its nominees', table4ColumnCount);
+      // ===== Table 4: Shareholders > 5% =====
+      const table4Headers = [
+        "",
+        "As at 31 March 2024\nNumber",
+        "\nPercentage",
+        "As at 31 March 2023\nNumber",
+        "\nPercentage",
+      ];
+      const table4ColumnCount = table4Headers.length;
+      const yokogawaShareholderRow = createEditableRow(
+        "Yokogawa Electric Corporation and its nominees",
+        table4ColumnCount
+      );
 
-  // ===== Table 5: Promoter's Shareholding 2024 (STATIC VALUES) =====
-  const table5Headers = ['SL.No', 'Promoter Name', 'No. of shares held', '% of total shares', '% change during the year'];
-  const promoterRows2024 = [
-    ["1", "Yokogawa Electric Corporation, Japan", "85,05,469", "100%", "No change during the year"]
-  ];
-
-  // ===== Table 6: Promoter's Shareholding 2023 (STATIC VALUES) =====
-  const table6Headers = ['SL.No', 'Promoter Name', 'No. of shares held', '% of total shares', '% change during the year'];
-  const promoterRows2023 = [
-    ["1", "Yokogawa Electric Corporation, Japan", "85,05,469", "100%", "No change during the year"]
-  ];
-
-  return {
-    noteNumber: 12,
-    title: "Equity Share Capital",
-    totalCurrent: null,
-    totalPrevious: null,
-    content: [
-      {
-        type: "table",
-        isEditable: true,
-        headers: table1Headers,
-        rows: [
-          ["Authorised"],
-          equitySharesRow,
-          unclassifiedSharesRow,
-          ["Issued Share Capital"],
-          issuedCapitalRow,
-          ["Subscribed and fully paid up"],
-          subscribedCapitalRow,
-          totalIssuedSubscribedRow,
+      // ===== Table 5: Promoter's Shareholding 2024 (STATIC VALUES) =====
+      const table5Headers = [
+        "SL.No",
+        "Promoter Name",
+        "No. of shares held",
+        "% of total shares",
+        "% change during the year",
+      ];
+      const promoterRows2024 = [
+        [
+          "1",
+          "Yokogawa Electric Corporation, Japan",
+          "85,05,469",
+          "100%",
+          "No change during the year",
         ],
-      },
-      "Refer note (a) to (d) below",
-      "(a) Reconciliation of the number of shares and amount outstanding at the beginning and at the end of the reporting period:",
-      {
-        type: "table",
-        isEditable: true,
-        headers: table2Headers,
-        rows: [
-          ["Equity shares of ₹ 10 each par value"],
-          balanceBeginningRow,
-          balanceEndRow,
+      ];
+
+      // ===== Table 6: Promoter's Shareholding 2023 (STATIC VALUES) =====
+      const table6Headers = [
+        "SL.No",
+        "Promoter Name",
+        "No. of shares held",
+        "% of total shares",
+        "% change during the year",
+      ];
+      const promoterRows2023 = [
+        [
+          "1",
+          "Yokogawa Electric Corporation, Japan",
+          "85,05,469",
+          "100%",
+          "No change during the year",
         ],
-      },
-      "(b) Terms and rights attached to equity shares",
-      {
-        key: "note12-text-a",
-        label: "",
-        narrativeText: getNarrativeTextByKey(
-          "note12-text-a",
-          `The Company has only one class of equity shares having a par value of ₹ 10 per share. Each equity share is entitled to one vote per share. The dividend, if any, proposed by the Board of Directors is subject to the approval of the shareholders in the ensuing Annual General Meeting and shall be payable in Indian rupees. In the event of liquidation of the company, the shareholders will be entitled to receive remaining assets of the company, after distribution of all preferential amounts.The distribution will be in proportion to the number of equity shares held by the shareholders.
+      ];
+
+      return {
+        noteNumber: 12,
+        title: "Equity Share Capital",
+        totalCurrent: null,
+        totalPrevious: null,
+        content: [
+          {
+            key: "note12-table1",
+            type: "table",
+            isEditable: true,
+            headers: table1Headers,
+            rows: [
+              ["Authorised"],
+              equitySharesRow,
+              unclassifiedSharesRow,
+              ["Issued Share Capital"],
+              issuedCapitalRow,
+              ["Subscribed and fully paid up"],
+              subscribedCapitalRow,
+              totalIssuedSubscribedRow,
+            ],
+          },
+          "Refer note (a) to (d) below",
+          "(a) Reconciliation of the number of shares and amount outstanding at the beginning and at the end of the reporting period:",
+          {
+            key: "note12-table2",
+            type: "table",
+            isEditable: true,
+            headers: table2Headers,
+            rows: [
+              ["Equity shares of ₹ 10 each par value"],
+              balanceBeginningRow,
+              balanceEndRow,
+            ],
+          },
+          "(b) Terms and rights attached to equity shares",
+          {
+            key: "note12-text-a",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note12-text-a",
+              `The Company has only one class of equity shares having a par value of ₹ 10 per share. Each equity share is entitled to one vote per share. The dividend, if any, proposed by the Board of Directors is subject to the approval of the shareholders in the ensuing Annual General Meeting and shall be payable in Indian rupees. In the event of liquidation of the company, the shareholders will be entitled to receive remaining assets of the company, after distribution of all preferential amounts.The distribution will be in proportion to the number of equity shares held by the shareholders.
 There have been no issues with respect to unclassified shares.`
-        ),
-        isNarrative: true,
-        isEditableText: true,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      "(c) Details of shares held by the holding company",
-      {
-        type: "table",
-        isEditable: true,
-        headers: table3Headers,
-        rows: [
-          ["Holding Company:"],
-          yokogawaHoldingRow,
-        ],
-      },
-      "(d) Details of shares held by each shareholder holding more than 5% shares:",
-      {
-        type: "table",
-        isEditable: true,
-        headers: table4Headers,
-        rows: [
-          ["Equity shares of ₹ 10 each, par value"],
-          yokogawaShareholderRow,
-        ],
-      },
-      "(e) In the period of five years immediately preceding the Balance Sheet date, the Company has not issued any bonus shares or has bought back any shares.",
-      "(f) Capital Reduction",
-      {
-        key: "note12-text-b",
-        label: "",
-        narrativeText: getNarrativeTextByKey(
-          "note12-text-b",
-          `The Company considered the Reduction of Share Capital on selective basis by reducing the capital to the extent of the holding by the shareholders other than the promoter shareholders. Before the capital reduction, 97.21% of the share capital was held by M/s. Yokogawa Electric Corporation and the balance 2.79% by public. It was therefore proposed to reduce and hence cancel the portion of the shares held by the public by 2.79% (244,531 number of shares). The Board of Directors during the 147th Meeting held on 13th November 2017 and the shareholders during the Extra Ordinary General Meeting held on 11th January 2018 have considered and approved the proposal of selective capital reduction.
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          "(c) Details of shares held by the holding company",
+          {
+            key: "note12-table3",
+            type: "table",
+            isEditable: true,
+            headers: table3Headers,
+            rows: [["Holding Company:"], yokogawaHoldingRow],
+          },
+          "(d) Details of shares held by each shareholder holding more than 5% shares:",
+          {
+            key: "note12-table4",
+            type: "table",
+            isEditable: true,
+            headers: table4Headers,
+            rows: [
+              ["Equity shares of ₹ 10 each, par value"],
+              yokogawaShareholderRow,
+            ],
+          },
+          "(e) In the period of five years immediately preceding the Balance Sheet date, the Company has not issued any bonus shares or has bought back any shares.",
+          "(f) Capital Reduction",
+          {
+            key: "note12-text-b",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note12-text-b",
+              `The Company considered the Reduction of Share Capital on selective basis by reducing the capital to the extent of the holding by the shareholders other than the promoter shareholders. Before the capital reduction, 97.21% of the share capital was held by M/s. Yokogawa Electric Corporation and the balance 2.79% by public. It was therefore proposed to reduce and hence cancel the portion of the shares held by the public by 2.79% (244,531 number of shares). The Board of Directors during the 147th Meeting held on 13th November 2017 and the shareholders during the Extra Ordinary General Meeting held on 11th January 2018 have considered and approved the proposal of selective capital reduction.
 The Company had accordingly filed petition with the Hon'ble Tribunal (National Company Law Tribunal-Bengaluru Bench) to reduce the issued, subscribed and paid up share capital of the company consisting of 244,531 equity shares of INR 10/- each fully paid up (INR 2,445,310/-), held by shareholders belonging to non-promoter group and cancel along with the securities premium/free reserves of the Company. The reduction and cancellation is effected by returning the paid-up equity share capital along with the securities premium lying to the credit of the securities premium account and free reserves to the shareholders belonging to non-promoter group ( “Public Shareholders”) in cash at the rate of INR 923.20/- which includes the paid up share capital and the premium amount thereon.
 The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed the petition for the reduction of the share capital of the Company. The company pursuant to the order of the Hon'ble Tribunal discharged the dues to the shareholders whose shares were reduced by depositing the fund with an Escrow Account opened for the purpose and paying the shareholders out of this account by Bank Transfer or Draft or other mode as indicated by the respective shareholder with the Company. For the year ended 31st March 2024 the capital reduction liability payable to shareholders has been discharged to the extent of Rs. 92,320/-.`
-        ),
-        isNarrative: true,
-        isEditableText: true,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      `(g) Promoter's Shareholding as on 31 March 2024 :`,
-      {
-        type: "table",
-        isEditable: false, // make non-editable to match screenshot 2
-        headers: table5Headers,
-        rows: promoterRows2024,
-      },
-      `(h) Promoter's Shareholding as on 31st March 2023 :`,
-      {
-        type: "table",
-        isEditable: false, // make non-editable to match screenshot 2
-        headers: table6Headers,
-        rows: promoterRows2023,
-      },
-    ],
-  };
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          `(g) Promoter's Shareholding as on 31 March 2024 :`,
+          {
+            key: "note12-table5",
+            type: "table",
+            isEditable: false, // make non-editable to match screenshot 2
+            headers: table5Headers,
+            rows: promoterRows2024,
+          },
+          `(h) Promoter's Shareholding as on 31st March 2023 :`,
+          {
+            key: "note12-table6",
+            type: "table",
+            isEditable: false, // make non-editable to match screenshot 2
+            headers: table6Headers,
+            rows: promoterRows2023,
+          },
+        ],
+      };
     };
     const calculateNote13 = (): FinancialNote => {
       const note13_1 = getValueForKey(13, "note13-opening");
@@ -3571,115 +3965,197 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
       };
     };
     const calculateNote14 = (): FinancialNote => {
-  // --- Hierarchical Item Calculations (YOUR ORIGINAL LOGIC - UNCHANGED) ---
-  const msme = {
-    current: getAmount('amountCurrent', ['trade payables'], ['total outstanding dues of micro enterprises and small enterprises']),
-    previous: getAmount('amountPrevious', ['trade payables'], ['total outstanding dues of micro enterprises and small enterprises']),
-  };
-  const nonMsme = {
-    current: getAmount('amountCurrent', ['trade payables'], ['dues to related parties', 'total outstanding dues of creditors other than micro enterprises and small enterprises', 'creditors other than micro']),
-    previous: getAmount('amountPrevious', ['trade payables'], ['dues to related parties', 'total outstanding dues of creditors other than micro enterprises and small enterprises', 'creditors other than micro']),
-  };
-  const grandTotal = {
-    current: msme.current + nonMsme.current,
-    previous: msme.previous + nonMsme.previous,
-  };
+      // --- Hierarchical Item Calculations (YOUR ORIGINAL LOGIC - UNCHANGED) ---
+      const msme = {
+        current: getAmount(
+          "amountCurrent",
+          ["trade payables"],
+          ["total outstanding dues of micro enterprises and small enterprises"]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["trade payables"],
+          ["total outstanding dues of micro enterprises and small enterprises"]
+        ),
+      };
+      const nonMsme = {
+        current: getAmount(
+          "amountCurrent",
+          ["trade payables"],
+          [
+            "dues to related parties",
+            "total outstanding dues of creditors other than micro enterprises and small enterprises",
+            "creditors other than micro",
+          ]
+        ),
+        previous: getAmount(
+          "amountPrevious",
+          ["trade payables"],
+          [
+            "dues to related parties",
+            "total outstanding dues of creditors other than micro enterprises and small enterprises",
+            "creditors other than micro",
+          ]
+        ),
+      };
+      const grandTotal = {
+        current: msme.current + nonMsme.current,
+        previous: msme.previous + nonMsme.previous,
+      };
 
-  // --- Editable Table Logic ---
-  const parseNum = (val: string): number => {
-    if (!val) return 0;
-    return parseFloat(String(val).replace(/,/g, '')) || 0;
-  };
+      // --- Editable Table Logic ---
+      const parseNum = (val: string): number => {
+        if (!val) return 0;
+        return parseFloat(String(val).replace(/,/g, "")) || 0;
+      };
 
-  const row = (label: string, columnCount: number): string[] => {
-    const edited = getTableValue(14, label);
-    if (edited) return edited;
-    
-    const emptyRow = Array(columnCount).fill('');
-    emptyRow[0] = label;
-    return emptyRow;
-  };
+      const row = (label: string, columnCount: number): string[] => {
+        const edited = getTableValue1(14, ["note14-table1"], label);
+        if (edited) return edited;
 
-  const ageingHeaders = [
-    'Particulars',
-    'Less than 1 year',
-    '1-2 years',
-    '2-3 years',
-    'More than 3 years',
-    'Total'
-  ];
-  const ageingColCount = ageingHeaders.length;
+        const emptyRow = Array(columnCount).fill("");
+        emptyRow[0] = label;
+        return emptyRow;
+      };
 
-  const calculateAgeingRowTotal = (r: string[]): string => {
-    let sum = 0;
-    for (let i = 1; i <= 4; i++) { // Sum columns 1 through 4
-        sum += parseNum(r[i]);
-    }
-    return sum.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-  };
+      const ageingHeaders = [
+        "Particulars",
+        "Less than 1 year",
+        "1-2 years",
+        "2-3 years",
+        "More than 3 years",
+        "Total",
+      ];
+      const ageingColCount = ageingHeaders.length;
 
-  // Define editable rows for the current year (2024) data points
-  const msme2024 = row('(i) MSME 2024', ageingColCount);
-  const others2024 = row('(ii) Others 2024', ageingColCount);
-  
-  // Define editable rows for the previous year (2023) data points
-  const msme2023 = row('(i) MSME 2023', ageingColCount);
-  const others2023 = row('(ii) Others 2023', ageingColCount);
-  
-  // Calculate row totals for each editable row
-  msme2024[5] = calculateAgeingRowTotal(msme2024);
-  others2024[5] = calculateAgeingRowTotal(others2024);
-  msme2023[5] = calculateAgeingRowTotal(msme2023);
-  others2023[5] = calculateAgeingRowTotal(others2023);
-  
-  // Calculate the "Total Trade Payables as on 31st March 2024" row
-  const total2024 = ['Total Trade Payables as on 31st March 2024', '0.00', '0.00', '0.00', '0.00', '0.00'];
-  for (let i = 1; i <= 5; i++) {
-    const colSum = parseNum(msme2024[i]) + parseNum(others2024[i]);
-    total2024[i] = colSum.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-  }
+      const calculateAgeingRowTotal = (r: string[]): string => {
+        let sum = 0;
+        for (let i = 1; i <= 4; i++) {
+          // Sum columns 1 through 4
+          sum += parseNum(r[i]);
+        }
+        return sum.toLocaleString("en-IN", { minimumFractionDigits: 2 });
+      };
 
-  // Calculate the "Total Trade Payables as on 31st March 2023" row
-  const total2023 = ['Total Trade Payables as on 31st March 2023', '0.00', '0.00', '0.00', '0.00', '0.00'];
-  for (let i = 1; i <= 5; i++) {
-    const colSum = parseNum(msme2023[i]) + parseNum(others2023[i]);
-    total2023[i] = colSum.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-  }
+      // Define editable rows for the current year (2024) data points
+      const msme2024 = row("(i) MSME 2024", ageingColCount);
+      const others2024 = row("(ii) Others 2024", ageingColCount);
 
-  return {
-    noteNumber: 14,
-    title: 'Trade payables',
-    totalCurrent: null,
-    totalPrevious: null,
-    footer:'Note : Figures in brackets relates to previous year.',
-    content: [
-      'Trade Payables:',
-      { key: 'note14-msme-group', label: '(i) Total outstanding dues of micro enterprises and small enterprises (MSME)', valueCurrent: msme.current, valuePrevious: msme.previous },
-      { key: 'note14-nonmsme-group', label: '(ii) Total outstanding dues of creditors other than micro enterprises and small enterprises', isSubtotal: true, valueCurrent: nonMsme.current, valuePrevious: nonMsme.previous },
-      { key: 'note14-total', label: '', isGrandTotal: true, valueCurrent: grandTotal.current, valuePrevious: grandTotal.previous },
-      '(Refer notes below)',
-      'Note',
-      { key: 'note14-text-a', label: '', narrativeText: getNarrativeTextByKey('note14-text-a', `a) Dues to related parties (Refer note 31b) in trade payable {other than MSME} Rs. 26,398.24 Lakhs [31 March 2023: 35,845.48 Lakhs].`)
-        , isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null },
-      { key: 'note14-text-b', label: '', narrativeText: getNarrativeTextByKey('note14-text-b', `b) Trade payables include foreign currency payables amounting to Rs.2,307.03 lakhs which are outstanding for a period greater than 6 months. The Company has informed about their status to the authorised dealer. The Company will obtain and ensure the requisite approvals wherever required before settling the overdue balances payable.`),
-         isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null },
-      'The trade payables ageing schedule for the years ended as on 31 March is as follows :',
-      {
-        key:'note14-table1',
-        type: 'table',
-        isEditable: true,
-        headers: ageingHeaders,
-        rows: [
-          msme2024,
-          others2024,
-          total2024,
-          msme2023,
-          others2023,
-          total2023,
-        ]
-      },
-    ],
-  };
+      // Define editable rows for the previous year (2023) data points
+      const msme2023 = row("(i) MSME 2023", ageingColCount);
+      const others2023 = row("(ii) Others 2023", ageingColCount);
+
+      // Calculate row totals for each editable row
+      msme2024[5] = calculateAgeingRowTotal(msme2024);
+      others2024[5] = calculateAgeingRowTotal(others2024);
+      msme2023[5] = calculateAgeingRowTotal(msme2023);
+      others2023[5] = calculateAgeingRowTotal(others2023);
+
+      // Calculate the "Total Trade Payables as on 31st March 2024" row
+      const total2024 = [
+        "Total Trade Payables as on 31st March 2024",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+      ];
+      for (let i = 1; i <= 5; i++) {
+        const colSum = parseNum(msme2024[i]) + parseNum(others2024[i]);
+        total2024[i] = colSum.toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+        });
+      }
+
+      // Calculate the "Total Trade Payables as on 31st March 2023" row
+      const total2023 = [
+        "Total Trade Payables as on 31st March 2023",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+      ];
+      for (let i = 1; i <= 5; i++) {
+        const colSum = parseNum(msme2023[i]) + parseNum(others2023[i]);
+        total2023[i] = colSum.toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+        });
+      }
+
+      return {
+        noteNumber: 14,
+        title: "Trade payables",
+        totalCurrent: null,
+        totalPrevious: null,
+        footer: "Note : Figures in brackets relates to previous year.",
+        content: [
+          "Trade Payables:",
+          {
+            key: "note14-msme-group",
+            label:
+              "(i) Total outstanding dues of micro enterprises and small enterprises (MSME)",
+            valueCurrent: msme.current,
+            valuePrevious: msme.previous,
+          },
+          {
+            key: "note14-nonmsme-group",
+            label:
+              "(ii) Total outstanding dues of creditors other than micro enterprises and small enterprises",
+            isSubtotal: true,
+            valueCurrent: nonMsme.current,
+            valuePrevious: nonMsme.previous,
+          },
+          {
+            key: "note14-total",
+            label: "",
+            isGrandTotal: true,
+            valueCurrent: grandTotal.current,
+            valuePrevious: grandTotal.previous,
+          },
+          "(Refer notes below)",
+          "Note",
+          {
+            key: "note14-text-a",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note14-text-a",
+              `a) Dues to related parties (Refer note 31b) in trade payable {other than MSME} Rs. 26,398.24 Lakhs [31 March 2023: 35,845.48 Lakhs].`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note14-text-b",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note14-text-b",
+              `b) Trade payables include foreign currency payables amounting to Rs.2,307.03 lakhs which are outstanding for a period greater than 6 months. The Company has informed about their status to the authorised dealer. The Company will obtain and ensure the requisite approvals wherever required before settling the overdue balances payable.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          "The trade payables ageing schedule for the years ended as on 31 March is as follows :",
+          {
+            key: "note14-table1",
+            type: "table",
+            isEditable: true,
+            headers: ageingHeaders,
+            rows: [
+              msme2024,
+              others2024,
+              total2024,
+              msme2023,
+              others2023,
+              total2023,
+            ],
+          },
+        ],
+      };
     };
     const calculateNote15 = (): FinancialNote => {
       const leaseLiabilitiesNonCurrent = {
@@ -6456,688 +6932,907 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
       };
     };
     const calculateNote27 = (): FinancialNote => {
-  // --- Hierarchical Item Calculations (YOUR ORIGINAL LOGIC - UNCHANGED) ---
-  const note27_1 = getValueForKey(27, 'note27-1');
-  const note27_2 = getValueForKey(27, 'note27-2');
-  
-  const grossAmount = { current:note27_1.valueCurrent?? 0, previous:note27_1.valuePrevious?? 0 };
-  const amountSpent = { current:note27_2.valueCurrent?? 0, previous:note27_2.valuePrevious?? 0 };
+      // --- Hierarchical Item Calculations (YOUR ORIGINAL LOGIC - UNCHANGED) ---
+      const note27_1 = getValueForKey(27, "note27-1");
+      const note27_2 = getValueForKey(27, "note27-2");
 
-  // --- Editable Table Logic (THE NEW PART) ---
-  const parseNum = (val: string): number => {
-    if (!val) return 0;
-    return parseFloat(String(val).replace(/,/g, '')) || 0;
-  };
-  
-  const row = (label: string, columnCount: number): string[] => {
-    const edited = getTableValue(27, label);
-    if (edited) return edited;
-    
-    const emptyRow = Array(columnCount).fill('');
-    emptyRow[0] = label;
-    return emptyRow;
-  };
+      const grossAmount = {
+        current: note27_1.valueCurrent ?? 0,
+        previous: note27_1.valuePrevious ?? 0,
+      };
+      const amountSpent = {
+        current: note27_2.valueCurrent ?? 0,
+        previous: note27_2.valuePrevious ?? 0,
+      };
 
-  // --- TABLE 1: Current Year ---
-  const headers2024 = ["31 March 2024", "In cash", "Yet to be paid in cash", "Total"];
-  const colCount2024 = headers2024.length;
+      // --- Editable Table Logic (THE NEW PART) ---
+      const parseNum = (val: string): number => {
+        if (!val) return 0;
+        return parseFloat(String(val).replace(/,/g, "")) || 0;
+      };
 
-  const construction2024 = row("(i) Construction/acquisition of any asset - 2024", colCount2024);
-  const others2024 = row("(ii) On purposes other than (i) above - 2024", colCount2024);
+      const row = (label: string, columnCount: number): string[] => {
+        const edited = getTableValue1(
+          27,
+          ["note27-table1", "note27-table2"],
+          label
+        );
+        if (edited) return edited;
 
-  construction2024[3] = (parseNum(construction2024[1]) + parseNum(construction2024[2])).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  others2024[3] = (parseNum(others2024[1]) + parseNum(others2024[2])).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const emptyRow = Array(columnCount).fill("");
+        emptyRow[0] = label;
+        return emptyRow;
+      };
 
-  const total2024 = ['Total', '0.00', '0.00', '0.00'];
-  total2024[1] = (parseNum(construction2024[1]) + parseNum(others2024[1])).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  total2024[2] = (parseNum(construction2024[2]) + parseNum(others2024[2])).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  total2024[3] = (parseNum(total2024[1]) + parseNum(total2024[2])).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      // --- TABLE 1: Current Year ---
+      const headers2024 = [
+        "31 March 2024",
+        "In cash",
+        "Yet to be paid in cash",
+        "Total",
+      ];
+      const colCount2024 = headers2024.length;
 
-  // --- TABLE 2: Previous Year ---
-  const headers2023 = ["31 March 2023", "In cash", "Yet to be paid in cash", "Total"];
-  const colCount2023 = headers2023.length;
+      const construction2024 = row(
+        "(i) Construction/acquisition of any asset - 2024",
+        colCount2024
+      );
+      const others2024 = row(
+        "(ii) On purposes other than (i) above - 2024",
+        colCount2024
+      );
 
-  const construction2023 = row("(i) Construction/acquisition of any asset - 2023", colCount2023);
-  const others2023 = row("(ii) On purposes other than (i) above - 2023", colCount2023);
+      construction2024[3] = (
+        parseNum(construction2024[1]) + parseNum(construction2024[2])
+      ).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      others2024[3] = (
+        parseNum(others2024[1]) + parseNum(others2024[2])
+      ).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
 
-  construction2023[3] = (parseNum(construction2023[1]) + parseNum(construction2023[2])).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  others2023[3] = (parseNum(others2023[1]) + parseNum(others2023[2])).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const total2024 = ["Total", "0.00", "0.00", "0.00"];
+      total2024[1] = (
+        parseNum(construction2024[1]) + parseNum(others2024[1])
+      ).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      total2024[2] = (
+        parseNum(construction2024[2]) + parseNum(others2024[2])
+      ).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      total2024[3] = (
+        parseNum(total2024[1]) + parseNum(total2024[2])
+      ).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
 
-  const total2023 = ['Total', '0.00', '0.00', '0.00'];
-  total2023[1] = (parseNum(construction2023[1]) + parseNum(others2023[1])).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  total2023[2] = (parseNum(construction2023[2]) + parseNum(others2023[2])).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  total2023[3] = (parseNum(total2023[1]) + parseNum(total2023[2])).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
- 
-  return {
-    noteNumber: 27,
-    title: 'Corporate Social Responsibility (CSR)',
-    totalCurrent: null,
-    totalPrevious: null,
-    content: [
-      {
-        key: 'note27-text-a',
-        label: '',
-        narrativeText: getNarrativeTextByKey('note27-text-a', `As per Section 135 of the Companies Act, 2013, a CSR committee has been formed by the Company. The areas for CSR activities are promoting education, healthcare and woman economic empowerment, providing disaster relief and undertaking rural development projects.`),
-        isNarrative: true,
-        isEditableText: true,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      {
-        key: 'note27-1',
-        label: '(a) Gross amount required to be spent by the company during the year ',
-        valueCurrent: grossAmount.current,
-        valuePrevious: grossAmount.previous,
-        isEditableRow: true
-      },
-      {
-        key: 'note27-2',
-        label: '(b) Amount spent during the year ',
-        valueCurrent: amountSpent.current,
-        valuePrevious: amountSpent.previous,
-        isEditableRow: true
-      },
-      {
-        key: 'note27-3',
-        label: '(c) shortfall at the end of the year, ',
-        valueCurrent: 0, // Using original hardcoded/calculated logic
-        valuePrevious: 122.41,
-      },
-      {
-        key: 'note27-4',
-        label: '(d) total of previous years shortfall ',
-        valueCurrent: 0, // Using original hardcoded/calculated logic
-        valuePrevious: 122.41,
-      },
-      {
-        key: 'note27-5',
-        label: '(e) reason for shortfall',
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      {
-        key:'note27-table1',
-        type: "table",
-        isEditable: true, // Make table editable
-        headers: headers2024,
-        rows: [
-          construction2024,
-          others2024,
-          total2024,
+      // --- TABLE 2: Previous Year ---
+      const headers2023 = [
+        "31 March 2023",
+        "In cash",
+        "Yet to be paid in cash",
+        "Total",
+      ];
+      const colCount2023 = headers2023.length;
+
+      const construction2023 = row(
+        "(i) Construction/acquisition of any asset - 2023",
+        colCount2023
+      );
+      const others2023 = row(
+        "(ii) On purposes other than (i) above - 2023",
+        colCount2023
+      );
+
+      construction2023[3] = (
+        parseNum(construction2023[1]) + parseNum(construction2023[2])
+      ).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      others2023[3] = (
+        parseNum(others2023[1]) + parseNum(others2023[2])
+      ).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+
+      const total2023 = ["Total", "0.00", "0.00", "0.00"];
+      total2023[1] = (
+        parseNum(construction2023[1]) + parseNum(others2023[1])
+      ).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      total2023[2] = (
+        parseNum(construction2023[2]) + parseNum(others2023[2])
+      ).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      total2023[3] = (
+        parseNum(total2023[1]) + parseNum(total2023[2])
+      ).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+
+      return {
+        noteNumber: 27,
+        title: "Corporate Social Responsibility (CSR)",
+        totalCurrent: null,
+        totalPrevious: null,
+        content: [
+          {
+            key: "note27-text-a",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note27-text-a",
+              `As per Section 135 of the Companies Act, 2013, a CSR committee has been formed by the Company. The areas for CSR activities are promoting education, healthcare and woman economic empowerment, providing disaster relief and undertaking rural development projects.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note27-1",
+            label:
+              "(a) Gross amount required to be spent by the company during the year ",
+            valueCurrent: grossAmount.current,
+            valuePrevious: grossAmount.previous,
+            isEditableRow: true,
+          },
+          {
+            key: "note27-2",
+            label: "(b) Amount spent during the year ",
+            valueCurrent: amountSpent.current,
+            valuePrevious: amountSpent.previous,
+            isEditableRow: true,
+          },
+          {
+            key: "note27-3",
+            label: "(c) shortfall at the end of the year, ",
+            valueCurrent: 0, // Using original hardcoded/calculated logic
+            valuePrevious: 122.41,
+          },
+          {
+            key: "note27-4",
+            label: "(d) total of previous years shortfall ",
+            valueCurrent: 0, // Using original hardcoded/calculated logic
+            valuePrevious: 122.41,
+          },
+          {
+            key: "note27-5",
+            label: "(e) reason for shortfall",
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note27-table1",
+            type: "table",
+            isEditable: true, // Make table editable
+            headers: headers2024,
+            rows: [construction2024, others2024, total2024],
+          },
+          {
+            key: "note27-table2",
+            type: "table",
+            isEditable: true, // Make table editable
+            headers: headers2023,
+            rows: [construction2023, others2023, total2023],
+          },
         ],
-      },
-      {
-        key:'note27-table2',
-        type: "table",
-        isEditable: true, // Make table editable
-        headers: headers2023,
-        rows: [
-          construction2023,
-          others2023,
-          total2023,
-        ]
-      }
-    ],
-    footer: `(a) Gross amount required to be spent by the company during the year is ₹ 191.43 lakhs (Previous year is ₹ 122.41 lakhs).
+        footer: `(a) Gross amount required to be spent by the company during the year is ₹ 191.43 lakhs (Previous year is ₹ 122.41 lakhs).
              (b) Amount spent during the year is ₹ 191.43 lakhs ( Previous year is ₹ 122.41 lakhs)
-             (c)  Amount donated towards promotion of education and eradication of hunger.`
-  };
-};
+             (c)  Amount donated towards promotion of education and eradication of hunger.`,
+      };
+    };
     const calculateNote28 = (): FinancialNote => {
-  // --- Hierarchical Item Calculations (YOUR ORIGINAL LOGIC - UNCHANGED) ---
-  const note28_1 = getValueForKey(28, 'note28-amount-current-service');
-  const note28_2 = getValueForKey(28, 'note28-amount-interest');
-  const note28_3 = getValueForKey(28, 'note28-benefit-return');
-  const note28_4 = getValueForKey(28, 'note28-benefit-DBO');
-  const note28_5 = getValueForKey(28, 'note28-benefit-DBO2');
-  const note28_6 = getValueForKey(28, 'note28-balancesheet-present');
-  const note28_7 = getValueForKey(28, 'note28-balancesheet-fair');
-  const note28_8 = getValueForKey(28, 'note28-movement-interest');
-  const note28_9 = getValueForKey(28, 'note28-movement-payments');
-  const note28_10 = getValueForKey(28, 'note28-fairmovement-open-plan');
-  const note28_11 = getValueForKey(28, 'note28-fairmovement-open-benefit');
-  const note28_12 = getValueForKey(28, 'note28-plan-assets-Actuarial-1');
-  const note28_13 = getValueForKey(28, 'note28-plan-assets-Actuarial-3');
-  const note28_14 = getValueForKey(28, 'note28-plan-assets-Actuarial-4');
+      // --- Hierarchical Item Calculations (YOUR ORIGINAL LOGIC - UNCHANGED) ---
+      const note28_1 = getValueForKey(28, "note28-amount-current-service");
+      const note28_2 = getValueForKey(28, "note28-amount-interest");
+      const note28_3 = getValueForKey(28, "note28-benefit-return");
+      const note28_4 = getValueForKey(28, "note28-benefit-DBO");
+      const note28_5 = getValueForKey(28, "note28-benefit-DBO2");
+      const note28_6 = getValueForKey(28, "note28-balancesheet-present");
+      const note28_7 = getValueForKey(28, "note28-balancesheet-fair");
+      const note28_8 = getValueForKey(28, "note28-movement-interest");
+      const note28_9 = getValueForKey(28, "note28-movement-payments");
+      const note28_10 = getValueForKey(28, "note28-fairmovement-open-plan");
+      const note28_11 = getValueForKey(28, "note28-fairmovement-open-benefit");
+      const note28_12 = getValueForKey(28, "note28-plan-assets-Actuarial-1");
+      const note28_13 = getValueForKey(28, "note28-plan-assets-Actuarial-3");
+      const note28_14 = getValueForKey(28, "note28-plan-assets-Actuarial-4");
 
-  const currentservice = { current: note28_1.valueCurrent ?? 0, previous: note28_1.valuePrevious ?? 0 };
-  const interest = { current: note28_2.valueCurrent ?? 0, previous: note28_2.valuePrevious ?? 0 };
-  const returnasset = { current: note28_3.valueCurrent ?? 0, previous: note28_3.valuePrevious ?? 0 };
-  const DBO = { current: note28_4.valueCurrent ?? 0, previous: note28_4.valuePrevious ?? 0 };
-  const DBO2 = { current: note28_5.valueCurrent ?? 0, previous: note28_5.valuePrevious ?? 0 };
-  const benefit = { current: note28_6.valueCurrent ?? 0, previous: note28_6.valuePrevious ?? 0 };
-  const fair = { current: note28_7.valueCurrent ?? 0, previous: note28_7.valuePrevious ?? 0 };
-  const movementinterest = { current: note28_8.valueCurrent ?? 0, previous: note28_8.valuePrevious ?? 0 };
-  const benefitpayment = { current: note28_9.valueCurrent ?? 0, previous: note28_9.valuePrevious ?? 0 };
-  const plan = { current: note28_10.valueCurrent ?? 0, previous: note28_10.valuePrevious ?? 0 };
-  const openbenefit = { current: note28_11.valueCurrent ?? 0, previous: note28_11.valuePrevious ?? 0 };
-  const discount = { current: note28_12.valueCurrent ?? 0, previous: note28_12.valuePrevious ?? 0 };
-  const salary = { current: note28_13.valueCurrent ?? 0, previous: note28_13.valuePrevious ?? 0 };
-  const attrition = { current: note28_14.valueCurrent ?? 0, previous: note28_14.valuePrevious ?? 0 };
-  
-  // --- Editable Table Logic ---
-   const row = (label: string, columnCount: number): string[] => {
-    const edited = getTableValue(28, label);
-    if (edited) return edited;
-    
-    const emptyRow = Array(columnCount).fill('');
-    emptyRow[0] = label;
-    return emptyRow;
-  };
+      const currentservice = {
+        current: note28_1.valueCurrent ?? 0,
+        previous: note28_1.valuePrevious ?? 0,
+      };
+      const interest = {
+        current: note28_2.valueCurrent ?? 0,
+        previous: note28_2.valuePrevious ?? 0,
+      };
+      const returnasset = {
+        current: note28_3.valueCurrent ?? 0,
+        previous: note28_3.valuePrevious ?? 0,
+      };
+      const DBO = {
+        current: note28_4.valueCurrent ?? 0,
+        previous: note28_4.valuePrevious ?? 0,
+      };
+      const DBO2 = {
+        current: note28_5.valueCurrent ?? 0,
+        previous: note28_5.valuePrevious ?? 0,
+      };
+      const benefit = {
+        current: note28_6.valueCurrent ?? 0,
+        previous: note28_6.valuePrevious ?? 0,
+      };
+      const fair = {
+        current: note28_7.valueCurrent ?? 0,
+        previous: note28_7.valuePrevious ?? 0,
+      };
+      const movementinterest = {
+        current: note28_8.valueCurrent ?? 0,
+        previous: note28_8.valuePrevious ?? 0,
+      };
+      const benefitpayment = {
+        current: note28_9.valueCurrent ?? 0,
+        previous: note28_9.valuePrevious ?? 0,
+      };
+      const plan = {
+        current: note28_10.valueCurrent ?? 0,
+        previous: note28_10.valuePrevious ?? 0,
+      };
+      const openbenefit = {
+        current: note28_11.valueCurrent ?? 0,
+        previous: note28_11.valuePrevious ?? 0,
+      };
+      const discount = {
+        current: note28_12.valueCurrent ?? 0,
+        previous: note28_12.valuePrevious ?? 0,
+      };
+      const salary = {
+        current: note28_13.valueCurrent ?? 0,
+        previous: note28_13.valuePrevious ?? 0,
+      };
+      const attrition = {
+        current: note28_14.valueCurrent ?? 0,
+        previous: note28_14.valuePrevious ?? 0,
+      };
 
-  // --- TABLE 1: Sensitivity Analysis ---
-  const sensitivityHeaders = [
-    'Particulars',
-    "For the Year ended 31 March 2024\nIncrease",
-    "For the Year ended 31 March 2024\nDecrease",
-    "For the Year ended 31 March 2023\nIncrease",
-    "For the Year ended 31 March 2023\nDecrease"
-  ];
-  const sensitivityColCount = sensitivityHeaders.length;
-  
- const dis = row('Discount Rate (- / + 100 Basis Points)', sensitivityColCount);
-  const growth = row('Salary Growth Rate (- / + 100 Basis Points)', sensitivityColCount);
-  const attr = row('Attrition rate (- / + 100 Basis Points)', sensitivityColCount);
-  const mortality = row('Mortality Rate (- / + 10% of mortality rates)', sensitivityColCount);
+      // --- Editable Table Logic ---
+      const row = (label: string, columnCount: number): string[] => {
+        const edited = getTableValue1(
+          28,
+          ["note28-table1", "note28-table2"],
+          label
+        );
+        if (edited) return edited;
 
-  // --- TABLE 2: Future Cash Outflows ---
-  const outflowHeaders = ["Particulars", "Amount\nUndiscounted values"];
-  const outflowColCount = outflowHeaders.length;
+        const emptyRow = Array(columnCount).fill("");
+        emptyRow[0] = label;
+        return emptyRow;
+      };
 
-   // Define the editable rows for the outflow table (now blank by default)
-  const par24 = row('2024-25', outflowColCount);
-  const par25 = row('2025-26', outflowColCount);
-  const par26 = row('2026-27', outflowColCount);
-  const par27 = row('2027-28', outflowColCount);
-  const par28 = row('2028-29', outflowColCount);
-  const par29 = row('2029-30 to 2033- 34', outflowColCount);
-  const payouts = row('Payouts above ten years', outflowColCount);
+      // --- TABLE 1: Sensitivity Analysis ---
+      const sensitivityHeaders = [
+        "Particulars",
+        "For the Year ended 31 March 2024\nIncrease",
+        "For the Year ended 31 March 2024\nDecrease",
+        "For the Year ended 31 March 2023\nIncrease",
+        "For the Year ended 31 March 2023\nDecrease",
+      ];
+      const sensitivityColCount = sensitivityHeaders.length;
 
+      const dis = row(
+        "Discount Rate (- / + 100 Basis Points)",
+        sensitivityColCount
+      );
+      const growth = row(
+        "Salary Growth Rate (- / + 100 Basis Points)",
+        sensitivityColCount
+      );
+      const attr = row(
+        "Attrition rate (- / + 100 Basis Points)",
+        sensitivityColCount
+      );
+      const mortality = row(
+        "Mortality Rate (- / + 10% of mortality rates)",
+        sensitivityColCount
+      );
 
-  return {
-    noteNumber: 28,
-    title: 'Employee benefit plans',
-    totalCurrent: null, 
-    totalPrevious: null,
-    content: [
-      {
-        key: 'note28-1',
-        label: '28(a)  Defined contribution plans ',
-        isSubtotal:true,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      {
-        key: 'note28-text-a',
-        label: '',
-        narrativeText: getNarrativeTextByKey('note28-text-a',`The Company makes Provident Fund and Superannuation Fund contributions to defined contribution plans for qualifying employees. Under the Schemes, the Company is required to contribute a specified percentage of the payroll costs to fund the benefits.  The Company recognised ₹ 798.70 Lakhs (Year ended 31 March 2023 ₹ 696.11 Lakhs) for Provident Fund contributions and ₹ 401.01 Lakhs (Year ended 31 March 2023 ₹ 349.60 Lakhs) for Superannuation Fund contributions. The contributions payable to these plans by the Company are at rates specified in the rules of the schemes.`), 
-        isNarrative: true,
-        isEditableText: true,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      {
-        key: 'note28-2',
-        label: `28(b)  Defined benefit plans \n Gratuity`,
-        isSubtotal:true,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      {
-        key: 'note28-text-b',
-        label: '',
-        narrativeText: getNarrativeTextByKey('note28-text-b', `The Gratuity scheme is a final salary defined benefit plan, that provides for a lumpsum payment at the time of separation; based on scheme rules the benefits are calculated on the basis of last drawn salary and the period of service at the time of separation and paid as lumpsum. There is a vesting period of 5 years.`), 
-        isNarrative: true,
-        isEditableText: true,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      {
-        key: 'note28-text-c',
-        label: '',
-        narrativeText: getNarrativeTextByKey('note28-text-c','These plans typically expose the company to actuarial risks such as:'),
-        isNarrative: true,
-        isEditableText: true,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      {
-        key: 'note28-text-d',
-        label: '',
-        narrativeText: getNarrativeTextByKey('note28-text-d', `(i) Investment Risk: The fund is managed by LIC, fund manager. So the details of composition of plan assets managed by the fund manager is not available with the company. However, the fall in plan assets will increase the defined benefit obligation.`),
-        isNarrative: true,
-        isEditableText: true,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      {
-        key: 'note28-text-e',
-        label: '',
-        narrativeText:getNarrativeTextByKey('note28-text-e', `(ii) Interest rates risks: the defined benefit obligation calculated uses a discount rate based on government bonds. If bond yields fall, the defined benefit will tend to increase.`), 
-        isNarrative: true,
-        isEditableText: true,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      {
-        key: 'note28-text-f',
-        label: '',
-        narrativeText: getNarrativeTextByKey('note28-text-f',`(iii) Salary Inflation risks: The present value of the defined benefit plan liability is calculated by reference to the future salaries of plans participants. As such increase in salary will increase the defined benefit obligation.`), 
-        isNarrative: true,
-        isEditableText: true,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      {
-        key: 'note28-text-g',
-        label: '',
-        narrativeText: getNarrativeTextByKey('note28-text-g',  `(iv) Demographic risks: The present value of the defined benefit plan liability is calculated by reference to the best estimate of the mortality of plan participants during their employment as the increase in life  expectancy of the plan participants will increase the plan's liability.`), 
-        isNarrative: true,
-        isEditableText: true,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      {
-        key: 'note28-text-h',
-        label: '',
-        narrativeText:  getNarrativeTextByKey('note28-text-h',`In respect of the plan, the most recent actuary valuation of plan assets and the present values of the defined benefit obligation were carried out as at March 31,2024 and  March 31, 2023 . The present value of the defined benefit obligation, and the related service cost and the past service cost, were measured using the projected unit credit method.`), 
-        isNarrative: true,
-        isEditableText: true,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      {
-        key: 'note28-amount',
-        label: 'Amount recognised in comprehensive income in respect of these defined benefit plans are as follows:',
-        isSubtotal:true,
-        valueCurrent: null,
-        valuePrevious: null,
-        children: [ {
-                key: 'note28-amount-service',
+      // --- TABLE 2: Future Cash Outflows ---
+      const outflowHeaders = ["Particulars", "Amount\nUndiscounted values"];
+      const outflowColCount = outflowHeaders.length;
+
+      // Define the editable rows for the outflow table (now blank by default)
+      const par24 = row("2024-25", outflowColCount);
+      const par25 = row("2025-26", outflowColCount);
+      const par26 = row("2026-27", outflowColCount);
+      const par27 = row("2027-28", outflowColCount);
+      const par28 = row("2028-29", outflowColCount);
+      const par29 = row("2029-30 to 2033- 34", outflowColCount);
+      const payouts = row("Payouts above ten years", outflowColCount);
+
+      return {
+        noteNumber: 28,
+        title: "Employee benefit plans",
+        totalCurrent: null,
+        totalPrevious: null,
+        content: [
+          {
+            key: "note28-1",
+            label: "28(a)  Defined contribution plans ",
+            isSubtotal: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note28-text-a",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-a",
+              `The Company makes Provident Fund and Superannuation Fund contributions to defined contribution plans for qualifying employees. Under the Schemes, the Company is required to contribute a specified percentage of the payroll costs to fund the benefits.  The Company recognised ₹ 798.70 Lakhs (Year ended 31 March 2023 ₹ 696.11 Lakhs) for Provident Fund contributions and ₹ 401.01 Lakhs (Year ended 31 March 2023 ₹ 349.60 Lakhs) for Superannuation Fund contributions. The contributions payable to these plans by the Company are at rates specified in the rules of the schemes.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note28-2",
+            label: `28(b)  Defined benefit plans \n Gratuity`,
+            isSubtotal: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note28-text-b",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-b",
+              `The Gratuity scheme is a final salary defined benefit plan, that provides for a lumpsum payment at the time of separation; based on scheme rules the benefits are calculated on the basis of last drawn salary and the period of service at the time of separation and paid as lumpsum. There is a vesting period of 5 years.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note28-text-c",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-c",
+              "These plans typically expose the company to actuarial risks such as:"
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note28-text-d",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-d",
+              `(i) Investment Risk: The fund is managed by LIC, fund manager. So the details of composition of plan assets managed by the fund manager is not available with the company. However, the fall in plan assets will increase the defined benefit obligation.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note28-text-e",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-e",
+              `(ii) Interest rates risks: the defined benefit obligation calculated uses a discount rate based on government bonds. If bond yields fall, the defined benefit will tend to increase.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note28-text-f",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-f",
+              `(iii) Salary Inflation risks: The present value of the defined benefit plan liability is calculated by reference to the future salaries of plans participants. As such increase in salary will increase the defined benefit obligation.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note28-text-g",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-g",
+              `(iv) Demographic risks: The present value of the defined benefit plan liability is calculated by reference to the best estimate of the mortality of plan participants during their employment as the increase in life  expectancy of the plan participants will increase the plan's liability.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note28-text-h",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-h",
+              `In respect of the plan, the most recent actuary valuation of plan assets and the present values of the defined benefit obligation were carried out as at March 31,2024 and  March 31, 2023 . The present value of the defined benefit obligation, and the related service cost and the past service cost, were measured using the projected unit credit method.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note28-amount",
+            label:
+              "Amount recognised in comprehensive income in respect of these defined benefit plans are as follows:",
+            isSubtotal: true,
+            valueCurrent: null,
+            valuePrevious: null,
+            children: [
+              {
+                key: "note28-amount-service",
                 label: "Service cost",
                 valueCurrent: null,
                 valuePrevious: null,
               },
               {
-                key: 'note28-amount-current-service',
+                key: "note28-amount-current-service",
                 label: "Current service cost",
                 valueCurrent: currentservice.current,
-                valuePrevious: currentservice.previous,isEditableRow: true
+                valuePrevious: currentservice.previous,
+                isEditableRow: true,
               },
               {
-                key: 'note28-amount-past-service',
+                key: "note28-amount-past-service",
                 label: "Past service cost",
                 valueCurrent: null,
                 valuePrevious: null,
               },
               {
-                key: 'note28-amount-interest',
+                key: "note28-amount-interest",
                 label: "Net interest expense/(income)",
                 valueCurrent: interest.current,
-                valuePrevious: interest.previous,isEditableRow: true
+                valuePrevious: interest.previous,
+                isEditableRow: true,
               },
               {
-                key: 'note28-amount-long',
-                label: "Immediate recognition of (gain)/losses-Other long term benefits",
+                key: "note28-amount-long",
+                label:
+                  "Immediate recognition of (gain)/losses-Other long term benefits",
                 valueCurrent: null,
                 valuePrevious: null,
               },
               {
-                key: 'note28-amount-total',
+                key: "note28-amount-total",
                 label: "",
-                isGrandTotal:true,
-                valueCurrent: currentservice.current + interest.current ,
-                valuePrevious: currentservice.previous + interest.previous ,
+                isGrandTotal: true,
+                valueCurrent: currentservice.current + interest.current,
+                valuePrevious: currentservice.previous + interest.previous,
               },
-]
-      },
-      {
-        key: 'note28-benefit',
-        label: 'Amount recognised in other comprehensive income...',
-        isSubtotal:true,
-        valueCurrent: null,
-        valuePrevious: null,
-        children: [ {
-                key: 'note28-benefit-return',
-                label: "Return on plan assets (excluding amount included in net interest expense)",
+            ],
+          },
+          {
+            key: "note28-benefit",
+            label: "Amount recognised in other comprehensive income...",
+            isSubtotal: true,
+            valueCurrent: null,
+            valuePrevious: null,
+            children: [
+              {
+                key: "note28-benefit-return",
+                label:
+                  "Return on plan assets (excluding amount included in net interest expense)",
                 valueCurrent: returnasset.current,
-                valuePrevious: returnasset.previous,isEditableRow: true
+                valuePrevious: returnasset.previous,
+                isEditableRow: true,
               },
               {
-                key: 'note28-benefit-DBO',
-                label: "Actuarial gains and loss arising from changes in financial assumptions in DBO",
+                key: "note28-benefit-DBO",
+                label:
+                  "Actuarial gains and loss arising from changes in financial assumptions in DBO",
                 valueCurrent: DBO.current,
-                valuePrevious: DBO.previous,isEditableRow: true
+                valuePrevious: DBO.previous,
+                isEditableRow: true,
               },
               {
-                key: 'note28-benefit-DBO2',
-                label: "Actuarial gains and loss arising from experience adjustments in DBO",
+                key: "note28-benefit-DBO2",
+                label:
+                  "Actuarial gains and loss arising from experience adjustments in DBO",
                 valueCurrent: DBO2.current,
-                valuePrevious: DBO2.previous,isEditableRow: true
+                valuePrevious: DBO2.previous,
+                isEditableRow: true,
               },
               {
-                key: 'note28-benefit-total',
+                key: "note28-benefit-total",
                 label: "",
-                isGrandTotal:true,
-                valueCurrent: returnasset.current+DBO.current+DBO2.current,
-                valuePrevious: returnasset.previous+DBO.previous+DBO2.previous,
+                isGrandTotal: true,
+                valueCurrent: returnasset.current + DBO.current + DBO2.current,
+                valuePrevious:
+                  returnasset.previous + DBO.previous + DBO2.previous,
               },
               {
-                key: 'note28-benefit-total-final',
+                key: "note28-benefit-total-final",
                 label: "Total",
-                isGrandTotal:true,
-                valueCurrent: currentservice.current + interest.current +returnasset.current+DBO.current+DBO2.current,
-                valuePrevious: currentservice.previous + interest.previous + returnasset.previous+DBO.previous+DBO2.previous,
+                isGrandTotal: true,
+                valueCurrent:
+                  currentservice.current +
+                  interest.current +
+                  returnasset.current +
+                  DBO.current +
+                  DBO2.current,
+                valuePrevious:
+                  currentservice.previous +
+                  interest.previous +
+                  returnasset.previous +
+                  DBO.previous +
+                  DBO2.previous,
               },
- ]
-      },
-      {
-        key: 'note28-balancesheet',
-        label: 'Amount recognised in the balance sheet',
-        isSubtotal:true,
-        valueCurrent: null,
-        valuePrevious: null,
-        children: [{
-                key: 'note28-balancesheet-present',
+            ],
+          },
+          {
+            key: "note28-balancesheet",
+            label: "Amount recognised in the balance sheet",
+            isSubtotal: true,
+            valueCurrent: null,
+            valuePrevious: null,
+            children: [
+              {
+                key: "note28-balancesheet-present",
                 label: "Present value of defined benefit obligation ",
                 valueCurrent: benefit.current,
-                valuePrevious: benefit.previous,isEditableRow: true
+                valuePrevious: benefit.previous,
+                isEditableRow: true,
               },
               {
-                key: 'note28-balancesheet-fair',
+                key: "note28-balancesheet-fair",
                 label: "Fair value of plan assets",
                 valueCurrent: fair.current,
-                valuePrevious: fair.previous,isEditableRow: true
+                valuePrevious: fair.previous,
+                isEditableRow: true,
               },
               {
-                key: 'note28-balancesheet-subtotal',
+                key: "note28-balancesheet-subtotal",
                 label: "",
                 valueCurrent: benefit.current - fair.current,
                 valuePrevious: benefit.previous - fair.previous,
               },
               {
-                key: 'note28-balancesheet-current',
+                key: "note28-balancesheet-current",
                 label: "Current portion of the above",
                 valueCurrent: null,
                 valuePrevious: null,
               },
               {
-                key: 'note28-balancesheet-noncurrent',
+                key: "note28-balancesheet-noncurrent",
                 label: "Non current portion of the above",
                 valueCurrent: benefit.current - fair.current,
                 valuePrevious: benefit.previous - fair.previous,
               },
- ]
-      },
-      {
-        key: 'note28-movement',
-        label: 'Movement in present value of defined benefit obligation...',
-        isSubtotal:true,
-        valueCurrent: null,
-        valuePrevious: null,
-        children: [ {
-                key: 'note28-movement-opening',
+            ],
+          },
+          {
+            key: "note28-movement",
+            label: "Movement in present value of defined benefit obligation...",
+            isSubtotal: true,
+            valueCurrent: null,
+            valuePrevious: null,
+            children: [
+              {
+                key: "note28-movement-opening",
                 label: "Opening defined benefit obligation",
                 valueCurrent: benefit.previous,
                 valuePrevious: 2770.99,
               },
               {
-                key: 'note28-movement-expenses',
+                key: "note28-movement-expenses",
                 label: "Expenses recognised in profit and loss account",
                 valueCurrent: null,
                 valuePrevious: null,
               },
               {
-                key: 'note28-movement-current',
+                key: "note28-movement-current",
                 label: "-Current service cost",
                 valueCurrent: currentservice.current,
                 valuePrevious: currentservice.previous,
               },
               {
-                key: 'note28-movement-past',
+                key: "note28-movement-past",
                 label: "-Past service cost",
                 valueCurrent: null,
                 valuePrevious: null,
               },
               {
-                key: 'note28-movement-interest',
+                key: "note28-movement-interest",
                 label: "-Interest expense (income)",
                 valueCurrent: movementinterest.current,
-                valuePrevious: movementinterest.previous,isEditableRow: true
+                valuePrevious: movementinterest.previous,
+                isEditableRow: true,
               },
               {
-                key: 'note28-movement-income',
+                key: "note28-movement-income",
                 label: "Recognised in other comprehensive income",
                 valueCurrent: null,
                 valuePrevious: null,
               },
               {
-                key: 'note28-movement-gain',
+                key: "note28-movement-gain",
                 label: "Remeasurement (gains)/losses",
                 valueCurrent: null,
                 valuePrevious: null,
               },
               {
-                key: 'note28-movement-loss',
+                key: "note28-movement-loss",
                 label: "-Actuarial (gain)/loss arising from:",
                 valueCurrent: null,
                 valuePrevious: null,
               },
               {
-                key: 'note28-movement-demographic',
+                key: "note28-movement-demographic",
                 label: "i. Demographic assumptions",
                 valueCurrent: null,
                 valuePrevious: null,
               },
               {
-                key: 'note28-movement-financial',
+                key: "note28-movement-financial",
                 label: "ii. Financial assumptions",
                 valueCurrent: DBO.current,
                 valuePrevious: DBO.previous,
               },
               {
-                key: 'note28-movement-expense',
+                key: "note28-movement-expense",
                 label: "iii. Experience adjustments",
                 valueCurrent: DBO2.current,
                 valuePrevious: DBO2.previous,
               },
               {
-                key: 'note28-movement-payments',
+                key: "note28-movement-payments",
                 label: "Benefit payments",
                 valueCurrent: benefitpayment.current,
-                valuePrevious: benefitpayment.previous,isEditableRow: true
+                valuePrevious: benefitpayment.previous,
+                isEditableRow: true,
               },
               {
-                key: 'note28-movement-close',
+                key: "note28-movement-close",
                 label: "Closing defined obligation",
-                isGrandTotal:true,
-                valueCurrent: benefit.previous +currentservice.current +movementinterest.current +DBO.current + DBO2.current + benefitpayment.current ,
-                valuePrevious: 2770.99 + currentservice.previous +movementinterest.previous +DBO.previous + DBO2.previous + benefitpayment.previous ,
+                isGrandTotal: true,
+                valueCurrent:
+                  benefit.previous +
+                  currentservice.current +
+                  movementinterest.current +
+                  DBO.current +
+                  DBO2.current +
+                  benefitpayment.current,
+                valuePrevious:
+                  2770.99 +
+                  currentservice.previous +
+                  movementinterest.previous +
+                  DBO.previous +
+                  DBO2.previous +
+                  benefitpayment.previous,
               },
- ]
-      },
-      {
-        key: 'note28-fairmovement',
-        label: 'Movement in fair value of plan assets is as follows:',
-        isSubtotal:true,
-        valueCurrent: null,
-        valuePrevious: null,
-        children: [ {
-                key: 'note28-fairmovement-open',
+            ],
+          },
+          {
+            key: "note28-fairmovement",
+            label: "Movement in fair value of plan assets is as follows:",
+            isSubtotal: true,
+            valueCurrent: null,
+            valuePrevious: null,
+            children: [
+              {
+                key: "note28-fairmovement-open",
                 label: "Opening fair value of plan assets",
                 valueCurrent: 0,
                 valuePrevious: 2833.21,
               },
               {
-                key: 'note28-fairmovement-open-fair',
+                key: "note28-fairmovement-open-fair",
                 label: "Amount recognised in Profit & Loss Account",
                 valueCurrent: null,
                 valuePrevious: null,
               },
               {
-                key: 'note28-fairmovement-open-plan',
+                key: "note28-fairmovement-open-plan",
                 label: "- Expected return on plan assets",
                 valueCurrent: plan.current,
-                valuePrevious: plan.previous,isEditableRow: true
+                valuePrevious: plan.previous,
+                isEditableRow: true,
               },
               {
-                key: 'note28-fairmovement-open-other',
+                key: "note28-fairmovement-open-other",
                 label: "Recognised in other comprehensive income",
                 valueCurrent: null,
                 valuePrevious: null,
               },
               {
-                key: 'note28-fairmovement-open-gain',
+                key: "note28-fairmovement-open-gain",
                 label: "Remeasurement gains/(losses)",
                 valueCurrent: null,
                 valuePrevious: null,
               },
               {
-                key: 'note28-fairmovement-open-return',
-                label: "- Actual return on plan assets in excess of the expected return",
-                valueCurrent: -(returnasset.current),
+                key: "note28-fairmovement-open-return",
+                label:
+                  "- Actual return on plan assets in excess of the expected return",
+                valueCurrent: -returnasset.current,
                 valuePrevious: null,
               },
               {
-                key: 'note28-fairmovement-open-benefit',
-                label: "Contributions by employer (including benefit payments recoverable)",
+                key: "note28-fairmovement-open-benefit",
+                label:
+                  "Contributions by employer (including benefit payments recoverable)",
                 valueCurrent: openbenefit.current,
-                valuePrevious: openbenefit.previous,isEditableRow: true
+                valuePrevious: openbenefit.previous,
+                isEditableRow: true,
               },
               {
-                key: 'note28-fairmovement-open-benefitpayment',
+                key: "note28-fairmovement-open-benefitpayment",
                 label: "Benefit payments",
                 valueCurrent: benefitpayment.current,
                 valuePrevious: benefitpayment.previous,
               },
               {
-                key: 'note28-fairmovement-close',
+                key: "note28-fairmovement-close",
                 label: "Closing fair value of plan asset",
-                isGrandTotal:true,
-                valueCurrent: 0+plan.current +(-(returnasset.current))+openbenefit.current+benefitpayment.current,
-                valuePrevious: 2833.23+plan.previous+0+openbenefit.previous+benefitpayment.previous,
+                isGrandTotal: true,
+                valueCurrent:
+                  0 +
+                  plan.current +
+                  -returnasset.current +
+                  openbenefit.current +
+                  benefitpayment.current,
+                valuePrevious:
+                  2833.23 +
+                  plan.previous +
+                  0 +
+                  openbenefit.previous +
+                  benefitpayment.previous,
               },
-]
-      },
-      {
-        key: 'note28-plan-assets',
-        label: 'The Major categories of plan assets(%)',
-        isSubtotal:true,
-        valueCurrent: null,
-        valuePrevious: null,
-        children: [ {
-                key: 'note28-plan-assets-insurance',
+            ],
+          },
+          {
+            key: "note28-plan-assets",
+            label: "The Major categories of plan assets(%)",
+            isSubtotal: true,
+            valueCurrent: null,
+            valuePrevious: null,
+            children: [
+              {
+                key: "note28-plan-assets-insurance",
                 label: "Assets under insurance schemes",
                 valueCurrent: 100,
                 valuePrevious: 100,
               },
               {
-                key: 'note28-plan-assets-Actuarial',
+                key: "note28-plan-assets-Actuarial",
                 label: "Actuarial assumptions",
-                isSubtotal:true,
+                isSubtotal: true,
                 valueCurrent: null,
                 valuePrevious: null,
               },
               {
-                key: 'note28-plan-assets-Actuarial-1',
+                key: "note28-plan-assets-Actuarial-1",
                 label: "1. Discount rate",
                 valueCurrent: discount.current,
-                valuePrevious: discount.previous,isEditableRow: true
+                valuePrevious: discount.previous,
+                isEditableRow: true,
               },
               {
-                key: 'note28-plan-assets-Actuarial-2',
+                key: "note28-plan-assets-Actuarial-2",
                 label: "2. Expected rate of return on plan assets",
                 valueCurrent: discount.current,
                 valuePrevious: discount.previous,
               },
               {
-                key: 'note28-plan-assets-Actuarial-3',
+                key: "note28-plan-assets-Actuarial-3",
                 label: "3. Salary escalation",
                 valueCurrent: salary.current,
-                valuePrevious: salary.previous,isEditableRow: true
+                valuePrevious: salary.previous,
+                isEditableRow: true,
               },
               {
-                key: 'note28-plan-assets-Actuarial-4',
+                key: "note28-plan-assets-Actuarial-4",
                 label: "4. Attrition rate",
                 valueCurrent: attrition.current,
-                valuePrevious: attrition.previous,isEditableRow: true
+                valuePrevious: attrition.previous,
+                isEditableRow: true,
               },
               {
-                key: 'note28-plan-assets-Actuarial-4',
+                key: "note28-plan-assets-Actuarial-4",
                 label: "4. Attrition rate",
                 valueCurrent: attrition.current,
-                valuePrevious: attrition.previous,isEditableRow: true
+                valuePrevious: attrition.previous,
+                isEditableRow: true,
               },
- ]
-      },
-      'Sensitivity analysis:',
-      {
-        key: 'note28-text-i',
-        label: '',
-        narrativeText: getNarrativeTextByKey('note28-text-i',`Significant actuarial assumptions for the determination of the defined benefit obligation are discount rate, expected salary increase and mortality. The sensitivity analysis below have been determined based on reasonably possible changes of the assumptions occurring at the end of the reporting period, while holding all other assumptions constant. The results of sensitivity analysis is given below:`), 
-        isNarrative: true,
-        isEditableText: true,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      'Gratuity',
-      {
-        key:'note28-table1',
-        type: "table",
-        isEditable: true, // Make this table editable
-        headers: sensitivityHeaders,
-        rows: [
-          dis,
-          growth,
-          attr,
-          mortality      
-        ]
-      },
-      {
-        key: 'note28-text-j',
-        label: '',
-        narrativeText:getNarrativeTextByKey('note28-text-j', `Sensitivity analysis presented above may not be representative of the actual change in the defined benefit obligation as it is unlikely that the change in assumptions would occur in isolation of one another as some of the assumptions may be correlated. There are no changes from the previous period in the methods and assumptions used in preparing the sensitivity analysis.`), 
-        isNarrative: true,
-        isEditableText: true,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      {
-        key: 'note28-text-k',
-        label: '',
-        narrativeText:getNarrativeTextByKey('note28-text-k',`There has been no change in the process used by the Company to manage its risks from prior periods.`), 
-        isNarrative: true,
-        isEditableText: true,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      {
-        key: 'note28-text-l',
-        label: '',
-        narrativeText: getNarrativeTextByKey('note28-text-l',`Expected future cash outflows towards the plans are as follows:`), 
-        isNarrative: true,
-        isEditableText: true,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      {
-        key:'note28-table2',
-        type: "table",
-        isEditable: true, // Make this table editable
-        headers: outflowHeaders,
-        rows: [
-          par24,
-          par25,
-          par26,
-          par27,
-          par28,
-          par29,
-          payouts  
-        ]
-      }
-    ],
-  };
-};
+            ],
+          },
+          "Sensitivity analysis:",
+          {
+            key: "note28-text-i",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-i",
+              `Significant actuarial assumptions for the determination of the defined benefit obligation are discount rate, expected salary increase and mortality. The sensitivity analysis below have been determined based on reasonably possible changes of the assumptions occurring at the end of the reporting period, while holding all other assumptions constant. The results of sensitivity analysis is given below:`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          "Gratuity",
+          {
+            key: "note28-table1",
+            type: "table",
+            isEditable: true, // Make this table editable
+            headers: sensitivityHeaders,
+            rows: [dis, growth, attr, mortality],
+          },
+          {
+            key: "note28-text-j",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-j",
+              `Sensitivity analysis presented above may not be representative of the actual change in the defined benefit obligation as it is unlikely that the change in assumptions would occur in isolation of one another as some of the assumptions may be correlated. There are no changes from the previous period in the methods and assumptions used in preparing the sensitivity analysis.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note28-text-k",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-k",
+              `There has been no change in the process used by the Company to manage its risks from prior periods.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note28-text-l",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note28-text-l",
+              `Expected future cash outflows towards the plans are as follows:`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note28-table2",
+            type: "table",
+            isEditable: true, // Make this table editable
+            headers: outflowHeaders,
+            rows: [par24, par25, par26, par27, par28, par29, payouts],
+          },
+        ],
+      };
+    };
     const calculateNote29 = (): FinancialNote => {
       const note29_1 = getValueForKey(29, "note29-balance-rou");
 
@@ -7656,147 +8351,227 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
       });
 
     const calculateNote30 = (): FinancialNote => {
+      // --- Editable Table Logic ---
+      const parseNum = (val: string): number => {
+        if (!val) return 0;
+        return parseFloat(String(val).replace(/,/g, "")) || 0;
+      };
 
+      const row = (label: string, columnCount: number): string[] => {
+        const edited = getTableValue1(30, ["note30-table1"], label);
+        if (edited) return edited;
 
-  // --- Editable Table Logic ---
-  const parseNum = (val: string): number => {
-    if (!val) return 0;
-    return parseFloat(String(val).replace(/,/g, '')) || 0;
-  };
-  
-  const row = (label: string, columnCount: number): string[] => {
-    const edited = getTableValue(30, label);
-    if (edited) return edited;
-    
-    const emptyRow = Array(columnCount).fill('');
-    emptyRow[0] = label;
-    return emptyRow;
-  };
+        const emptyRow = Array(columnCount).fill("");
+        emptyRow[0] = label;
+        return emptyRow;
+      };
 
-  const headers = [
-    "Geographic segment", "India\n31 March 2024", "\n31 March 2023",
-    "Outside India\n31 March 2024", "\n31 March 2023", "Total\n31 March 2024", "\n31 March 2023"
-  ];
-  const colCount = headers.length;
+      const headers = [
+        "Geographic segment",
+        "India\n31 March 2024",
+        "\n31 March 2023",
+        "Outside India\n31 March 2024",
+        "\n31 March 2023",
+        "Total\n31 March 2024",
+        "\n31 March 2023",
+      ];
+      const colCount = headers.length;
 
-  // --- Define Editable Rows (without default data to start blank) ---
-  const salesRow = row("a) Sale and services(Net)", colCount);
-  const otherIncomeRow = row("b) Other income", colCount);
-  const rawMaterialsRow = row("Cost of raw material and components consumed", colCount);
-  const employeeRow = row("Employee benefits expense", colCount);
-  const depreciationRow = row("Depreciation and amortization", colCount);
-  const otherExpensesRow = row("Other Expenses", colCount);
-  const financeCostRow = row("i) Finance Cost", colCount);
-  const assetsRow = row("Assets", colCount);
-  const dtaRow = row("i) Deffered tax assets(net)", colCount);
-  const itaRow = row("ii) Income tax assets(net)", colCount);
-  const liabilitiesRow = row("Liabilities", colCount);
-  const taxLiabilitiesRow = row("i)Income tax Liabilities(net)", colCount);
-  const capitalExpenditureRow = row("Capital Expenditure", colCount);
+      // --- Define Editable Rows (without default data to start blank) ---
+      const salesRow = row("a) Sale and services(Net)", colCount);
+      const otherIncomeRow = row("b) Other income", colCount);
+      const rawMaterialsRow = row(
+        "Cost of raw material and components consumed",
+        colCount
+      );
+      const employeeRow = row("Employee benefits expense", colCount);
+      const depreciationRow = row("Depreciation and amortization", colCount);
+      const otherExpensesRow = row("Other Expenses", colCount);
+      const financeCostRow = row("i) Finance Cost", colCount);
+      const assetsRow = row("Assets", colCount);
+      const dtaRow = row("i) Deffered tax assets(net)", colCount);
+      const itaRow = row("ii) Income tax assets(net)", colCount);
+      const liabilitiesRow = row("Liabilities", colCount);
+      const taxLiabilitiesRow = row("i)Income tax Liabilities(net)", colCount);
+      const capitalExpenditureRow = row("Capital Expenditure", colCount);
 
-  // --- Perform Dynamic Calculations ---
+      // --- Perform Dynamic Calculations ---
 
-  // Calculate totals for editable rows
-  const editableRows = [salesRow, otherIncomeRow, rawMaterialsRow, employeeRow, depreciationRow, otherExpensesRow, assetsRow, liabilitiesRow, capitalExpenditureRow];
-  editableRows.forEach(r => {
-      r[5] = (parseNum(r[1]) + parseNum(r[3])).toLocaleString('en-IN', { minimumFractionDigits: 2 }); // Total 2024
-      r[6] = (parseNum(r[2]) + parseNum(r[4])).toLocaleString('en-IN', { minimumFractionDigits: 2 }); // Total 2023
-  });
+      // Calculate totals for editable rows
+      const editableRows = [
+        salesRow,
+        otherIncomeRow,
+        rawMaterialsRow,
+        employeeRow,
+        depreciationRow,
+        otherExpensesRow,
+        assetsRow,
+        liabilitiesRow,
+        capitalExpenditureRow,
+      ];
+      editableRows.forEach((r) => {
+        r[5] = (parseNum(r[1]) + parseNum(r[3])).toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+        }); // Total 2024
+        r[6] = (parseNum(r[2]) + parseNum(r[4])).toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+        }); // Total 2023
+      });
 
-  // Calculate "Total income"
-  const totalIncomeRow = ['Total income', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00'];
-  for (let i = 1; i <= 6; i++) {
-    const sum = parseNum(salesRow[i]) + parseNum(otherIncomeRow[i]);
-    totalIncomeRow[i] = sum.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-  }
-
-  // Calculate "Total Expenses"
-  const totalExpensesRow = ['Total Expenses', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00'];
-  const expenseRows = [rawMaterialsRow, employeeRow, depreciationRow, otherExpensesRow, financeCostRow];
-  for (let i = 1; i <= 6; i++) {
-    const sum = expenseRows.reduce((acc, r) => acc + parseNum(r[i]), 0);
-    totalExpensesRow[i] = sum.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-  }
-
-  // Calculate "Segment Profit"
-  const segmentProfitRow = ['Segment Profit', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00'];
-  for (let i = 1; i <= 6; i++) {
-    const profit = parseNum(totalIncomeRow[i]) - parseNum(totalExpensesRow[i]);
-    segmentProfitRow[i] = profit.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-  }
-  
-  // Calculate "Total Assets"
-  const totalAssetsRow = ['Total Assets', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00'];
-  const assetRows = [assetsRow, dtaRow, itaRow];
-  for (let i = 1; i <= 6; i++) {
-    const sum = assetRows.reduce((acc, r) => acc + parseNum(r[i]), 0);
-    totalAssetsRow[i] = sum.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-  }
-  
-  // Calculate "Total Liabilities"
-  const totalLiabilitiesRow = ['Total Liabilities', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00'];
-  const liabilityRows = [liabilitiesRow, taxLiabilitiesRow];
-  for (let i = 1; i <= 6; i++) {
-    const sum = liabilityRows.reduce((acc, r) => acc + parseNum(r[i]), 0);
-    totalLiabilitiesRow[i] = sum.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-  }
-
-  return {
-    noteNumber: 30,
-    title: "Segment information",
-    totalCurrent: null,
-    totalPrevious: null,
-    footer: `Note:\nThe Secondary Segment is determined based on location of the customers. All other assets are situated in India.`,
-    content: [
-      {
-        key: 'note30-text-a',
-        label: '',
-        narrativeText: getNarrativeTextByKey('note30-text-a', `As part of structural reform global project, the Yokogawa Group has established Structure between the Parent Company and its Subsidiaries wherein for each Global Business Function, a corresponding Regional Business/Process Function will be responsible for routine business/process operations. These Regional Business/Process Functions will make operating decisions in ratification with Managing Director of the Company and have been identified as the Chief Operating Decision Maker (CODM) as defined by Ind AS 108, operating segments. \nThe Company has identified geographic segments as operating and reportable segment. Revenues and expenses directly attributable to the geographic segment are reported under such segments. Assets and liabilities that are directly attributable or allocable to the segments are disclosed under the reportable segments. All other assets and liabilities are disclosed as unallocable. Fixed assets that are used interchangeably amongst segments are not allocated to the reportable segments. Geographical revenues are allocated based on the location of the customer. Geographic segments of the Company includes Japan, Singapore, Middle East & others.`),
-        isNarrative: true,
-        isEditableText: true,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      {
-        key: "note30-intro",
-        label: `The geographic segments individually contributing 10 percent or more of the Company’s revenues and segment assets are shown separately:`,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      {
-        key:'note30-table1',
-        type: "table",
-        isEditable: true, // MAKE THE TABLE EDITABLE
-        headers: headers,
-        rows: [
-          ["Revenue by geographical segment"],
-          salesRow,
-          otherIncomeRow,
-          totalIncomeRow,
-          ["Income/(Expenses)"],
-          rawMaterialsRow,
-          employeeRow,
-          depreciationRow,
-          otherExpensesRow,
-          ["Unallocable"],
-          financeCostRow,
-          totalExpensesRow,
-          segmentProfitRow,
-          assetsRow,
-          ["Unaliocable Assets"],
-          dtaRow,
-          itaRow,
-          totalAssetsRow,
-          liabilitiesRow,
-          ["Unallocable Liabilities"],
-          taxLiabilitiesRow,
-          totalLiabilitiesRow,
-          capitalExpenditureRow,
-        ]
+      // Calculate "Total income"
+      const totalIncomeRow = [
+        "Total income",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+      ];
+      for (let i = 1; i <= 6; i++) {
+        const sum = parseNum(salesRow[i]) + parseNum(otherIncomeRow[i]);
+        totalIncomeRow[i] = sum.toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+        });
       }
-    ],
-  };
-};
+
+      // Calculate "Total Expenses"
+      const totalExpensesRow = [
+        "Total Expenses",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+      ];
+      const expenseRows = [
+        rawMaterialsRow,
+        employeeRow,
+        depreciationRow,
+        otherExpensesRow,
+        financeCostRow,
+      ];
+      for (let i = 1; i <= 6; i++) {
+        const sum = expenseRows.reduce((acc, r) => acc + parseNum(r[i]), 0);
+        totalExpensesRow[i] = sum.toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+        });
+      }
+
+      // Calculate "Segment Profit"
+      const segmentProfitRow = [
+        "Segment Profit",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+      ];
+      for (let i = 1; i <= 6; i++) {
+        const profit =
+          parseNum(totalIncomeRow[i]) - parseNum(totalExpensesRow[i]);
+        segmentProfitRow[i] = profit.toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+        });
+      }
+
+      // Calculate "Total Assets"
+      const totalAssetsRow = [
+        "Total Assets",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+      ];
+      const assetRows = [assetsRow, dtaRow, itaRow];
+      for (let i = 1; i <= 6; i++) {
+        const sum = assetRows.reduce((acc, r) => acc + parseNum(r[i]), 0);
+        totalAssetsRow[i] = sum.toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+        });
+      }
+
+      // Calculate "Total Liabilities"
+      const totalLiabilitiesRow = [
+        "Total Liabilities",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+      ];
+      const liabilityRows = [liabilitiesRow, taxLiabilitiesRow];
+      for (let i = 1; i <= 6; i++) {
+        const sum = liabilityRows.reduce((acc, r) => acc + parseNum(r[i]), 0);
+        totalLiabilitiesRow[i] = sum.toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+        });
+      }
+
+      return {
+        noteNumber: 30,
+        title: "Segment information",
+        totalCurrent: null,
+        totalPrevious: null,
+        footer: `Note:\nThe Secondary Segment is determined based on location of the customers. All other assets are situated in India.`,
+        content: [
+          {
+            key: "note30-text-a",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note30-text-a",
+              `As part of structural reform global project, the Yokogawa Group has established Structure between the Parent Company and its Subsidiaries wherein for each Global Business Function, a corresponding Regional Business/Process Function will be responsible for routine business/process operations. These Regional Business/Process Functions will make operating decisions in ratification with Managing Director of the Company and have been identified as the Chief Operating Decision Maker (CODM) as defined by Ind AS 108, operating segments. \nThe Company has identified geographic segments as operating and reportable segment. Revenues and expenses directly attributable to the geographic segment are reported under such segments. Assets and liabilities that are directly attributable or allocable to the segments are disclosed under the reportable segments. All other assets and liabilities are disclosed as unallocable. Fixed assets that are used interchangeably amongst segments are not allocated to the reportable segments. Geographical revenues are allocated based on the location of the customer. Geographic segments of the Company includes Japan, Singapore, Middle East & others.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note30-intro",
+            label: `The geographic segments individually contributing 10 percent or more of the Company’s revenues and segment assets are shown separately:`,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note30-table1",
+            type: "table",
+            isEditable: true, // MAKE THE TABLE EDITABLE
+            headers: headers,
+            rows: [
+              ["Revenue by geographical segment"],
+              salesRow,
+              otherIncomeRow,
+              totalIncomeRow,
+              ["Income/(Expenses)"],
+              rawMaterialsRow,
+              employeeRow,
+              depreciationRow,
+              otherExpensesRow,
+              ["Unallocable"],
+              financeCostRow,
+              totalExpensesRow,
+              segmentProfitRow,
+              assetsRow,
+              ["Unaliocable Assets"],
+              dtaRow,
+              itaRow,
+              totalAssetsRow,
+              liabilitiesRow,
+              ["Unallocable Liabilities"],
+              taxLiabilitiesRow,
+              totalLiabilitiesRow,
+              capitalExpenditureRow,
+            ],
+          },
+        ],
+      };
+    };
     const calculateNote32 = (): FinancialNote => {
       const note32_1 = getValueForKey(32, "note32-netprofit");
 
@@ -7871,92 +8646,138 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
       };
     };
     const calculateNote33 = (): FinancialNote => {
-  // --- Helper Functions ---
-  const parseNum = (val: string, isPrevious = false): number => {
-    if (!val) return 0;
-    const parts = String(val).split('\n');
-    const targetPart = isPrevious ? (parts[1] || '0') : (parts[0] || '0');
-    return parseFloat(targetPart.replace(/[(),]/g, '')) || 0;
-  };
+      // --- Helper Functions ---
+      const parseNum = (val: string, isPrevious = false): number => {
+        if (!val) return 0;
+        const parts = String(val).split("\n");
+        const targetPart = isPrevious ? parts[1] || "0" : parts[0] || "0";
+        return parseFloat(targetPart.replace(/[(),]/g, "")) || 0;
+      };
 
-  const formatNum = (val: number): string => val.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-  const formatPrevNum = (val: number): string => `(${formatNum(val)})`;
+      const formatNum = (val: number): string =>
+        val.toLocaleString("en-IN", { minimumFractionDigits: 2 });
+      const formatPrevNum = (val: number): string => `(${formatNum(val)})`;
 
-  const row = (label: string, defaultData: string[]): string[] => {
-    const edited = getTableValue(33, label);
-    if (edited) return edited;
-    return [label, ...defaultData];
-  };
+      const row = (label: string, defaultData: string[]): string[] => {
+        const edited = getTableValue1(33, ["note33-table1"], label);
+        if (edited) return edited;
+        return [label, ...defaultData];
+      };
 
-  // --- Data and Table Structure ---
-  const headers = ["", "As at 1 April 2023", "Additions", "Utilisation", "As at 31 March 2024"];
+      // --- Data and Table Structure ---
+      const headers = [
+        "",
+        "As at 1 April 2023",
+        "Additions",
+        "Utilisation",
+        "As at 31 March 2024",
+      ];
 
-  // Define editable rows, providing default data in the "current\n(previous)" format
-  const warrantyRow = row("Provision for product support (Warranty)", ["484.96\n(547.93)", "60.17\n(48.78)", "30.60\n(111.70)", ""]);
-  const onerousRow = row("Provision for estimated losses on onerous contracts", ["1,787.08\n(1,390.82)", "2,738.95\n(931.55)", "1,059.91\n(535.30)", ""]);
-  const constructionRow = row("Provision for estimated losses on construction contracts", ["10,294.67\n(11,599.89)", "7,538.28\n(5,741.18)", "6,272.86\n(7,046.40)", ""]);
-  const serviceTaxRow = row("Provision for service tax", ["1,575.47\n(1575.47)", "-\n(-)", "-\n(-)", ""]);
-
-  // --- Dynamic Calculations ---
-  // Recalculate the "As at 31 March" column based on the other columns
-  [warrantyRow, onerousRow, constructionRow, serviceTaxRow].forEach(r => {
-    const opening = parseNum(r[1], false);
-    const additions = parseNum(r[2], false);
-    const utilisation = parseNum(r[3], false);
-    const closing = opening + additions - utilisation;
-
-    const prev_opening = parseNum(r[1], true);
-    const prev_additions = parseNum(r[2], true);
-    const prev_utilisation = parseNum(r[3], true);
-    const prev_closing = prev_opening + prev_additions - prev_utilisation;
-
-    r[4] = `${formatNum(closing)}\n${formatPrevNum(prev_closing)}`;
-  });
-
-  // Calculate totals for the current year (2024)
-  const allRows = [warrantyRow, onerousRow, constructionRow, serviceTaxRow];
-  const total2024 = ['Total as on 31 March 2024', '0.00', '0.00', '0.00', '0.00'];
-  for (let i = 1; i <= 4; i++) {
-    const colSum = allRows.reduce((acc, r) => acc + parseNum(r[i], false), 0);
-    total2024[i] = formatNum(colSum);
-  }
-
-  // Calculate totals for the previous year (2023)
-  const total2023 = ['Total as on 31 March 2023', '0.00', '0.00', '0.00', '0.00'];
-  for (let i = 1; i <= 4; i++) {
-    const colSum = allRows.reduce((acc, r) => acc + parseNum(r[i], true), 0);
-    total2023[i] = formatPrevNum(colSum);
-  }
-
-  return {
-    noteNumber: 33,
-    title: "Details of provisions",
-    totalCurrent: null,
-    totalPrevious: null,
-    content: [
-      {
-        key: 'note33-title', // Corrected key
-        label: `The Company has made provision for various contractual obligations based on its assessment of the amount it estimates to incur to meet such obligations, details of which are given below:`,
-        valueCurrent: null,
-        valuePrevious: null,
-      },
-      {
-        key:'note33-table1',
-        type: "table",
-        isEditable: true, // This flag enables editing in your NotesEditor
-        headers: headers,
-        rows: [
-          warrantyRow,
-          onerousRow,
-          constructionRow,
-          serviceTaxRow,
-          total2024,
-          total2023,
+      // Define editable rows, providing default data in the "current\n(previous)" format
+      const warrantyRow = row("Provision for product support (Warranty)", [
+        "484.96\n(547.93)",
+        "60.17\n(48.78)",
+        "30.60\n(111.70)",
+        "",
+      ]);
+      const onerousRow = row(
+        "Provision for estimated losses on onerous contracts",
+        ["1,787.08\n(1,390.82)", "2,738.95\n(931.55)", "1,059.91\n(535.30)", ""]
+      );
+      const constructionRow = row(
+        "Provision for estimated losses on construction contracts",
+        [
+          "10,294.67\n(11,599.89)",
+          "7,538.28\n(5,741.18)",
+          "6,272.86\n(7,046.40)",
+          "",
         ]
+      );
+      const serviceTaxRow = row("Provision for service tax", [
+        "1,575.47\n(1575.47)",
+        "-\n(-)",
+        "-\n(-)",
+        "",
+      ]);
+
+      // --- Dynamic Calculations ---
+      // Recalculate the "As at 31 March" column based on the other columns
+      [warrantyRow, onerousRow, constructionRow, serviceTaxRow].forEach((r) => {
+        const opening = parseNum(r[1], false);
+        const additions = parseNum(r[2], false);
+        const utilisation = parseNum(r[3], false);
+        const closing = opening + additions - utilisation;
+
+        const prev_opening = parseNum(r[1], true);
+        const prev_additions = parseNum(r[2], true);
+        const prev_utilisation = parseNum(r[3], true);
+        const prev_closing = prev_opening + prev_additions - prev_utilisation;
+
+        r[4] = `${formatNum(closing)}\n${formatPrevNum(prev_closing)}`;
+      });
+
+      // Calculate totals for the current year (2024)
+      const allRows = [warrantyRow, onerousRow, constructionRow, serviceTaxRow];
+      const total2024 = [
+        "Total as on 31 March 2024",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+      ];
+      for (let i = 1; i <= 4; i++) {
+        const colSum = allRows.reduce(
+          (acc, r) => acc + parseNum(r[i], false),
+          0
+        );
+        total2024[i] = formatNum(colSum);
       }
-    ],
-  };
-};
+
+      // Calculate totals for the previous year (2023)
+      const total2023 = [
+        "Total as on 31 March 2023",
+        "0.00",
+        "0.00",
+        "0.00",
+        "0.00",
+      ];
+      for (let i = 1; i <= 4; i++) {
+        const colSum = allRows.reduce(
+          (acc, r) => acc + parseNum(r[i], true),
+          0
+        );
+        total2023[i] = formatPrevNum(colSum);
+      }
+
+      return {
+        noteNumber: 33,
+        title: "Details of provisions",
+        totalCurrent: null,
+        totalPrevious: null,
+        content: [
+          {
+            key: "note33-title", // Corrected key
+            label: `The Company has made provision for various contractual obligations based on its assessment of the amount it estimates to incur to meet such obligations, details of which are given below:`,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note33-table1",
+            type: "table",
+            isEditable: true, // This flag enables editing in your NotesEditor
+            headers: headers,
+            rows: [
+              warrantyRow,
+              onerousRow,
+              constructionRow,
+              serviceTaxRow,
+              total2024,
+              total2023,
+            ],
+          },
+        ],
+      };
+    };
     const calculateNote34 = (): FinancialNote => {
       const note34_1 = getValueForKey(34, "note34-pl-current-tax");
 
@@ -8386,266 +9207,734 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
       };
     };
     const calculateNote35 = (): FinancialNote => {
-  // --- Hierarchical Item Calculations (YOUR ORIGINAL LOGIC - UNCHANGED) ---
-  const note35_1 = getValueForKey(35, 'note35-capital-table');
-  const note35_2 = getValueForKey(35, 'note35-capital-table1');
-  const note35_3 = getValueForKey(35, 'note35-financialrisk-BOY');
-  const note35_4 = getValueForKey(35, 'note35-financialrisk-creditloss');
-  const note35_5 = getValueForKey(35, 'note35-financialrisk-creditloss-reverse');
-  const note35_6 = getValueForKey(35, 'note35-revenue');
-  const note35_7 = getValueForKey(35, 'note35-revenue-top');
-  const note35_8 = getValueForKey(35, 'note35-geo-india');
-  const note35_9 = getValueForKey(35, 'note35-geo-rest');
+      // --- Hierarchical Item Calculations (YOUR ORIGINAL LOGIC - UNCHANGED) ---
+      const note35_1 = getValueForKey(35, "note35-capital-table");
+      const note35_2 = getValueForKey(35, "note35-capital-table1");
+      const note35_3 = getValueForKey(35, "note35-financialrisk-BOY");
+      const note35_4 = getValueForKey(35, "note35-financialrisk-creditloss");
+      const note35_5 = getValueForKey(
+        35,
+        "note35-financialrisk-creditloss-reverse"
+      );
+      const note35_6 = getValueForKey(35, "note35-revenue");
+      const note35_7 = getValueForKey(35, "note35-revenue-top");
+      const note35_8 = getValueForKey(35, "note35-geo-india");
+      const note35_9 = getValueForKey(35, "note35-geo-rest");
 
-  const equity = { current: note35_1.valueCurrent ?? 0, previous: note35_1.valuePrevious ?? 0 };
-  const per = { current: note35_2.valueCurrent ?? 0, previous: note35_2.valuePrevious ?? 0 };
-  const BOY = { current: note35_3.valueCurrent ?? 0, previous: note35_3.valuePrevious ?? 0 };
-  const creditloss = { current: note35_4.valueCurrent ?? 0, previous: note35_4.valuePrevious ?? 0 };
-  const creditreverse = { current: note35_5.valueCurrent ?? 0, previous: note35_5.valuePrevious ?? 0 };
-  const top5 = { current: note35_6.valueCurrent ?? 0, previous: note35_6.valuePrevious ?? 0 };
-  const top = { current: note35_7.valueCurrent ?? 0, previous: note35_7.valuePrevious ?? 0 };
-  const india = { current: note35_8.valueCurrent ?? 0, previous: note35_8.valuePrevious ?? 0 };
-  const rest = { current: note35_9.valueCurrent ?? 0, previous: note35_9.valuePrevious ?? 0 };
-  
-  // --- Editable Table Logic ---
-  const parseNum = (val: string | undefined): number => {
-    if (!val) return 0;
-    return parseFloat(String(val).replace(/,/g, '')) || 0;
-  };
+      const equity = {
+        current: note35_1.valueCurrent ?? 0,
+        previous: note35_1.valuePrevious ?? 0,
+      };
+      const per = {
+        current: note35_2.valueCurrent ?? 0,
+        previous: note35_2.valuePrevious ?? 0,
+      };
+      const BOY = {
+        current: note35_3.valueCurrent ?? 0,
+        previous: note35_3.valuePrevious ?? 0,
+      };
+      const creditloss = {
+        current: note35_4.valueCurrent ?? 0,
+        previous: note35_4.valuePrevious ?? 0,
+      };
+      const creditreverse = {
+        current: note35_5.valueCurrent ?? 0,
+        previous: note35_5.valuePrevious ?? 0,
+      };
+      const top5 = {
+        current: note35_6.valueCurrent ?? 0,
+        previous: note35_6.valuePrevious ?? 0,
+      };
+      const top = {
+        current: note35_7.valueCurrent ?? 0,
+        previous: note35_7.valuePrevious ?? 0,
+      };
+      const india = {
+        current: note35_8.valueCurrent ?? 0,
+        previous: note35_8.valuePrevious ?? 0,
+      };
+      const rest = {
+        current: note35_9.valueCurrent ?? 0,
+        previous: note35_9.valuePrevious ?? 0,
+      };
 
-  const row = (label: string, columnCount: number): string[] => {
-    const edited = getTableValue(35, label);
-    if (edited) return edited;
-    
-    const emptyRow = Array(columnCount).fill('');
-    emptyRow[0] = label;
-    return emptyRow;
-  };
+      // --- Editable Table Logic ---
+      const parseNum = (val: string | undefined): number => {
+        if (!val) return 0;
+        return parseFloat(String(val).replace(/,/g, "")) || 0;
+      };
 
-  // --- TABLE 1: Categories of Financial Instruments ---
-  const categoryHeaders = ['Particulars', 'Carrying Value As at 31 March 2024', 'Carrying Value As at 31 March 2023', 'Fair Value As at 31 March 2024', 'Fair Value As at 31 March 2023'];
-  const categoryColCount = categoryHeaders.length;
+      const row = (label: string, columnCount: number): string[] => {
+        const edited = getTableValue1(
+          35,
+          [
+            "note35-table1",
+            "note35-table2",
+            "note35-table3",
+            "note35-table5",
+            "note35-table4",
+            "note35-table6",
+          ],
+          label
+        );
+        if (edited) return edited;
 
-  const catTradeReceivables = row('(a) Trade receivables', categoryColCount);
-  const catCash = row('(b) Cash and cash equivalents', categoryColCount);
-  const catBank = row('(c) Bank balance other than cash and cash equivalent', categoryColCount);
-  const catLoans = row('(d) Loans', categoryColCount);
-  const catOtherAssets = row('(e) Other financial assets', categoryColCount);
-  
-  const catAssetTotalRow = ['Total', '0.00', '0.00', '0.00', '0.00'];
-  for (let i = 1; i < 5; i++) { const sum = parseNum(catTradeReceivables[i]) + parseNum(catCash[i]) + parseNum(catBank[i]) + parseNum(catLoans[i]) + parseNum(catOtherAssets[i]); catAssetTotalRow[i] = sum.toLocaleString('en-IN', { minimumFractionDigits: 2 }); }
+        const emptyRow = Array(columnCount).fill("");
+        emptyRow[0] = label;
+        return emptyRow;
+      };
 
-  const catTradePayables = row('(a) Trade payables', categoryColCount);
-  const catLease = row('(b) Lease Liabilities', categoryColCount);
-  const catOtherLiabilities = row('(b) Other financial liabilities', categoryColCount);
-  
-  const catLiabilityTotalRow = ['Total', '0.00', '0.00', '0.00', '0.00'];
-  for (let i = 1; i < 5; i++) { const sum = parseNum(catTradePayables[i]) + parseNum(catLease[i]) + parseNum(catOtherLiabilities[i]); catLiabilityTotalRow[i] = sum.toLocaleString('en-IN', { minimumFractionDigits: 2 }); }
+      // --- TABLE 1: Categories of Financial Instruments ---
+      const categoryHeaders = [
+        "Particulars",
+        "Carrying Value As at 31 March 2024",
+        "Carrying Value As at 31 March 2023",
+        "Fair Value As at 31 March 2024",
+        "Fair Value As at 31 March 2023",
+      ];
+      const categoryColCount = categoryHeaders.length;
 
-  // --- TABLE 2 & 3: Maturity Analysis ---
-  const maturityHeaders24 = ['As at 31 March 2024', 'Less than 1 Year', '1 Year to 5 Year', 'More than 5 Years', 'Total'];
-  const maturityHeaders23 = ['As at 31 March 2023', 'Less than 1 Year', '1 Year to 5 Year', 'More than 5 Years', 'Total'];
-  const maturityColCount = maturityHeaders24.length;
+      const catTradeReceivables = row(
+        "(a) Trade receivables",
+        categoryColCount
+      );
+      const catCash = row("(b) Cash and cash equivalents", categoryColCount);
+      const catBank = row(
+        "(c) Bank balance other than cash and cash equivalent",
+        categoryColCount
+      );
+      const catLoans = row("(d) Loans", categoryColCount);
+      const catOtherAssets = row(
+        "(e) Other financial assets",
+        categoryColCount
+      );
 
-  const maturityTrade24 = row('Trade payables 2024', maturityColCount);
-  const maturityLease24 = row('Lease Liabilities 2024', maturityColCount);
-  const maturityOther24 = row('Other financial liabilities 2024', maturityColCount);
-  const maturityTrade23 = row('Trade payables 2023', maturityColCount);
-  const maturityLease23 = row('Lease Liabilities 2023', maturityColCount);
-  const maturityOther23 = row('Other financial liabilities 2023', maturityColCount);
-  
-  const calculateMaturityRowTotal = (r: string[]) => { const total = parseNum(r[1]) + parseNum(r[2]) + parseNum(r[3]); if(r.length > 4) r[4] = total.toLocaleString('en-IN', { minimumFractionDigits: 2 }); };
-  [maturityTrade24, maturityLease24, maturityOther24, maturityTrade23, maturityLease23, maturityOther23].forEach(calculateMaturityRowTotal);
+      const catAssetTotalRow = ["Total", "0.00", "0.00", "0.00", "0.00"];
+      for (let i = 1; i < 5; i++) {
+        const sum =
+          parseNum(catTradeReceivables[i]) +
+          parseNum(catCash[i]) +
+          parseNum(catBank[i]) +
+          parseNum(catLoans[i]) +
+          parseNum(catOtherAssets[i]);
+        catAssetTotalRow[i] = sum.toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+        });
+      }
 
-  const maturityTotal24 = ['Total', '0.00', '0.00', '0.00', '0.00'];
-  for (let i = 1; i <= 4; i++) { const sum = parseNum(maturityTrade24[i]) + parseNum(maturityLease24[i]) + parseNum(maturityOther24[i]); maturityTotal24[i] = sum.toLocaleString('en-IN', { minimumFractionDigits: 2 }); }
-  const maturityTotal23 = ['Total', '0.00', '0.00', '0.00', '0.00'];
-  for (let i = 1; i <= 4; i++) { const sum = parseNum(maturityTrade23[i]) + parseNum(maturityLease23[i]) + parseNum(maturityOther23[i]); maturityTotal23[i] = sum.toLocaleString('en-IN', { minimumFractionDigits: 2 }); }
+      const catTradePayables = row("(a) Trade payables", categoryColCount);
+      const catLease = row("(b) Lease Liabilities", categoryColCount);
+      const catOtherLiabilities = row(
+        "(b) Other financial liabilities",
+        categoryColCount
+      );
 
-  // --- TABLE 4: Management Policy ---
-   const policyHeaders = ['MANAGEMENT POLICY', 'POTENTIAL IMPACT OF RISK', 'SENSITIVITY TO RISK'];
-   const policyColCount = policyHeaders.length;
-   const policyInterest = row('(i) Interest rate risk The Company is not exposed to interest rate risk because it does not have any borrowings', policyColCount);
-   const policyPrice = row('(ii) Price risk Major raw materials purchase is from international market and less dependency on domestic market. The prices of the Companys raw materials generally fluctuate in line with commodity cycles.', policyColCount);
-   const policyCurrency = row('(iii) Currency risk The Company operates internationally and consequently the Company is exposed to foreign exchange risk through its sales and purchases from overseas suppliers in various foreign currencies. The exchange rate between the rupee and foreign currencies has changed substantially in recent years and may fluctuate substantially in the future. Consequently, the results of the Company’s operations are adversely affected as the rupee appreciates/ depreciates against these currencies.', policyColCount);
-  
-  // --- TABLE 5: Foreign Currency Exposure ---
-  const exposureHeaders = [ 'As at 31 March 2024\nAmount in foreign currency in Lakhs', 'As at 31 March 2024\nAmount in ₹ Lakhs', 'As at 31 March 2023\nAmount in foreign currency in Lakhs', 'As at 31 March 2023\nAmount in ₹ Lakhs'];
-  const exposureColCount = exposureHeaders.length + 1;
-  const expReceivableUSD = row('Trade receivables-USD', exposureColCount);
-  const expReceivableBDT = row('Trade receivables-BDT', exposureColCount);
-  const expPayableUSD = row('Trade payables-USD', exposureColCount);
-  const expPayableEURO = row('Trade payables-EURO', exposureColCount);
-  const expPayableBDT = row('Trade payables-BDT', exposureColCount);
-  const expPayableCAD = row('Trade payables-CAD', exposureColCount);
-  const expPayableSGD = row('Trade payables-SGD', exposureColCount);
-  const expPayableJPY = row('Trade payables-JPY', exposureColCount);
-  const expPayableGBP = row('Trade payables-GBP', exposureColCount);
-  const expPayablePHP = row('Trade payables-PHP', exposureColCount);
-  
-  // --- TABLE 6: Conversion Rates ---
-  // const conversionHeaders = ['Conversion rates', 'Financial assets USD', 'Financial assets BDT', 'Financial assets SGD', 'Financial liabilities USD', 'Financial liabilities EUR', 'Financial liabilities BDT', 'Financial liabilities CAD', 'Financial liabilities AED', 'Financial liabilities SGD', 'Financial liabilities JPY', 'Financial liabilities GBP', 'Financial liabilities PHP'];
-  // const conversionColCount = conversionHeaders.length;
-  // const rates2024 = row('As at March 2024', conversionColCount);
-  // const rates2023 = row('As at March 2023', conversionColCount);
+      const catLiabilityTotalRow = ["Total", "0.00", "0.00", "0.00", "0.00"];
+      for (let i = 1; i < 5; i++) {
+        const sum =
+          parseNum(catTradePayables[i]) +
+          parseNum(catLease[i]) +
+          parseNum(catOtherLiabilities[i]);
+        catLiabilityTotalRow[i] = sum.toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+        });
+      }
 
-  // --- TABLE 7: Sensitivity Analysis ---
-  const sensitivityHeaders = ['Particulars', 'Increase 31 March 2024', 'Decrease 31 March 2024', 'Increase 31 March 2023', 'Decrease 31 March 2023'];
-  const sensitivityColCount = sensitivityHeaders.length;
-  const sensInrUsd = row('INR/USD', sensitivityColCount);
-  const sensInrEuro = row('INR/EURO', sensitivityColCount);
-  const sensInrBdt = row('INR/BDT', sensitivityColCount);
-  const sensInrSgd = row('INR/SGD', sensitivityColCount);
-  const sensInrCad = row('INR/CAD', sensitivityColCount);
-  const sensInrYen = row('INR/YEN', sensitivityColCount);
-  const sensInrPhp = row('INR/PHP', sensitivityColCount);
+      // --- TABLE 2 & 3: Maturity Analysis ---
+      const maturityHeaders24 = [
+        "As at 31 March 2024",
+        "Less than 1 Year",
+        "1 Year to 5 Year",
+        "More than 5 Years",
+        "Total",
+      ];
+      const maturityHeaders23 = [
+        "As at 31 March 2023",
+        "Less than 1 Year",
+        "1 Year to 5 Year",
+        "More than 5 Years",
+        "Total",
+      ];
+      const maturityColCount = maturityHeaders24.length;
 
-  // --- Final Return Statement ---
-  return {
-    noteNumber: 35,
-    title: 'Financial instuments',
-    totalCurrent: null,
-    totalPrevious: null,
-    content: [
-      {
-        key: 'note35-capital',
-        label: 'A   Capital management',
-        isSubtotal: true,
-        valueCurrent: null,
-        valuePrevious: null,
-        children: [
-          { key: 'note35-capital-description', label:'The Companys policy is to maintain a strong capital base...', valueCurrent: null, valuePrevious: null },
-          { key: 'note35-capital-table', label: 'Total equity attributable to the equity shareholders of the company ', valueCurrent: equity.current, valuePrevious: equity.previous,isEditableRow: true },
-          { key: 'note35-capital-table1', label: 'As a percentage of total capital', valueCurrent: per.current, valuePrevious: per.previous,isEditableRow: true },
-          { key: 'note35-capital-table2', label: 'Borrowings', valueCurrent: 0, valuePrevious: 0 },
-          { key: 'note35-capital-table3', label: 'As a percentage of total capital', valueCurrent: 0, valuePrevious: 0 },
-          { key: 'note35-capital-table-total', label: 'Total', isGrandTotal:true, valueCurrent: equity.current, valuePrevious: equity.previous },
-        ],
-      },
-      { key: 'note35-text-a', label: '', narrativeText: getNarrativeTextByKey('note35-text-a', `The Company is equity financed which is evident from the capital structure table. Further, the Company has always been a net cash Company with cash and bank balances along with liquid investments.`)
-        , isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null },
-      { key: 'note35-category', label: 'B.    Categories of financial Instruments', valueCurrent: null, valuePrevious: null, isSubtotal:true },
-      `The fair value of financial instruments by categories as at 31 March 2023, 31 March 2022 is as below:`,
-      {
-        key:'note35-table1',
-        type: 'table',
-        isEditable: true,
-        headers: categoryHeaders,
-        rows: [
-          ['Financial assets'], ['Measured at amortised cost'],
-          catTradeReceivables, catCash, catBank, catLoans, catOtherAssets, catAssetTotalRow,
-          ['Financial liabilities'], ['Measured at amortised cost'],
-          catTradePayables, catLease, catOtherLiabilities, catLiabilityTotalRow
-        ]
-      },
-      { key: 'note35-financialrisk', label: 'C.    Financial risk management', valueCurrent: null, valuePrevious: null, isSubtotal:true },
-      { key: 'note35-text-b', label: '', narrativeText: getNarrativeTextByKey('note35-text-b',  `The Company's activities expose it to a variety of financial risks: market risk, credit risk and liquidity risk. The Company's focus is to foresee the unpredictability of financial markets and seek to minimize potential adverse effects on it's financial performance. The primary market risk to the Company is foreign exchange exposure risk. The Company's exposure to credit risk is influenced mainly by the individual characteristic of each customer.`),
-         isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null },
-      { key: 'note35-text-c', label: '', narrativeText: getNarrativeTextByKey('note35-text-c',`The Company's financial risk management is supported by the finance department and enterprise risk management committee:
+      const maturityTrade24 = row("Trade payables 2024", maturityColCount);
+      const maturityLease24 = row("Lease Liabilities 2024", maturityColCount);
+      const maturityOther24 = row(
+        "Other financial liabilities 2024",
+        maturityColCount
+      );
+      const maturityTrade23 = row("Trade payables 2023", maturityColCount);
+      const maturityLease23 = row("Lease Liabilities 2023", maturityColCount);
+      const maturityOther23 = row(
+        "Other financial liabilities 2023",
+        maturityColCount
+      );
+
+      const calculateMaturityRowTotal = (r: string[]) => {
+        const total = parseNum(r[1]) + parseNum(r[2]) + parseNum(r[3]);
+        if (r.length > 4)
+          r[4] = total.toLocaleString("en-IN", { minimumFractionDigits: 2 });
+      };
+      [
+        maturityTrade24,
+        maturityLease24,
+        maturityOther24,
+        maturityTrade23,
+        maturityLease23,
+        maturityOther23,
+      ].forEach(calculateMaturityRowTotal);
+
+      const maturityTotal24 = ["Total", "0.00", "0.00", "0.00", "0.00"];
+      for (let i = 1; i <= 4; i++) {
+        const sum =
+          parseNum(maturityTrade24[i]) +
+          parseNum(maturityLease24[i]) +
+          parseNum(maturityOther24[i]);
+        maturityTotal24[i] = sum.toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+        });
+      }
+      const maturityTotal23 = ["Total", "0.00", "0.00", "0.00", "0.00"];
+      for (let i = 1; i <= 4; i++) {
+        const sum =
+          parseNum(maturityTrade23[i]) +
+          parseNum(maturityLease23[i]) +
+          parseNum(maturityOther23[i]);
+        maturityTotal23[i] = sum.toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+        });
+      }
+
+      // --- TABLE 4: Management Policy ---
+      const policyHeaders = [
+        "MANAGEMENT POLICY",
+        "POTENTIAL IMPACT OF RISK",
+        "SENSITIVITY TO RISK",
+      ];
+      const policyColCount = policyHeaders.length;
+      const policyInterest = row(
+        "(i) Interest rate risk The Company is not exposed to interest rate risk because it does not have any borrowings",
+        policyColCount
+      );
+      const policyPrice = row(
+        "(ii) Price risk Major raw materials purchase is from international market and less dependency on domestic market. The prices of the Companys raw materials generally fluctuate in line with commodity cycles.",
+        policyColCount
+      );
+      const policyCurrency = row(
+        "(iii) Currency risk The Company operates internationally and consequently the Company is exposed to foreign exchange risk through its sales and purchases from overseas suppliers in various foreign currencies. The exchange rate between the rupee and foreign currencies has changed substantially in recent years and may fluctuate substantially in the future. Consequently, the results of the Company’s operations are adversely affected as the rupee appreciates/ depreciates against these currencies.",
+        policyColCount
+      );
+
+      // --- TABLE 5: Foreign Currency Exposure ---
+      const exposureHeaders = [
+        "As at 31 March 2024\nAmount in foreign currency in Lakhs",
+        "As at 31 March 2024\nAmount in ₹ Lakhs",
+        "As at 31 March 2023\nAmount in foreign currency in Lakhs",
+        "As at 31 March 2023\nAmount in ₹ Lakhs",
+      ];
+      const exposureColCount = exposureHeaders.length + 1;
+      const expReceivableUSD = row("Trade receivables-USD", exposureColCount);
+      const expReceivableBDT = row("Trade receivables-BDT", exposureColCount);
+      const expPayableUSD = row("Trade payables-USD", exposureColCount);
+      const expPayableEURO = row("Trade payables-EURO", exposureColCount);
+      const expPayableBDT = row("Trade payables-BDT", exposureColCount);
+      const expPayableCAD = row("Trade payables-CAD", exposureColCount);
+      const expPayableSGD = row("Trade payables-SGD", exposureColCount);
+      const expPayableJPY = row("Trade payables-JPY", exposureColCount);
+      const expPayableGBP = row("Trade payables-GBP", exposureColCount);
+      const expPayablePHP = row("Trade payables-PHP", exposureColCount);
+
+      // --- TABLE 6: Conversion Rates ---
+      // const conversionHeaders = ['Conversion rates', 'Financial assets USD', 'Financial assets BDT', 'Financial assets SGD', 'Financial liabilities USD', 'Financial liabilities EUR', 'Financial liabilities BDT', 'Financial liabilities CAD', 'Financial liabilities AED', 'Financial liabilities SGD', 'Financial liabilities JPY', 'Financial liabilities GBP', 'Financial liabilities PHP'];
+      // const conversionColCount = conversionHeaders.length;
+      // const rates2024 = row('As at March 2024', conversionColCount);
+      // const rates2023 = row('As at March 2023', conversionColCount);
+
+      // --- TABLE 7: Sensitivity Analysis ---
+      const sensitivityHeaders = [
+        "Particulars",
+        "Increase 31 March 2024",
+        "Decrease 31 March 2024",
+        "Increase 31 March 2023",
+        "Decrease 31 March 2023",
+      ];
+      const sensitivityColCount = sensitivityHeaders.length;
+      const sensInrUsd = row("INR/USD", sensitivityColCount);
+      const sensInrEuro = row("INR/EURO", sensitivityColCount);
+      const sensInrBdt = row("INR/BDT", sensitivityColCount);
+      const sensInrSgd = row("INR/SGD", sensitivityColCount);
+      const sensInrCad = row("INR/CAD", sensitivityColCount);
+      const sensInrYen = row("INR/YEN", sensitivityColCount);
+      const sensInrPhp = row("INR/PHP", sensitivityColCount);
+
+      // --- Final Return Statement ---
+      return {
+        noteNumber: 35,
+        title: "Financial instuments",
+        totalCurrent: null,
+        totalPrevious: null,
+        content: [
+          {
+            key: "note35-capital",
+            label: "A   Capital management",
+            isSubtotal: true,
+            valueCurrent: null,
+            valuePrevious: null,
+            children: [
+              {
+                key: "note35-capital-description",
+                label:
+                  "The Companys policy is to maintain a strong capital base...",
+                valueCurrent: null,
+                valuePrevious: null,
+              },
+              {
+                key: "note35-capital-table",
+                label:
+                  "Total equity attributable to the equity shareholders of the company ",
+                valueCurrent: equity.current,
+                valuePrevious: equity.previous,
+                isEditableRow: true,
+              },
+              {
+                key: "note35-capital-table1",
+                label: "As a percentage of total capital",
+                valueCurrent: per.current,
+                valuePrevious: per.previous,
+                isEditableRow: true,
+              },
+              {
+                key: "note35-capital-table2",
+                label: "Borrowings",
+                valueCurrent: 0,
+                valuePrevious: 0,
+              },
+              {
+                key: "note35-capital-table3",
+                label: "As a percentage of total capital",
+                valueCurrent: 0,
+                valuePrevious: 0,
+              },
+              {
+                key: "note35-capital-table-total",
+                label: "Total",
+                isGrandTotal: true,
+                valueCurrent: equity.current,
+                valuePrevious: equity.previous,
+              },
+            ],
+          },
+          {
+            key: "note35-text-a",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-a",
+              `The Company is equity financed which is evident from the capital structure table. Further, the Company has always been a net cash Company with cash and bank balances along with liquid investments.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note35-category",
+            label: "B.    Categories of financial Instruments",
+            valueCurrent: null,
+            valuePrevious: null,
+            isSubtotal: true,
+          },
+          `The fair value of financial instruments by categories as at 31 March 2023, 31 March 2022 is as below:`,
+          {
+            key: "note35-table1",
+            type: "table",
+            isEditable: true,
+            headers: categoryHeaders,
+            rows: [
+              ["Financial assets"],
+              ["Measured at amortised cost"],
+              catTradeReceivables,
+              catCash,
+              catBank,
+              catLoans,
+              catOtherAssets,
+              catAssetTotalRow,
+              ["Financial liabilities"],
+              ["Measured at amortised cost"],
+              catTradePayables,
+              catLease,
+              catOtherLiabilities,
+              catLiabilityTotalRow,
+            ],
+          },
+          {
+            key: "note35-financialrisk",
+            label: "C.    Financial risk management",
+            valueCurrent: null,
+            valuePrevious: null,
+            isSubtotal: true,
+          },
+          {
+            key: "note35-text-b",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-b",
+              `The Company's activities expose it to a variety of financial risks: market risk, credit risk and liquidity risk. The Company's focus is to foresee the unpredictability of financial markets and seek to minimize potential adverse effects on it's financial performance. The primary market risk to the Company is foreign exchange exposure risk. The Company's exposure to credit risk is influenced mainly by the individual characteristic of each customer.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note35-text-c",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-c",
+              `The Company's financial risk management is supported by the finance department and enterprise risk management committee:
  - protect the Company's financial results and position from financial risks
  - maintain market risks within acceptable parameters, while optimising returns; and
- - protect the Company's financial investments, while maximising returns.`), isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null },
-      { key: 'note35-text-d', label: '', narrativeText:getNarrativeTextByKey('note35-text-d',`The Company does not actively engage in the trading of financial assets for speculative purposes nor does it write options. The most significant financial risks to which the Company is exposed are described below.`)
-        , isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null },
-      { key: 'note35-financialrisk-credit', label: '           (i) Management of credit risk', valueCurrent: null, valuePrevious: null, isSubtotal:true },
-      { key: 'note35-text-e', label: '', narrativeText: getNarrativeTextByKey('note35-text-e',`Credit risk is the risk of financial loss to the Company arising from counter party failure to meet its contractual obligations. Credit risk encompasses of both, the direct risk of default and the risk of deterioration of creditworthiness as well as concentration of risks. Credit risk is controlled by analysing credit limits and creditworthiness of customers on a continuous basis to whom the credit has been granted after necessary approvals for credit.`),
-         isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null },
-      { key: 'note35-financialrisk-trade', label: 'Trade and other receivables', valueCurrent: null, valuePrevious: null, isSubtotal:true },
-      { key: 'note35-text-f', label: '', narrativeText: getNarrativeTextByKey('note35-text-f',`The Company assess the customers credit quality by taking into account their financial position, past experience and other factors. The Company’s exposure to credit risk is influenced mainly by the individual characteristics of each customer. The demographics of the customer, including the default risk of the industry and country in which the customer operates, also has an influence on credit risk assessment.
-      Trade receivables are typically unsecured and are derived from revenue earned from customers primarily located in India and Japan. Credit risk has always been managed by the Company through credit approvals, establishing credit limits and continuously monitoring the creditworthiness of customers to which the Company grants credit terms in the normal course of business. On account of adoption of Ind AS 109, Financial Instruments, the Company uses expected credit loss model to assess the impairment loss or gain. The provision for expected credit loss takes into account available external and internal credit risk factors and Company's historical experience for customers.`)
-    , isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null },
-      { key: 'note35-financialrisk-BOY', label: 'Balance at the beginning', valueCurrent: BOY.current+ creditloss.previous + creditloss.previous, valuePrevious: BOY.previous,isEditableRow: true },
-      { key: 'note35-financialrisk-creditloss', label: 'Expected Credit Loss recognized', valueCurrent: creditloss.current, valuePrevious: creditloss.previous,isEditableRow: true },
-      { key: 'note35-financialrisk-creditloss-reverse', label: 'Expected Credit Loss reversed', valueCurrent: creditreverse.current, valuePrevious: creditloss.previous,isEditableRow: true },
-      { key: 'note35-financialrisk-BEY', label: 'Balance at the end', valueCurrent:  BOY.current + creditloss.previous + creditloss.previous+ creditloss.current +creditreverse.current, valuePrevious: BOY.previous + creditloss.previous + creditloss.previous, },
-      { key: 'note35-revenue', label: 'Revenue from top 5 customers', valueCurrent: top5.current, valuePrevious: top5.previous,isEditableRow: true },
-      { key: 'note35-revenue-top', label: 'Revenue from top customer', valueCurrent: top.current, valuePrevious: top.previous,isEditableRow: true },
-      { key: 'note35-geo', label: 'Geographical concentration of credit risk', isSubtotal:true, valueCurrent: null, valuePrevious: null },
-      `The Company has geographical concentration of trade receivables, net of advances as given below:`,
-      { key: 'note35-geo-india', label: 'India', valueCurrent: india.current, valuePrevious: india.previous,isEditableRow: true },
-      { key: 'note35-geo-rest', label: 'Rest of the world', valueCurrent: rest.current, valuePrevious: rest.previous,isEditableRow: true },
-      `Geographical concentration of the credit risk is allocated based on the location of the customers.`,
-      { key: 'note35-financialrisk-liquidity', label: '           (ii) Management of liquidity risk', isSubtotal:true, valueCurrent: null, valuePrevious: null },
-      { key: 'note35-text-g', label: '', narrativeText:getNarrativeTextByKey('note35-text-g', `Liquidity risk is the risk that the Company will not be able to meet its financial obligations as they become due. The Company’s approach to managing liquidity is to ensure that it will have sufficient funds to meet its liabilities when due without incurring unacceptable losses. In doing this, management considers both normal and stressed conditions. A material and sustained shortfall in the cash flow could undermine the Company’s credit rating and impair investor confidence. The Company’s treasury department is responsible for liquidity, funding as well as settlement management. In addition, processes and policies related to such risks are overseen by senior management.`),
-         isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null },
-      `The following table shows the maturity analysis of the Company's financial liabilities based on contractually agreed undiscounted cash flows:`,
-      {
-        key:'note35-table2',
-        type: 'table',
-        isEditable: true,
-        headers: maturityHeaders24,
-        rows: [ maturityTrade24, maturityLease24, maturityOther24, maturityTotal24 ]
-      },
-      {
-        key:'note35-table3',
-        type: 'table',
-        isEditable: true,
-        headers: maturityHeaders23,
-        rows: [ maturityTrade23, maturityLease23, maturityOther23, maturityTotal23 ]
-      },
-      { key: 'note35-market-risk-contd', label: 'C Financial risk management (contd)', valueCurrent: null, valuePrevious: null },
-      { key: 'note35-market-risk-main', label: '          (iii) Management of market risk', valueCurrent: null, valuePrevious: null },
-      { key: 'note35-text-h', label: '', narrativeText: getNarrativeTextByKey('note35-text-h',`The Company's size and operations result in it being exposed to the following market risks that arise from its use of financial instruments:
+ - protect the Company's financial investments, while maximising returns.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note35-text-d",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-d",
+              `The Company does not actively engage in the trading of financial assets for speculative purposes nor does it write options. The most significant financial risks to which the Company is exposed are described below.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note35-financialrisk-credit",
+            label: "           (i) Management of credit risk",
+            valueCurrent: null,
+            valuePrevious: null,
+            isSubtotal: true,
+          },
+          {
+            key: "note35-text-e",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-e",
+              `Credit risk is the risk of financial loss to the Company arising from counter party failure to meet its contractual obligations. Credit risk encompasses of both, the direct risk of default and the risk of deterioration of creditworthiness as well as concentration of risks. Credit risk is controlled by analysing credit limits and creditworthiness of customers on a continuous basis to whom the credit has been granted after necessary approvals for credit.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note35-financialrisk-trade",
+            label: "Trade and other receivables",
+            valueCurrent: null,
+            valuePrevious: null,
+            isSubtotal: true,
+          },
+          {
+            key: "note35-text-f",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-f",
+              `The Company assess the customers credit quality by taking into account their financial position, past experience and other factors. The Company’s exposure to credit risk is influenced mainly by the individual characteristics of each customer. The demographics of the customer, including the default risk of the industry and country in which the customer operates, also has an influence on credit risk assessment.
+      Trade receivables are typically unsecured and are derived from revenue earned from customers primarily located in India and Japan. Credit risk has always been managed by the Company through credit approvals, establishing credit limits and continuously monitoring the creditworthiness of customers to which the Company grants credit terms in the normal course of business. On account of adoption of Ind AS 109, Financial Instruments, the Company uses expected credit loss model to assess the impairment loss or gain. The provision for expected credit loss takes into account available external and internal credit risk factors and Company's historical experience for customers.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note35-financialrisk-BOY",
+            label: "Balance at the beginning",
+            valueCurrent:
+              BOY.current + creditloss.previous + creditloss.previous,
+            valuePrevious: BOY.previous,
+            isEditableRow: true,
+          },
+          {
+            key: "note35-financialrisk-creditloss",
+            label: "Expected Credit Loss recognized",
+            valueCurrent: creditloss.current,
+            valuePrevious: creditloss.previous,
+            isEditableRow: true,
+          },
+          {
+            key: "note35-financialrisk-creditloss-reverse",
+            label: "Expected Credit Loss reversed",
+            valueCurrent: creditreverse.current,
+            valuePrevious: creditloss.previous,
+            isEditableRow: true,
+          },
+          {
+            key: "note35-financialrisk-BEY",
+            label: "Balance at the end",
+            valueCurrent:
+              BOY.current +
+              creditloss.previous +
+              creditloss.previous +
+              creditloss.current +
+              creditreverse.current,
+            valuePrevious:
+              BOY.previous + creditloss.previous + creditloss.previous,
+          },
+          {
+            key: "note35-revenue",
+            label: "Revenue from top 5 customers",
+            valueCurrent: top5.current,
+            valuePrevious: top5.previous,
+            isEditableRow: true,
+          },
+          {
+            key: "note35-revenue-top",
+            label: "Revenue from top customer",
+            valueCurrent: top.current,
+            valuePrevious: top.previous,
+            isEditableRow: true,
+          },
+          {
+            key: "note35-geo",
+            label: "Geographical concentration of credit risk",
+            isSubtotal: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          `The Company has geographical concentration of trade receivables, net of advances as given below:`,
+          {
+            key: "note35-geo-india",
+            label: "India",
+            valueCurrent: india.current,
+            valuePrevious: india.previous,
+            isEditableRow: true,
+          },
+          {
+            key: "note35-geo-rest",
+            label: "Rest of the world",
+            valueCurrent: rest.current,
+            valuePrevious: rest.previous,
+            isEditableRow: true,
+          },
+          `Geographical concentration of the credit risk is allocated based on the location of the customers.`,
+          {
+            key: "note35-financialrisk-liquidity",
+            label: "           (ii) Management of liquidity risk",
+            isSubtotal: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note35-text-g",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-g",
+              `Liquidity risk is the risk that the Company will not be able to meet its financial obligations as they become due. The Company’s approach to managing liquidity is to ensure that it will have sufficient funds to meet its liabilities when due without incurring unacceptable losses. In doing this, management considers both normal and stressed conditions. A material and sustained shortfall in the cash flow could undermine the Company’s credit rating and impair investor confidence. The Company’s treasury department is responsible for liquidity, funding as well as settlement management. In addition, processes and policies related to such risks are overseen by senior management.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          `The following table shows the maturity analysis of the Company's financial liabilities based on contractually agreed undiscounted cash flows:`,
+          {
+            key: "note35-table2",
+            type: "table",
+            isEditable: true,
+            headers: maturityHeaders24,
+            rows: [
+              maturityTrade24,
+              maturityLease24,
+              maturityOther24,
+              maturityTotal24,
+            ],
+          },
+          {
+            key: "note35-table3",
+            type: "table",
+            isEditable: true,
+            headers: maturityHeaders23,
+            rows: [
+              maturityTrade23,
+              maturityLease23,
+              maturityOther23,
+              maturityTotal23,
+            ],
+          },
+          {
+            key: "note35-market-risk-contd",
+            label: "C Financial risk management (contd)",
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note35-market-risk-main",
+            label: "          (iii) Management of market risk",
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note35-text-h",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-h",
+              `The Company's size and operations result in it being exposed to the following market risks that arise from its use of financial instruments:
               • interest rate risk
               • price risk
               • currency risk
-           The above risks may affect the Company's income and expenses, or the value of its financial instruments. The objective of the Company’s management of market risk is to maintain this risk within acceptable parameters, while optimising returns. The Company’s exposure to, and management of, these risks is explained below:`),
-            isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null },
-       {
-        key:'note35-table4',
-         type: 'table',
-         isEditable: true,
-         isTextTable: true,
-         headers: policyHeaders,
-         rows: [ policyInterest, policyPrice, policyCurrency ]
-       },
-     
-      'The following table sets forth information relating to foreign currency exposures as at 31 March 2024 and 31 March 2023 :',
-      {
-        key:'note35-table5',
-        type: 'table',
-        isEditable: true,
-        headers: ['Particulars Included In', ...exposureHeaders],
-        rows: [
-            expReceivableUSD, expReceivableBDT,
-            ['Financial liabilities'],
-            expPayableUSD, expPayableEURO, expPayableBDT, expPayableCAD,
-            expPayableSGD, expPayableJPY, expPayableGBP, expPayablePHP
-        ]
-      },
-           
-      
-      
-      'Sensitivity',
-      { key: 'note35-text-i', label: '', narrativeText: getNarrativeTextByKey('note35-text-i',`The following table details the Company’s sensitivity to a 1% increase and decrease in the ₹ against the relevant foreign currencies. 1% is the sensitivity rate used when reporting foreign currency risk internally to key management personnel and represents management’s assessment of the reasonably possible change in foreign exchange rates. The sensitivity analysis includes only outstanding foreign currency denominated monetary items and adjusts their translation at the year-end for a 1% change in foreign currency rates, with all other variables held constant. A positive number below indicates an increase in profit or equity where ₹ strengthens 1% against the relevant currency. For a 1% weakening of ₹ against the relevant currency, there would be a comparable impact on profit or equity, and the balances below would be negative.`),
-         isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null, },
-      {
-        key:'note35-table6',
-        type: 'table',
-        isEditable: true,
-        headers: sensitivityHeaders,
-        rows: [
-          ['Sensitivity'],
-          sensInrUsd, sensInrEuro, sensInrBdt, sensInrSgd,
-          sensInrCad, sensInrYen, sensInrPhp
-        ]
-      },
-      { key: 'note35-D', label: 'Fair Value Measurement', valueCurrent: null, valuePrevious: null, isSubtotal: true },
-      { key: 'note35-text-j', label: '', narrativeText: getNarrativeTextByKey('note35-text-j',`Fair value is the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between Market participants at the measurement date, regardless of whether that price is directly observable or estimated using another valuation technique. In estimating the fair value of an asset or a liability, the Company takes into account the characteristics of the asset or liability if Market participants would take those characteristics into account when pricing the asset or liability, at the measurement date. Fair value for measurement and/or disclosure purposes in these financial statements is determined on such a basis, except for leasing transactions that are within the scope of Ind AS 116, and measurements that have some similarities to fair value but are not fair value, such as net realisable value in Ind AS 2 or value in use in Ind AS 36.`),
-         isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null, },
-      { key: 'note35-text-k', label: '', narrativeText: getNarrativeTextByKey('note35-text-k',`In addition, for financial reporting purposes, fair value measurements are categorised into Level 1, 2, or 3 based on the degree to which the inputs to the fair value measurements are observable and the significance of the inputs to the fair value measurement in its entirety, which are described as follows:`),
-         isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null, },
-      { key: 'note35-text-l', label: '', narrativeText:getNarrativeTextByKey('note35-text-l',`- Level 1 inputs are quoted prices (unadjusted) in active Markets for identical assets or liabilities that the entity can access at the measurement date;`),
-         isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null, },
-      { key: 'note35-text-m', label: '', narrativeText:getNarrativeTextByKey('note35-text-m', `- Level 2 inputs are inputs, other than quoted prices included within Level 1, that are observable for the asset or liability, either directly or indirectly; and`),
-         isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null, },
-      { key: 'note35-text-n', label: '', narrativeText: getNarrativeTextByKey('note35-text-n', `- Level 3 inputs are unobservable inputs for the asset or liability.`),
-         isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null, },
-      { key: 'note35-text-o', label: '', narrativeText: getNarrativeTextByKey('note35-text-o',`The fair value hierachy of Financial Instruments of the company are measured under Level 3 .`),
-         isNarrative: true, isEditableText: true, valueCurrent: null, valuePrevious: null, },
-    ],
-  };
-};
+           The above risks may affect the Company's income and expenses, or the value of its financial instruments. The objective of the Company’s management of market risk is to maintain this risk within acceptable parameters, while optimising returns. The Company’s exposure to, and management of, these risks is explained below:`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note35-table4",
+            type: "table",
+            isEditable: true,
+            isTextTable: true,
+            headers: policyHeaders,
+            rows: [policyInterest, policyPrice, policyCurrency],
+          },
+
+          "The following table sets forth information relating to foreign currency exposures as at 31 March 2024 and 31 March 2023 :",
+          {
+            key: "note35-table5",
+            type: "table",
+            isEditable: true,
+            headers: ["Particulars Included In", ...exposureHeaders],
+            rows: [
+              expReceivableUSD,
+              expReceivableBDT,
+              ["Financial liabilities"],
+              expPayableUSD,
+              expPayableEURO,
+              expPayableBDT,
+              expPayableCAD,
+              expPayableSGD,
+              expPayableJPY,
+              expPayableGBP,
+              expPayablePHP,
+            ],
+          },
+
+          "Sensitivity",
+          {
+            key: "note35-text-i",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-i",
+              `The following table details the Company’s sensitivity to a 1% increase and decrease in the ₹ against the relevant foreign currencies. 1% is the sensitivity rate used when reporting foreign currency risk internally to key management personnel and represents management’s assessment of the reasonably possible change in foreign exchange rates. The sensitivity analysis includes only outstanding foreign currency denominated monetary items and adjusts their translation at the year-end for a 1% change in foreign currency rates, with all other variables held constant. A positive number below indicates an increase in profit or equity where ₹ strengthens 1% against the relevant currency. For a 1% weakening of ₹ against the relevant currency, there would be a comparable impact on profit or equity, and the balances below would be negative.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note35-table6",
+            type: "table",
+            isEditable: true,
+            headers: sensitivityHeaders,
+            rows: [
+              ["Sensitivity"],
+              sensInrUsd,
+              sensInrEuro,
+              sensInrBdt,
+              sensInrSgd,
+              sensInrCad,
+              sensInrYen,
+              sensInrPhp,
+            ],
+          },
+          {
+            key: "note35-D",
+            label: "Fair Value Measurement",
+            valueCurrent: null,
+            valuePrevious: null,
+            isSubtotal: true,
+          },
+          {
+            key: "note35-text-j",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-j",
+              `Fair value is the price that would be received to sell an asset or paid to transfer a liability in an orderly transaction between Market participants at the measurement date, regardless of whether that price is directly observable or estimated using another valuation technique. In estimating the fair value of an asset or a liability, the Company takes into account the characteristics of the asset or liability if Market participants would take those characteristics into account when pricing the asset or liability, at the measurement date. Fair value for measurement and/or disclosure purposes in these financial statements is determined on such a basis, except for leasing transactions that are within the scope of Ind AS 116, and measurements that have some similarities to fair value but are not fair value, such as net realisable value in Ind AS 2 or value in use in Ind AS 36.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note35-text-k",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-k",
+              `In addition, for financial reporting purposes, fair value measurements are categorised into Level 1, 2, or 3 based on the degree to which the inputs to the fair value measurements are observable and the significance of the inputs to the fair value measurement in its entirety, which are described as follows:`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note35-text-l",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-l",
+              `- Level 1 inputs are quoted prices (unadjusted) in active Markets for identical assets or liabilities that the entity can access at the measurement date;`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note35-text-m",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-m",
+              `- Level 2 inputs are inputs, other than quoted prices included within Level 1, that are observable for the asset or liability, either directly or indirectly; and`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note35-text-n",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-n",
+              `- Level 3 inputs are unobservable inputs for the asset or liability.`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+          {
+            key: "note35-text-o",
+            label: "",
+            narrativeText: getNarrativeTextByKey(
+              "note35-text-o",
+              `The fair value hierachy of Financial Instruments of the company are measured under Level 3 .`
+            ),
+            isNarrative: true,
+            isEditableText: true,
+            valueCurrent: null,
+            valuePrevious: null,
+          },
+        ],
+      };
+    };
     const note3 = calculateNote3();
     const note4 = calculateNote4();
     const note5 = calculateNote5();
@@ -9343,18 +10632,14 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
         );
         const cwipTable = tables[0]; // index 1 for second table
         if (cwipTable) {
-          const currentRow = cwipTable.rows.find(
-            (row) => row[0] === ""
-          );
+          const currentRow = cwipTable.rows.find((row) => row[0] === "");
           if (currentRow) {
             valueCurrent =
               Math.abs(
                 parseFloat(currentRow[currentRow.length - 1].replace(/,/g, ""))
               ) || 0;
           }
-          const previousRow = cwipTable.rows.find(
-            (row) => row[0] === ""
-          );
+          const previousRow = cwipTable.rows.find((row) => row[0] === "");
           if (previousRow) {
             valuePrevious =
               Math.abs(
@@ -9364,8 +10649,7 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
               ) || 0;
           }
         }
-      }
-      else if (node.key === "is-except") {
+      } else if (node.key === "is-except") {
         valueCurrent = 12166.54;
       }
 
@@ -10080,7 +11364,9 @@ const handleExportExcel = async (
 
           // ✅ Add narrative text right here
           if (item.narrativeText) {
-            const narrativeRow = worksheet.addRow([`Narrative: ${item.narrativeText}`]);
+            const narrativeRow = worksheet.addRow([
+              `Narrative: ${item.narrativeText}`,
+            ]);
             narrativeRow.getCell(1).alignment = { wrapText: true };
             narrativeRow.font = { italic: true, color: { argb: "FF555555" } };
           }
@@ -10334,11 +11620,9 @@ const RenderPdfNoteRow = ({
         </Text>
       </View>
       {/* Narrative text (if present) */}
-        {item.narrativeText && (
-          <Text style={PDF_STYLES.noteParagraph}>
-            {item.narrativeText}
-          </Text>
-        )}
+      {item.narrativeText && (
+        <Text style={PDF_STYLES.noteParagraph}>{item.narrativeText}</Text>
+      )}
       {item.children?.map((child) => (
         <RenderPdfNoteRow key={child.key} item={child} depth={depth + 1} />
       ))}
@@ -10523,11 +11807,11 @@ const RenderPdfRow = ({
 const PDFDocumentComponent = ({
   data,
   periodHeaders,
-  }: {
-    data: FinancialData;
-    periodHeaders: { currentPeriod: string; previousPeriod: string };
-  }) => (
-    <Document>
+}: {
+  data: FinancialData;
+  periodHeaders: { currentPeriod: string; previousPeriod: string };
+}) => (
+  <Document>
     <Page size="A4" style={PDF_STYLES.page}>
       <Text style={PDF_STYLES.title}>Financial Statements</Text>
 
@@ -10897,13 +12181,14 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
     return periodName;
   };
 
-  
-
   // Determine which data source to use
   const currentData = useDatabase ? databaseData : data || [];
   const currentAmountKeys = useDatabase
-  ? { amountCurrentKey: selectedPeriods?.period1 || "", amountPreviousKey: selectedPeriods?.period2 || "" }
-  : amountKeys || { amountCurrentKey: "", amountPreviousKey: "" };
+    ? {
+        amountCurrentKey: selectedPeriods?.period1 || "",
+        amountPreviousKey: selectedPeriods?.period2 || "",
+      }
+    : amountKeys || { amountCurrentKey: "", amountPreviousKey: "" };
   const currentFinancialVar = useDatabase ? financialVarData : financialVar;
   const currentTextVar = useDatabase ? textVarData : textVar;
 
@@ -10921,14 +12206,12 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
     };
   };
 
-  
-
   const periodHeaders = getPeriodHeaders();
 
   // Function to format period names for display
-  
-  console.log("currentAmountKeys",currentAmountKeys)
-  console.log("periodHeaders",periodHeaders)
+
+  console.log("currentAmountKeys", currentAmountKeys);
+  console.log("periodHeaders", periodHeaders);
   // Move hooks to top level
   const renamedData = currentData.map((row) => {
     if (useDatabase) {
@@ -11018,10 +12301,9 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
   // console.log("renamedData", renamedData1);
   // console.log("currentTextVar", currentTextVar);
 
-
-  const textVar2 = currentTextVar.map(row => ({
+  const textVar2 = currentTextVar.map((row) => ({
     key: row.key,
-    amountCurrent: (row as any)[currentAmountKeys.amountCurrentKey]
+    amountCurrent: (row as any)[currentAmountKeys.amountCurrentKey],
   }));
 
   console.log("textVar2", textVar2);
@@ -11353,68 +12635,67 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
 
     generateTextVarPayload();
 
-     // 5. === GET TABLE CONTENT BY KEY ===
-  const getTableContentByKey = (key: string): TableContent | null => {
-    for (const note of updatedNotes) {
-      const result = findTableInContent(note.content, key);
-      if (result) {
-        return result;
-      }
-    }
-    return null;
-  };
-
-  const findTableInContent = (
-    items: (HierarchicalItem | TableContent | string)[],
-    key: string
-  ): TableContent | null => {
-    for (const item of items) {
-      if (typeof item !== "string" && "key" in item && item.key === key) {
-        // Use a type guard to ensure the item is a TableContent
-        if (
-          "type" in item &&
-          item.type === "table" &&
-          "headers" in item &&
-          "rows" in item
-        ) {
-          // TypeScript now recognizes this as a valid TableContent object
-          return item as TableContent;
-        }
-      }
-
-      // Check if the item has children and recursively search
-      if (typeof item !== "string" && "children" in item && item.children) {
-        const result = findTableInContent(item.children, key);
+    // 5. === GET TABLE CONTENT BY KEY ===
+    const getTableContentByKey = (key: string): TableContent | null => {
+      for (const note of updatedNotes) {
+        const result = findTableInContent(note.content, key);
         if (result) {
           return result;
         }
       }
-    }
-    return null;
-  };
+      return null;
+    };
 
-  // 6. === UPDATE TABLE VARIABLES ===
-  const generateTablePayload = () => {
+    const findTableInContent = (
+      items: (HierarchicalItem | TableContent | string)[],
+      key: string
+    ): TableContent | null => {
+      for (const item of items) {
+        if (typeof item !== "string" && "key" in item && item.key === key) {
+          // Use a type guard to ensure the item is a TableContent
+          if (
+            "type" in item &&
+            item.type === "table" &&
+            "headers" in item &&
+            "rows" in item
+          ) {
+            // TypeScript now recognizes this as a valid TableContent object
+            return item as TableContent;
+          }
+        }
 
-    
-     const updatedTables = textVar2
-  .map((row) => {
-    const { key } = row;
-    const tableContent = getTableContentByKey(key);
-    if (tableContent) {
-      return {
-        key,
-        [currentAmountKeys.amountCurrentKey]: JSON.stringify(tableContent.rows) // convert to JSON string
-      };
-    }
-    return null;
-  })
-  .filter(Boolean);
+        // Check if the item has children and recursively search
+        if (typeof item !== "string" && "children" in item && item.children) {
+          const result = findTableInContent(item.children, key);
+          if (result) {
+            return result;
+          }
+        }
+      }
+      return null;
+    };
 
-  console.log("tableUploadData", updatedTables);
+    // 6. === UPDATE TABLE VARIABLES ===
+    const generateTablePayload = () => {
+      const updatedTables = textVar2
+        .map((row) => {
+          const { key } = row;
+          const tableContent = getTableContentByKey(key);
+          if (tableContent) {
+            return {
+              key,
+              [currentAmountKeys.amountCurrentKey]: JSON.stringify(
+                tableContent.rows
+              ), // convert to JSON string
+            };
+          }
+          return null;
+        })
+        .filter(Boolean);
 
+      console.log("tableUploadData", updatedTables);
 
-    fetch("http://localhost:5000/api/update-text-vars", {
+      fetch("http://localhost:5000/api/update-text-vars", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedTables),
@@ -11429,9 +12710,9 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
         .catch((error) => {
           console.error("❌ Error updating text variables:", error);
         });
-  };
+    };
 
-  generateTablePayload();
+    generateTablePayload();
 
     // 5. === CLOSE EDITOR ===
     handleCloseEditor();
@@ -11577,7 +12858,7 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
         Financial Statements
       </Typography>
 
-      <Box sx={{ mb: 2, display: "flex", justifyContent: "flex-end" , gap:2}}>
+      <Box sx={{ mb: 2, display: "flex", justifyContent: "flex-end", gap: 2 }}>
         <Button variant="outlined" onClick={handleToggleExpandAll}>
           {expandedKeys.size === allExpandableKeys.length
             ? "Collapse All"
