@@ -11055,24 +11055,17 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
     };
   });
 
-  console.log("financialVar2", financialVar2);
-  console.log("renamedData", renamedData1);
+  // console.log("financialVar2", financialVar2);
+  // console.log("renamedData", renamedData1);
+  // console.log("currentTextVar", currentTextVar);
 
-  // Process textVar similar to financialVar2
-  const textVar2 = currentTextVar.map((row) => {
-    if (useDatabase) {
-      // Database text variables are already in correct format
-      return {
-        key: row.key,
-        amountCurrent: row.amountCurrent || "",
-      };
-    }
 
-    return {
-      key: row.key,
-      amountCurrent: row.amountCurrent || "",
-    };
-  });
+  const textVar2 = currentTextVar.map(row => ({
+    key: row.key,
+    amountCurrent: (row as any)[currentAmountKeys.amountCurrentKey]
+  }));
+
+  console.log("textVar2", textVar2);
 
   const financialData = useFinancialData(
     renamedData,
