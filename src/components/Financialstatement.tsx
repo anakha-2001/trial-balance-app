@@ -1426,7 +1426,6 @@ const useFinancialData = (
 
       return null;
     };
-
     const findItemInTree = (
       nodes: HierarchicalItem[],
       key: string
@@ -1440,9 +1439,6 @@ const useFinancialData = (
       }
       return null;
     };
-
-    
-
     const totals = new Map<string, { current: number; previous: number }>();
     const calculateNote3 = (): FinancialNote => {
       // Updated calculateRowTotal to sum columns 1 to 7 (exclusive of 'Total' column at index 8)
@@ -2692,7 +2688,7 @@ const useFinancialData = (
           },
         ],
       };
-    };
+    };  
     const calculateNote9 = (): FinancialNote => {
   // --- Hierarchical Item Calculations (YOUR ORIGINAL LOGIC - UNCHANGED) ---
   const tradeReceivables = getAmount('amountCurrent', ['trade receivables'], ['trade receivables']);
@@ -2710,19 +2706,38 @@ const useFinancialData = (
   const totalCurrent = subtotalCurrent - allowanceCurrent;
   const totalPrevious = subtotalPrevious - allowancePrevious;
 
-  // --- Editable Table Logic ---
-  const parseNum = (val: string, isPrevious = false): number => {
+  // --- Editable Table Logic (FINAL VERSION) ---
+  const options = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+  const formatValue = (num: number) => num.toLocaleString('en-IN', options);
+  const formatPrevValue = (num: number) => {
+    if (num < 0) {
+      return `(${Math.abs(num).toLocaleString('en-IN', options)})`;
+    }
+    return num.toLocaleString('en-IN', options);
+  };
+
+  const parseNum = (val: string | undefined, isPrevious = false): number => {
     if (!val) return 0;
     const parts = String(val).split('\n');
-    const targetPart = isPrevious ? (parts[1] || '0') : (parts[0] || '0');
-    return parseFloat(targetPart.replace(/[(),-]/g, '')) || 0;
+    let targetPart = isPrevious ? (parts[1] || '0') : (parts[0] || '0');
+    
+    const isNegative = targetPart.includes('(') || targetPart.includes('-');
+    // Remove formatting but keep the minus sign and decimal point
+    targetPart = targetPart.replace(/[^0-9.-]/g, '');
+    let num = parseFloat(targetPart) || 0;
+    
+    if (isNegative && num > 0) {
+      num = num;
+    }
+    return num;
   };
   
   const row = (label: string, columnCount: number): string[] => {
     const edited = getTableValue(9, label);
     if (edited) return edited;
     
-    const emptyRow = Array(columnCount).fill('-\n(-)'); // Default format for empty cells
+    // ✅ FIX #1: Initialize with empty strings for blank fields by default.
+    const emptyRow = Array(columnCount).fill(''); 
     emptyRow[0] = label;
     return emptyRow;
   };
@@ -2730,7 +2745,6 @@ const useFinancialData = (
   const ageingHeaders = ['PARTICULARS', 'Not due', 'Less than 6 months', '6 months - 1 year', '1-2 years', '2-3 years', 'More than 3 years', 'Total'];
   const ageingColumnCount = ageingHeaders.length;
 
-  // Define the editable rows
   const undisputedGood = row('Undisputed Trade receivables - considered good', ageingColumnCount);
   const undisputedImpaired = row('Undisputed Trade receivables – credit impaired', ageingColumnCount);
   const disputedGood = row('Disputed Trade Receivables – considered good', ageingColumnCount);
@@ -2738,9 +2752,9 @@ const useFinancialData = (
   const disputedImpaired = row('Disputed Trade Receivables – credit impaired', ageingColumnCount);
   const allowanceRow = row('Less: Allowance for credit loss', ageingColumnCount);
 
+  // calculating right sum
   const allDataRows = [undisputedGood, undisputedImpaired, disputedGood, disputedRisk, disputedImpaired];
 
-  // Calculate the row totals for each editable row
   allDataRows.forEach(r => {
     let currentSum = 0;
     let prevSum = 0;
@@ -2748,26 +2762,34 @@ const useFinancialData = (
         currentSum += parseNum(r[i], false);
         prevSum += parseNum(r[i], true);
     }
-    r[7] = `${currentSum.toLocaleString('en-IN')}\n(${prevSum.toLocaleString('en-IN')})`;
+    r[7] = `${formatValue(currentSum)}\n${formatPrevValue(prevSum)}`;
   });
   
-  // Calculate the main total row (the blank one before 'Less:')
-  const mainTotalRow = ['', '0\n(0)', '0\n(0)', '0\n(0)', '0\n(0)', '0\n(0)', '0\n(0)', '0\n(0)'];
+  //cslculating bottom sum
+  const mainTotalRow = ['Total', ...Array(7).fill('')];
   for (let i = 1; i <= 7; i++) {
     const currentSum = allDataRows.reduce((acc, r) => acc + parseNum(r[i], false), 0);
     const prevSum = allDataRows.reduce((acc, r) => acc + parseNum(r[i], true), 0);
-    mainTotalRow[i] = `${currentSum.toLocaleString('en-IN')}\n(${prevSum.toLocaleString('en-IN')})`;
+    mainTotalRow[i] = `${formatValue(currentSum)}\n${formatPrevValue(prevSum)}`;
   }
+
+  let allowanceCurrentSum = 0;
+  let allowancePrevSum = 0;
+  for (let i = 1; i <= 6; i++) {
+      allowanceCurrentSum += parseNum(allowanceRow[i], false);
+      allowancePrevSum += parseNum(allowanceRow[i], true);
+  }
+  allowanceRow[7] = `${formatValue(allowanceCurrentSum)}\n${formatPrevValue(allowancePrevSum)}`;
   
-  // Final calculated rows based on the structure in your image
-  const totalReceivables24 = ['Total Trade Receivables as on 31 March 2024', '', '', '', '', '', '', (parseNum(mainTotalRow[7], false) - parseNum(allowanceRow[7], false)).toLocaleString('en-IN')];
-  const totalReceivables23 = ['Total Trade Receivables as on 31 March 2023', '', '', '', '', '', '', `(${(parseNum(mainTotalRow[7], true) - parseNum(allowanceRow[7], true)).toLocaleString('en-IN')})`];
+  // ✅ FIX #4: Create two separate, single-value rows for the final totals.
+  const totalReceivables24 = ['Total Trade Receivables as on 31 March 2024', '', '', '', '', '', '', formatValue(parseNum(mainTotalRow[7], false) - parseNum(allowanceRow[7], false))];
+  const totalReceivables23 = ['Total Trade Receivables as on 31 March 2023', '', '', '', '', '', '', formatPrevValue(parseNum(mainTotalRow[7], true) - parseNum(allowanceRow[7], true))];
 
   return {
     noteNumber: 9,
     title: 'Trade receivables (unsecured)',
-    totalCurrent: null,
-    totalPrevious: null,
+    totalCurrent: totalCurrent,
+    totalPrevious: totalPrevious,
     footer:'Note: Figures in brackets relate to previous year.',
     content: [
       { key: 'note9-good', label: 'Trade Receivables - Considered good', valueCurrent: consideredGoodCurrent, valuePrevious: consideredGoodPrevious },
@@ -2776,15 +2798,16 @@ const useFinancialData = (
       { key: 'note9-allowance', label: 'Less: Allowances for credit impairment', valueCurrent: allowanceCurrent, valuePrevious: allowancePrevious },
       { key: 'note9-total', label: 'Total', isGrandTotal: true, valueCurrent: totalCurrent, valuePrevious: totalPrevious },
       'Expected credit loss',
-      {
+       {
         key:'note9-text-a',
         label:'',
-        narrativeText:getNarrativeTextByKey('note9-text-a',`The Company uses a provision matrix to determine impairment loss on portfolio of its trade receivable.The provision matrix is based on its historically observed default rates over the expected life of the trade receivables and is adjusted for forward-looking estimates. At regular intervals, the historically observed default rates are updated and changes in forward-looking estimates are analysed.`), 
+        narrativeText:getNarrativeTextByKey('note9-text-a',`The Company uses a provision matrix to determine impairment loss on portfolio of its trade receivable.The provision matrix is based on its historically observed default rates over the expected life of the trade receivables and is adjusted for forward-looking estimates. At regular intervals, the historically observed default rates are updated and changes in forward-looking estimates are analysed.`),
         isNarrative:true,
         isEditableText:true,
         valueCurrent:null,
         valuePrevious:null,
       },
+
       'The trade receivables ageing schedule for the year ended as on 31 March 2024 is as follows :',
       {
         key:'note9-table1',
@@ -2792,20 +2815,13 @@ const useFinancialData = (
         isEditable: true,
         headers: ageingHeaders,
         rows: [
-          undisputedGood,
-          undisputedImpaired,
-          disputedGood,
-          disputedRisk,
-          disputedImpaired,
-          mainTotalRow,
-          allowanceRow,
-          totalReceivables24.map(String),
-          totalReceivables23.map(String),
+          undisputedGood, undisputedImpaired, disputedGood, disputedRisk, disputedImpaired,
+          mainTotalRow, allowanceRow, totalReceivables24, totalReceivables23,
         ]
       }
     ]
   };
-};
+    };   
     const calculateNote10 = (): FinancialNote => {
       // Non-current
       const nonCurrentGovt = {
@@ -3256,250 +3272,173 @@ const useFinancialData = (
       };
     };
     const calculateNote12 = (): FinancialNote => {
-      // Authorised share data
-      const authorisedEquityNumber = 9500000;
-      const authorisedEquityAmount = 950.0;
+  // Create a normal editable row
+  const createEditableRow = (label: string, columnCount: number): string[] => {
+    const edited = getTableValue(12, label);
+    if (edited) return edited;
+    const emptyRow = Array(columnCount).fill('');
+    emptyRow[0] = label;
+    return emptyRow;
+  };
 
-      const unclassifiedNumber = 500000;
-      const unclassifiedAmount = 50.0;
+  const parseNum = (val: string): number =>
+    parseFloat(val.replace(/,/g, "")) || 0;
 
-      const totalAuthorisedNumber = authorisedEquityNumber + unclassifiedNumber;
-      const totalAuthorisedAmount = authorisedEquityAmount + unclassifiedAmount;
+  const calculateBalance = (rows: string[][], columnCount: number): string[] => {
+    const result: number[] = [];
+    for (let i = 1; i < columnCount; i++) {
+      const colSum = rows.reduce((sum, row) => sum + parseNum(row[i]), 0);
+      result.push(colSum);
+    }
+    return [
+      "",
+      ...result.map((val) =>
+        val.toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+      ),
+    ];
+  };
 
-      // Issued and Subscribed share data (same in both years)
-      const issuedNumber = 8505469;
-      const issuedAmount = 850.55;
+  // ===== Table 1: Equity Share Capital =====
+  const table1Headers = ['', 'As at 31 March 2024\nNumber', '\nAmount', 'As at 31 March 2023\nNumber', '\nAmount'];
+  const table1ColumnCount = table1Headers.length;
 
-      const issuedAndSubscribedNumber = "85,05,469";
-      const issuedAndSubscribedAmount = "850.55";
+  const equitySharesRow = createEditableRow('Equity shares of ₹ 10 each', table1ColumnCount);
+  const unclassifiedSharesRow = createEditableRow('Unclassified shares of ₹ 10 each', table1ColumnCount);
+  const issuedCapitalRow = createEditableRow('Issued Share Capital\nEquity shares of ₹ 10 each', table1ColumnCount);
+  const subscribedCapitalRow = createEditableRow('Subscribed and fully paid up\nEquity shares of ₹ 10 each', table1ColumnCount);
+  const issuedSubscribedRows = [subscribedCapitalRow];
+  const totalIssuedSubscribedRow = calculateBalance(issuedSubscribedRows, table1ColumnCount);
 
-      const percent = "100.00%";
+  // ===== Table 2: Reconciliation =====
+  const table2Headers = ['', 'As at 31 March 2024\nNumber', '\nAmount', 'As at 31 March 2023\nNumber', '\nAmount'];
+  const table2ColumnCount = table2Headers.length;
+  const balanceBeginningRow = createEditableRow('Balances as at the beginning of the year', table2ColumnCount);
+  const balanceEndRow = createEditableRow('Balance at the end of the year', table2ColumnCount);
 
-      return {
-        noteNumber: 12,
-        title: "Equity Share Capital",
-        totalCurrent: issuedAmount,
-        totalPrevious: issuedAmount,
-        content: [
-          {
-            key: "note12-equity",
-            label: "Authorised",
-            valueCurrent: null,
-            valuePrevious: null,
-            isSubtotal: true,
-          },
-          {
-            key:'note12-table1',
-            type: "table",
-            headers: [
-              "",
-              "As at 31 March 2024\nNumber",
-              "\nAmount",
-              "As at 31 March 2023\nNumber",
-              "\nAmount",
-            ],
-            rows: [
-              [
-                "Authorised",
-                totalAuthorisedNumber.toLocaleString("en-IN"),
-                totalAuthorisedAmount.toFixed(2),
-                totalAuthorisedNumber.toLocaleString("en-IN"),
-                totalAuthorisedAmount.toFixed(2),
-              ],
-              [
-                "Equity shares of ₹ 10 each",
-                authorisedEquityNumber.toLocaleString("en-IN"),
-                authorisedEquityAmount.toFixed(2),
-                authorisedEquityNumber.toLocaleString("en-IN"),
-                authorisedEquityAmount.toFixed(2),
-              ],
-              [
-                "Unclassified shares of ₹ 10 each",
-                unclassifiedNumber.toLocaleString("en-IN"),
-                unclassifiedAmount.toFixed(2),
-                unclassifiedNumber.toLocaleString("en-IN"),
-                unclassifiedAmount.toFixed(2),
-              ],
-              [
-                "Issued Share Capital\nEquity shares of ₹ 10 each",
-                issuedNumber.toLocaleString("en-IN"),
-                issuedAmount.toFixed(2),
-                issuedNumber.toLocaleString("en-IN"),
-                issuedAmount.toFixed(2),
-              ],
-              [
-                "Subscribed and fully paid up\nEquity shares of ₹ 10 each",
-                issuedNumber.toLocaleString("en-IN"),
-                issuedAmount.toFixed(2),
-                issuedNumber.toLocaleString("en-IN"),
-                issuedAmount.toFixed(2),
-              ],
-              [
-                "",
-                issuedNumber.toLocaleString("en-IN"),
-                issuedAmount.toFixed(2),
-                issuedNumber.toLocaleString("en-IN"),
-                issuedAmount.toFixed(2),
-              ],
-            ],
-          },
-          "Refer note (a) to (d) below",
-          "(a) Reconciliation of the number of shares and amount outstanding at the beginning and at the end of the reporting period:",
-          // Second table for the reconciliation details
-          {
-            key:'note12-table2',
-            type: "table",
-            headers: [
-              "",
-              "As at 31 March 2024\nNumber",
-              "\nAmount",
-              "As at 31 March 2023\nNumber",
-              "\nAmount",
-            ],
-            rows: [
-              ["Equity shares of ₹ 10 each par value"],
-              [
-                "Balances as at the beginning of the year",
-                issuedAndSubscribedNumber,
-                issuedAndSubscribedAmount,
-                issuedAndSubscribedNumber,
-                issuedAndSubscribedAmount,
-              ],
-              [
-                "Balance at the end of the year",
-                issuedAndSubscribedNumber,
-                issuedAndSubscribedAmount,
-                issuedAndSubscribedNumber,
-                issuedAndSubscribedAmount,
-              ],
-            ],
-          },
-          "(b) Terms and rights attached to equity shares",
-          {
-            key: "note12-text-a",
-            label: "",
-            narrativeText: getNarrativeTextByKey(
-              "note12-text-a",
-              `The Company has only one class of equity shares having a par value of ₹ 10 per share. Each equity share is entitled to one vote per share. The dividend, if any, proposed by the Board of Directors is subject to the approval of the shareholders in the ensuing Annual General Meeting and shall be payable in Indian rupees. In the event of liquidation of the company, the shareholders will be entitled to receive remaining assets of the company, after distribution of all preferential amounts.The distribution will be in proportion to the number of equity shares held by the shareholders.
-        There have been no issues with respect to unclassified shares.`
-            ),
-            isNarrative: true,
-            isEditableText: true,
-            valueCurrent: null,
-            valuePrevious: null,
-          },
-          "(c) Details of shares held by the holding company",
-          {
-            key:'note12-table3',
-            type: "table",
-            headers: [
-              "",
-              "As at 31 March 2024\nNumber",
-              "\nAmount",
-              "As at 31 March 2023\nNumber",
-              "\nAmount",
-            ],
-            rows: [
-              ["Holding Company:"],
-              [
-                "Yokogawa Electric Corporation",
-                issuedAndSubscribedNumber,
-                issuedAndSubscribedAmount,
-                issuedAndSubscribedNumber,
-                issuedAndSubscribedAmount,
-              ],
-            ],
-          },
-          "(d) Details of shares held by each shareholder holding more than 5% shares:",
-          {
-            key:'note12-table4',
-            type: "table",
-            headers: [
-              "",
-              "As at 31 March 2024\nNumber",
-              "\nPercentage",
-              "As at 31 March 2023\nNumber",
-              "\nPercentage",
-            ],
-            rows: [
-              ["Equity shares of ₹ 10 each, par value"],
-              [
-                "Yokogawa Electric Corporation and its nominees",
-                issuedAndSubscribedNumber,
-                percent,
-                issuedAndSubscribedNumber,
-                percent,
-              ],
-            ],
-          },
-          "(e) In the period of five years immediately preceding the Balance Sheet date, the Company has not issued any bonus shares or has bought back any shares.",
+  // ===== Table 3: Holding Company =====
+  const table3Headers = ['', 'As at 31 March 2024\nNumber', '\nAmount', 'As at 31 March 2023\nNumber', '\nAmount'];
+  const table3ColumnCount = table3Headers.length;
+  const yokogawaHoldingRow = createEditableRow('Yokogawa Electric Corporation', table3ColumnCount);
 
-          "(f) Capital Reduction",
-          {
-            key: "note12-text-b",
-            label: "",
-            narrativeText: getNarrativeTextByKey(
-              "note12-text-b",
-              `The Company considered the Reduction of Share Capital on selective basis by reducing the capital to the extent of the holding by the shareholders other than the promoter shareholders. Before the capital reduction, 97.21% of the share capital was held by M/s. Yokogawa Electric Corporation and the balance 2.79% by public. It was therefore proposed to reduce and hence cancel the portion of the shares held by the public by 2.79% (244,531 number of shares). The Board of Directors during the 147th Meeting held on 13th November 2017 and the shareholders during the Extra Ordinary General Meeting held on 11th January 2018 have considered and approved the proposal of selective capital reduction.
-      The Company had accordingly filed petition with the Hon'ble Tribunal (National Company Law Tribunal-Bengaluru Bench) to reduce the issued, subscribed and paid up share capital of the company consisting of 244,531 equity shares of INR 10/- each fully paid up (INR 2,445,310/-), held by shareholders belonging to non-promoter group and cancel along with the securities premium/free reserves of the Company. The reduction and cancellation is effected by returning the paid-up equity share capital along with the securities premium lying to the credit of the securities premium account and free reserves to the shareholders belonging to non-promoter group ( “Public Shareholders”) in cash at the rate of INR 923.20/- which includes the paid up share capital and the premium amount thereon.
-      The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed the petition for the reduction of the share capital of the Company. The company pursuant to the order of the Hon'ble Tribunal discharged the dues to the shareholders whose shares were reduced by depositing the fund with an Escrow Account opened for the purpose and paying the shareholders out of this account by Bank Transfer or Draft or other mode as indicated by the respective shareholder with the Company. For the year ended 31st March 2024 the capital reduction liability payable to shareholders has been discharged to the extent of Rs. 92,320/-.`
-            ),
-            isNarrative: true,
-            isEditableText: true,
-            valueCurrent: null,
-            valuePrevious: null,
-          },
+  // ===== Table 4: Shareholders > 5% =====
+  const table4Headers = ['', 'As at 31 March 2024\nNumber', '\nPercentage', 'As at 31 March 2023\nNumber', '\nPercentage'];
+  const table4ColumnCount = table4Headers.length;
+  const yokogawaShareholderRow = createEditableRow('Yokogawa Electric Corporation and its nominees', table4ColumnCount);
 
-          `(g) Promoter's Shareholding as on 31 March 2024 :`,
-          {
-            key:'note12-table5',
-            type: "table",
-            headers: [
-              "SL.No",
-              "Promoter Name",
-              "No. of shares held",
-              "% of total shares",
-              "% change during the year",
-            ],
-            rows: [
-              [
-                "1",
-                "Yokogawa Electric Corporation, Japan",
-                "8505469",
-                "100%",
-                "No change during the year",
-              ],
-            ],
-          },
-          {
-            key: "note12-h-title",
-            label: `(h) Promoter's Shareholding as on 31st March 2023 :`,
-            valueCurrent: null,
-            valuePrevious: null,
-            isSubtotal: true,
-          },
-          {
-            key:'note12-table6',
-            type: "table",
-            headers: [
-              "SL.No",
-              "Promoter Name",
-              "No. of shares held",
-              "% of total shares",
-              "% change during the year",
-            ],
-            rows: [
-              [
-                "1",
-                "Yokogawa Electric Corporation, Japan",
-                "8505469",
-                "100%",
-                "No change during the year",
-              ],
-            ],
-          },
+  // ===== Table 5: Promoter's Shareholding 2024 (STATIC VALUES) =====
+  const table5Headers = ['SL.No', 'Promoter Name', 'No. of shares held', '% of total shares', '% change during the year'];
+  const promoterRows2024 = [
+    ["1", "Yokogawa Electric Corporation, Japan", "85,05,469", "100%", "No change during the year"]
+  ];
+
+  // ===== Table 6: Promoter's Shareholding 2023 (STATIC VALUES) =====
+  const table6Headers = ['SL.No', 'Promoter Name', 'No. of shares held', '% of total shares', '% change during the year'];
+  const promoterRows2023 = [
+    ["1", "Yokogawa Electric Corporation, Japan", "85,05,469", "100%", "No change during the year"]
+  ];
+
+  return {
+    noteNumber: 12,
+    title: "Equity Share Capital",
+    totalCurrent: null,
+    totalPrevious: null,
+    content: [
+      {
+        type: "table",
+        isEditable: true,
+        headers: table1Headers,
+        rows: [
+          ["Authorised"],
+          equitySharesRow,
+          unclassifiedSharesRow,
+          ["Issued Share Capital"],
+          issuedCapitalRow,
+          ["Subscribed and fully paid up"],
+          subscribedCapitalRow,
+          totalIssuedSubscribedRow,
         ],
-      };
+      },
+      "Refer note (a) to (d) below",
+      "(a) Reconciliation of the number of shares and amount outstanding at the beginning and at the end of the reporting period:",
+      {
+        type: "table",
+        isEditable: true,
+        headers: table2Headers,
+        rows: [
+          ["Equity shares of ₹ 10 each par value"],
+          balanceBeginningRow,
+          balanceEndRow,
+        ],
+      },
+      "(b) Terms and rights attached to equity shares",
+      {
+        key: "note12-text-a",
+        label: "",
+        narrativeText: getNarrativeTextByKey(
+          "note12-text-a",
+          `The Company has only one class of equity shares having a par value of ₹ 10 per share. Each equity share is entitled to one vote per share. The dividend, if any, proposed by the Board of Directors is subject to the approval of the shareholders in the ensuing Annual General Meeting and shall be payable in Indian rupees. In the event of liquidation of the company, the shareholders will be entitled to receive remaining assets of the company, after distribution of all preferential amounts.The distribution will be in proportion to the number of equity shares held by the shareholders.
+There have been no issues with respect to unclassified shares.`
+        ),
+        isNarrative: true,
+        isEditableText: true,
+        valueCurrent: null,
+        valuePrevious: null,
+      },
+      "(c) Details of shares held by the holding company",
+      {
+        type: "table",
+        isEditable: true,
+        headers: table3Headers,
+        rows: [
+          ["Holding Company:"],
+          yokogawaHoldingRow,
+        ],
+      },
+      "(d) Details of shares held by each shareholder holding more than 5% shares:",
+      {
+        type: "table",
+        isEditable: true,
+        headers: table4Headers,
+        rows: [
+          ["Equity shares of ₹ 10 each, par value"],
+          yokogawaShareholderRow,
+        ],
+      },
+      "(e) In the period of five years immediately preceding the Balance Sheet date, the Company has not issued any bonus shares or has bought back any shares.",
+      "(f) Capital Reduction",
+      {
+        key: "note12-text-b",
+        label: "",
+        narrativeText: getNarrativeTextByKey(
+          "note12-text-b",
+          `The Company considered the Reduction of Share Capital on selective basis by reducing the capital to the extent of the holding by the shareholders other than the promoter shareholders. Before the capital reduction, 97.21% of the share capital was held by M/s. Yokogawa Electric Corporation and the balance 2.79% by public. It was therefore proposed to reduce and hence cancel the portion of the shares held by the public by 2.79% (244,531 number of shares). The Board of Directors during the 147th Meeting held on 13th November 2017 and the shareholders during the Extra Ordinary General Meeting held on 11th January 2018 have considered and approved the proposal of selective capital reduction.
+The Company had accordingly filed petition with the Hon'ble Tribunal (National Company Law Tribunal-Bengaluru Bench) to reduce the issued, subscribed and paid up share capital of the company consisting of 244,531 equity shares of INR 10/- each fully paid up (INR 2,445,310/-), held by shareholders belonging to non-promoter group and cancel along with the securities premium/free reserves of the Company. The reduction and cancellation is effected by returning the paid-up equity share capital along with the securities premium lying to the credit of the securities premium account and free reserves to the shareholders belonging to non-promoter group ( “Public Shareholders”) in cash at the rate of INR 923.20/- which includes the paid up share capital and the premium amount thereon.
+The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed the petition for the reduction of the share capital of the Company. The company pursuant to the order of the Hon'ble Tribunal discharged the dues to the shareholders whose shares were reduced by depositing the fund with an Escrow Account opened for the purpose and paying the shareholders out of this account by Bank Transfer or Draft or other mode as indicated by the respective shareholder with the Company. For the year ended 31st March 2024 the capital reduction liability payable to shareholders has been discharged to the extent of Rs. 92,320/-.`
+        ),
+        isNarrative: true,
+        isEditableText: true,
+        valueCurrent: null,
+        valuePrevious: null,
+      },
+      `(g) Promoter's Shareholding as on 31 March 2024 :`,
+      {
+        type: "table",
+        isEditable: false, // make non-editable to match screenshot 2
+        headers: table5Headers,
+        rows: promoterRows2024,
+      },
+      `(h) Promoter's Shareholding as on 31st March 2023 :`,
+      {
+        type: "table",
+        isEditable: false, // make non-editable to match screenshot 2
+        headers: table6Headers,
+        rows: promoterRows2023,
+      },
+    ],
+  };
     };
     const calculateNote13 = (): FinancialNote => {
       const note13_1 = getValueForKey(13, "note13-opening");
@@ -3741,7 +3680,7 @@ const useFinancialData = (
       },
     ],
   };
-};
+    };
     const calculateNote15 = (): FinancialNote => {
       const leaseLiabilitiesNonCurrent = {
         current: getAmount(
@@ -9398,15 +9337,35 @@ const useFinancialData = (
           }
         }
       } else if (node.key === "bs-eq-captial") {
-        const currentAmount = getAmount("amountCurrent", node.keywords, [
-          "equity share capital",
-        ]);
-        const previousAmount = getAmount("amountPrevious", node.keywords, [
-          "equity share capital",
-        ]);
-        valueCurrent = Math.abs(currentAmount);
-        valuePrevious = Math.abs(previousAmount);
-      } else if (node.key === "is-except") {
+        const tables = note12.content.filter(
+          (item): item is TableContent =>
+            (item as TableContent).type === "table"
+        );
+        const cwipTable = tables[0]; // index 1 for second table
+        if (cwipTable) {
+          const currentRow = cwipTable.rows.find(
+            (row) => row[0] === ""
+          );
+          if (currentRow) {
+            valueCurrent =
+              Math.abs(
+                parseFloat(currentRow[currentRow.length - 1].replace(/,/g, ""))
+              ) || 0;
+          }
+          const previousRow = cwipTable.rows.find(
+            (row) => row[0] === ""
+          );
+          if (previousRow) {
+            valuePrevious =
+              Math.abs(
+                parseFloat(
+                  previousRow[previousRow.length - 1].replace(/,/g, "")
+                )
+              ) || 0;
+          }
+        }
+      }
+      else if (node.key === "is-except") {
         valueCurrent = 12166.54;
       }
 
@@ -11618,7 +11577,7 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
         Financial Statements
       </Typography>
 
-      <Box sx={{ mb: 2, display: "flex", justifyContent: "flex-end" }}>
+      <Box sx={{ mb: 2, display: "flex", justifyContent: "flex-end" , gap:2}}>
         <Button variant="outlined" onClick={handleToggleExpandAll}>
           {expandedKeys.size === allExpandableKeys.length
             ? "Collapse All"
