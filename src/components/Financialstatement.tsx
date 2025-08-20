@@ -75,6 +75,7 @@ interface TemplateItem {
   key: string;
   label: string;
   note?: string | number;
+  noteLink?: number;   
   isGrandTotal?: boolean;
   isSubtotal?: boolean;
   children?: TemplateItem[];
@@ -304,22 +305,28 @@ const BALANCE_SHEET_STRUCTURE: TemplateItem[] = [
             label: "Property, plant and equipment",
             note: 3,
           },
-          { key: "bs-assets-nc-rou", label: "Right of use asset", note: 4 },
+          
+          { key: "bs-assets-nc-rou", label: "Right of use asset", note: "4a", noteLink: 4 },
           {
             key: "bs-assets-nc-cwip",
             label: "Capital work-in-progress",
-            note: 3,
+            note: "3c",
+            noteLink: 3
           },
           {
             key: "bs-assets-nc-intangible",
             label: "Other Intangible assets",
-            note: 4,
+            note: "4b",
+            noteLink: 4
           },
+          
           {
             key: "bs-assets-nc-otherintangible",
             label: "Intangible assets under development",
-            note: 4,
+            note: "4c",
+            noteLink: 4
           },
+          
 
           {
             key: "bs-assets-nc-fin",
@@ -481,7 +488,8 @@ const BALANCE_SHEET_STRUCTURE: TemplateItem[] = [
           {
             key: "bs-liab-c-tax",
             label: "Income tax liabilities (net)",
-            note: 7,
+            note: "7a",
+            noteLink: 7
           },
         ],
       },
@@ -505,12 +513,13 @@ const INCOME_STATEMENT_STRUCTURE: TemplateItem[] = [
     id: "totalExpenses",
     isSubtotal: true,
     children: [
-      { key: "is-exp-mat", label: "Cost of materials consumed", note: 20 },
-      { key: "is-exp-pur", label: "Purchase of traded goods", note: 20 },
+      { key: "is-exp-mat", label: "Cost of materials consumed", note: "20a", noteLink:20 },
+      { key: "is-exp-pur", label: "Purchase of traded goods", note: "20b",noteLink:20 },
       {
         key: "is-exp-inv",
         label: "Changes in inventories of work-in-progress and stock-in-trade",
-        note: 20,
+        note: "20c",
+        noteLink:20
       },
       { key: "is-exp-emp", label: "Employee benefits expense", note: 21 },
       { key: "is-exp-fin", label: "Finance cost", note: 22 },
@@ -1151,7 +1160,8 @@ const useFinancialData = (
   financialVar2: FinancialVarRow[],
   textVar: TextVarRow[],
   editedNotes: FinancialNote[] | null,
-  editedCashFlow: HierarchicalItem[] | null
+  editedCashFlow: HierarchicalItem[] | null,
+  periodHeaders: { currentPeriod: string; previousPeriod: string }
 ): FinancialData => {
   return useMemo(() => {
     console.log("editedNotes", editedNotes);
@@ -1470,7 +1480,9 @@ const useFinancialData = (
       return null;
     };
     const totals = new Map<string, { current: number; previous: number }>();
-    const calculateNote3 = (): FinancialNote => {
+    const calculateNote3 = (
+      periodHeaders: { currentPeriod: string; previousPeriod: string }
+    ): FinancialNote => {
       // Updated calculateRowTotal to sum columns 1 to 7 (exclusive of 'Total' column at index 8)
       const calculateRowTotal = (row: string[]): string => {
         const sum = row
@@ -1580,7 +1592,7 @@ const useFinancialData = (
       grossCarryingRows.forEach((r) => (r[8] = calculateRowTotal(r)));
       // balanceRow is calculated using calculateBalance, not calculateRowTotal
       const balanceRow = [
-        "Balance as at 31 March 2023",
+         `Balance as at ${periodHeaders.previousPeriod}`,
         ...calculateBalance(grossCarryingRows, ppeColumnCount).slice(1, -1),
       ];
 
@@ -1591,7 +1603,7 @@ const useFinancialData = (
       ];
       additionalGrossCarryingRows.forEach((r) => (r[8] = calculateRowTotal(r)));
       const balanceRow1 = [
-        "Balance as at 31 March 2024",
+          `Balance as at ${periodHeaders.currentPeriod}`,
         ...calculateBalance(
           [balanceRow, ...additionalGrossCarryingRows],
           ppeColumnCount
@@ -1615,7 +1627,7 @@ const useFinancialData = (
       ];
       accumulatedDepreciationRows.forEach((r) => (r[8] = calculateRowTotal(r)));
       const balanceRow2 = [
-        "Balance as at 31 March 2023 (dep)",
+          `Balance as at ${periodHeaders.previousPeriod}`,
         ...calculateBalance(accumulatedDepreciationRows, ppeColumnCount).slice(
           1,
           -1
@@ -1629,7 +1641,7 @@ const useFinancialData = (
       ];
       additionalDepreciationRows.forEach((r) => (r[8] = calculateRowTotal(r)));
       const balanceRow3 = [
-        "Balance as at 31 March 2024 (dep)",
+        `Balance as at ${periodHeaders.currentPeriod} (dep)`,
         ...calculateBalance(
           [balanceRow2, ...additionalDepreciationRows],
           ppeColumnCount
@@ -1645,9 +1657,9 @@ const useFinancialData = (
       );
       // Net carrying amount section
       const balance4 = calculateDifference(balanceRow, balanceRow2);
-      balance4[0] = "As at 31 March 2023";
+      balance4[0] = `As at ${periodHeaders.previousPeriod}`;
       const balance5 = calculateDifference(balanceRow1, balanceRow3);
-      balance5[0] = "As at 31 March 2024";
+      balance5[0] = `As at ${periodHeaders.currentPeriod}`
 
       ppeRows.push(["Net carrying amount"], balance4, balance5);
 
@@ -1683,11 +1695,11 @@ const useFinancialData = (
       };
       cwipAgeingRows.forEach((r) => (r[5] = calculateCwipRowTotal(r)));
       const cwipAgeingTotal24 = [
-        "Total as on 31 March 2024",
+         `Total as on ${periodHeaders.currentPeriod}`,
         ...calculateBalance(cwipAgeingRows, cwipColumnCount).slice(1, 6),
       ];
       const cwipAgeingTotal23 = [
-        "Total as on 31 March 2023",
+        `Total as on ${periodHeaders.previousPeriod}`,
         ...calculateBalance(cwipAgeingRows, cwipColumnCount).slice(1, 6),
       ];
 
@@ -1705,11 +1717,11 @@ const useFinancialData = (
       ];
       cwipCompletionRows.forEach((r) => (r[5] = calculateCwipRowTotal(r)));
       const cwipCompletionTotal24 = [
-        "Total as on 31 March 2024",
+        `Total as on ${periodHeaders.currentPeriod}`,
         ...calculateBalance(cwipCompletionRows, cwipColumnCount).slice(1, 6),
       ];
       const cwipCompletionTotal23 = [
-        "Total as on 31 March 2023",
+         `Total as on ${periodHeaders.previousPeriod}`,
         ...calculateBalance(cwipCompletionRows, cwipColumnCount).slice(1, 6),
       ];
 
@@ -1801,7 +1813,9 @@ const useFinancialData = (
         ],
       };
     };
-    const calculateNote4 = (): FinancialNote => {
+    const calculateNote4 = (
+      periodHeaders: { currentPeriod: string; previousPeriod: string }
+    ): FinancialNote => {
       const calculateRowTotal = (row: string[]): string => {
         const sum = row
           .slice(0, 4)
@@ -1897,7 +1911,7 @@ const useFinancialData = (
         if (r.length > 3) r[3] = calculateRouRowTotal(r);
       });
       const rouBalance23 = [
-        "Balance as at 31 March 2023 (ROU)",
+        `Balance as at ${periodHeaders.previousPeriod}(ROU)`,
         ...calculateRouBalance(rouGrossRows1).slice(1),
       ];
 
@@ -1909,7 +1923,7 @@ const useFinancialData = (
         if (r.length > 3) r[3] = calculateRouRowTotal(r);
       });
       const rouBalance24 = [
-        "Balance as at 31 March 2024 (ROU)",
+       `Balance as at ${periodHeaders.currentPeriod}`,
         ...calculateRouBalance([rouBalance23, ...rouGrossRows2]).slice(1),
       ];
 
@@ -1922,7 +1936,7 @@ const useFinancialData = (
         if (r.length > 3) r[3] = calculateRouRowTotal(r);
       });
       const rouDepBalance23 = [
-        "Balance as at 31 March 2023 (ROU dep)",
+        `Balance as at ${periodHeaders.previousPeriod} (ROU dep)`, 
         ...calculateRouBalance(rouDepRows1).slice(1),
       ];
 
@@ -1934,16 +1948,16 @@ const useFinancialData = (
         if (r.length > 3) r[3] = calculateRouRowTotal(r);
       });
       const rouDepBalance24 = [
-        "Balance as at 31 March 2024 (ROU dep)",
+        `Balance as at ${periodHeaders.currentPeriod} (ROU dep)`,
         ...calculateRouBalance([rouDepBalance23, ...rouDepRows2]).slice(1),
       ];
 
       const rouNetBalance23 = [
-        "As at 31 March 2023",
+         `As at ${periodHeaders.previousPeriod}`,
         ...calculateRouDifference(rouBalance23, rouDepBalance23).slice(1),
       ];
       const rouNetBalance24 = [
-        "As at 31 March 2024",
+        `As at ${periodHeaders.currentPeriod}`,
         ...calculateRouDifference(rouBalance24, rouDepBalance24).slice(1),
       ];
 
@@ -1957,7 +1971,7 @@ const useFinancialData = (
         row("Disposal (Int)", intangibleColumnCount),
       ];
       const intangibleBalance23 = [
-        "Balance as at 31 March 2023 (Int)",
+       `Balance as at ${periodHeaders.previousPeriod} (Int)`,
         parseNum(intangibleGrossRows1[0][1]) +
           parseNum(intangibleGrossRows1[1][1]) -
           parseNum(intangibleGrossRows1[2][1]),
@@ -1967,7 +1981,7 @@ const useFinancialData = (
         row("Disposal FY24 (Int)", intangibleColumnCount),
       ];
       const intangibleBalance24 = [
-        "Balance as at 31 March 2024 (Int)",
+        `Balance as at ${periodHeaders.currentPeriod} (Int)`,
         parseNum(String(intangibleBalance23[1])) +
           parseNum(intangibleGrossRows2[0][1]) -
           parseNum(intangibleGrossRows2[1][1]),
@@ -1978,7 +1992,7 @@ const useFinancialData = (
         row("Eliminated on disposal (Int amort)", intangibleColumnCount),
       ];
       const intangibleAmortBalance23 = [
-        "Balance as at 31 March 2023 (Int amort)",
+       `Balance as at ${periodHeaders.previousPeriod} (Int amort)`,
         parseNum(intangibleAmortRows1[0][1]) +
           parseNum(intangibleAmortRows1[1][1]) -
           parseNum(intangibleAmortRows1[2][1]),
@@ -1988,18 +2002,18 @@ const useFinancialData = (
         row("Eliminated on disposal FY24 (Int amort)", intangibleColumnCount),
       ];
       const intangibleAmortBalance24 = [
-        "Balance as at 31 March 2024 (Int amort)",
+        `Balance as at ${periodHeaders.currentPeriod} (Int amort)`,
         parseNum(String(intangibleAmortBalance23[1])) +
           parseNum(intangibleAmortRows2[0][1]) -
           parseNum(intangibleAmortRows2[1][1]),
       ];
       const intangibleNetBalance23 = [
-        "As at 31 March 2023",
+        `As at ${periodHeaders.previousPeriod}`,
         parseNum(String(intangibleBalance23[1])) -
           parseNum(String(intangibleAmortBalance23[1])),
       ];
       const intangibleNetBalance24 = [
-        "As at 31 March 2024",
+        `As at ${periodHeaders.currentPeriod}`,
         parseNum(String(intangibleBalance24[1])) -
           parseNum(String(intangibleAmortBalance24[1])),
       ];
@@ -2033,7 +2047,7 @@ const useFinancialData = (
       devAgeingRow1[5] = calculateDevRowTotal(devAgeingRow1);
       devAgeingRow2[5] = calculateDevRowTotal(devAgeingRow2);
       const totalAgeing24 = [
-        "Total as on 31 March 2024",
+        `Total as on ${periodHeaders.currentPeriod}`,
         "0.00",
         "0.00",
         "0.00",
@@ -2046,7 +2060,7 @@ const useFinancialData = (
           minimumFractionDigits: 2,
         });
       }
-      const totalAgeing23 = row("Total as on 31 March 2023", devColCount);
+      const totalAgeing23 = row( `Total as on ${periodHeaders.previousPeriod}`, devColCount);
 
       // Completion Table
       const completionHeaders = [
@@ -2067,7 +2081,7 @@ const useFinancialData = (
       devCompletionRow1[5] = calculateDevRowTotal(devCompletionRow1);
       devCompletionRow2[5] = calculateDevRowTotal(devCompletionRow2);
       const totalCompletion24 = [
-        "Total as on 31 March 2024",
+         `Total as on ${periodHeaders.currentPeriod}`,
         "0.00",
         "0.00",
         "0.00",
@@ -2082,7 +2096,7 @@ const useFinancialData = (
         });
       }
       const totalCompletion23 = row(
-        "Total as on 31 March 2023 ",
+        `Total as on ${periodHeaders.previousPeriod}`,
         completionColCount
       );
 
@@ -2867,7 +2881,9 @@ const useFinancialData = (
         ],
       };
     };
-    const calculateNote9 = (): FinancialNote => {
+    const calculateNote9 = (
+      periodHeaders: { currentPeriod: string; previousPeriod: string }
+    ): FinancialNote => {
       // --- Hierarchical Item Calculations (YOUR ORIGINAL LOGIC - UNCHANGED) ---
       const tradeReceivables = getAmount(
         "amountCurrent",
@@ -3023,7 +3039,7 @@ const useFinancialData = (
 
       // ✅ FIX #4: Create two separate, single-value rows for the final totals.
       const totalReceivables24 = [
-        "Total Trade Receivables as on 31 March 2024",
+        `Total Trade Receivables as on ${periodHeaders.currentPeriod}`,
         "",
         "",
         "",
@@ -3035,7 +3051,7 @@ const useFinancialData = (
         ),
       ];
       const totalReceivables23 = [
-        "Total Trade Receivables as on 31 March 2023",
+          `Total Trade Receivables as on ${periodHeaders.previousPeriod}`,
         "",
         "",
         "",
@@ -3570,7 +3586,10 @@ const useFinancialData = (
         ],
       };
     };
-    const calculateNote12 = (): FinancialNote => {
+    const calculateNote12 = (
+      periodHeaders: { currentPeriod: string; previousPeriod: string }
+      
+    ): FinancialNote => {
       // Create a normal editable row
       const createEditableRow = (
         label: string,
@@ -3620,9 +3639,11 @@ const useFinancialData = (
       // ===== Table 1: Equity Share Capital =====
       const table1Headers = [
         "",
-        "As at 31 March 2024\nNumber",
+         `As at ${periodHeaders.currentPeriod}`,
+        //"As at 31 March 2024\nNumber",
         "\nAmount",
-        "As at 31 March 2023\nNumber",
+         `As at ${periodHeaders.previousPeriod}`,
+        //"As at 31 March 2023\nNumber",
         "\nAmount",
       ];
       const table1ColumnCount = table1Headers.length;
@@ -3652,9 +3673,11 @@ const useFinancialData = (
       // ===== Table 2: Reconciliation =====
       const table2Headers = [
         "",
-        "As at 31 March 2024\nNumber",
+         `As at ${periodHeaders.currentPeriod}`,
+       // "As at 31 March 2024\nNumber",
         "\nAmount",
-        "As at 31 March 2023\nNumber",
+         `As at ${periodHeaders.previousPeriod}`,
+       // "As at 31 March 2023\nNumber",
         "\nAmount",
       ];
       const table2ColumnCount = table2Headers.length;
@@ -3670,9 +3693,11 @@ const useFinancialData = (
       // ===== Table 3: Holding Company =====
       const table3Headers = [
         "",
-        "As at 31 March 2024\nNumber",
+         `As at ${periodHeaders.currentPeriod}`,
+        //"As at 31 March 2024\nNumber",
         "\nAmount",
-        "As at 31 March 2023\nNumber",
+         `As at ${periodHeaders.previousPeriod}`,
+       // "As at 31 March 2023\nNumber",
         "\nAmount",
       ];
       const table3ColumnCount = table3Headers.length;
@@ -3684,9 +3709,11 @@ const useFinancialData = (
       // ===== Table 4: Shareholders > 5% =====
       const table4Headers = [
         "",
-        "As at 31 March 2024\nNumber",
+         `As at ${periodHeaders.currentPeriod}`,
+       // "As at 31 March 2024\nNumber",
         "\nPercentage",
-        "As at 31 March 2023\nNumber",
+         `As at ${periodHeaders.previousPeriod}`,
+        //"As at 31 March 2023\nNumber",
         "\nPercentage",
       ];
       const table4ColumnCount = table4Headers.length;
@@ -3964,7 +3991,9 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
           `^ This represents appropriation of profit by the company.`,
       };
     };
-    const calculateNote14 = (): FinancialNote => {
+    const calculateNote14 = (
+      periodHeaders: { currentPeriod: string; previousPeriod: string }
+    ): FinancialNote => {
       // --- Hierarchical Item Calculations (YOUR ORIGINAL LOGIC - UNCHANGED) ---
       const msme = {
         current: getAmount(
@@ -4038,12 +4067,12 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
       };
 
       // Define editable rows for the current year (2024) data points
-      const msme2024 = row("(i) MSME 2024", ageingColCount);
-      const others2024 = row("(ii) Others 2024", ageingColCount);
+      const msme2024 = row("(i) MSME ", ageingColCount);
+      const others2024 = row("(ii) Others ", ageingColCount);
 
       // Define editable rows for the previous year (2023) data points
-      const msme2023 = row("(i) MSME 2023", ageingColCount);
-      const others2023 = row("(ii) Others 2023", ageingColCount);
+      const msme2023 = row("(i) MSME ", ageingColCount);
+      const others2023 = row("(ii) Others ", ageingColCount);
 
       // Calculate row totals for each editable row
       msme2024[5] = calculateAgeingRowTotal(msme2024);
@@ -4053,7 +4082,8 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
 
       // Calculate the "Total Trade Payables as on 31st March 2024" row
       const total2024 = [
-        "Total Trade Payables as on 31st March 2024",
+        `Total Trade Payables as on ${periodHeaders.currentPeriod}`,
+        //"Total Trade Payables as on 31st March 2024",
         "0.00",
         "0.00",
         "0.00",
@@ -4069,7 +4099,8 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
 
       // Calculate the "Total Trade Payables as on 31st March 2023" row
       const total2023 = [
-        "Total Trade Payables as on 31st March 2023",
+        `Total Trade Payables as on ${periodHeaders.previousPeriod}`,
+        //"Total Trade Payables as on 31st March 2023",
         "0.00",
         "0.00",
         "0.00",
@@ -6931,7 +6962,9 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
           "The said information regarding Micro and Small Enterprises has been determined to the extent such parties have been identified on the basis of information collected by the Management bases on enquiries made with the parties. This has been relied upon by the auditors.",
       };
     };
-    const calculateNote27 = (): FinancialNote => {
+    const calculateNote27 = (
+        periodHeaders: { currentPeriod: string; previousPeriod: string }
+    ): FinancialNote => {
       // --- Hierarchical Item Calculations (YOUR ORIGINAL LOGIC - UNCHANGED) ---
       const note27_1 = getValueForKey(27, "note27-1");
       const note27_2 = getValueForKey(27, "note27-2");
@@ -6966,7 +6999,8 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
 
       // --- TABLE 1: Current Year ---
       const headers2024 = [
-        "31 March 2024",
+         `${periodHeaders.currentPeriod}`,
+        //"31 March 2024",
         "In cash",
         "Yet to be paid in cash",
         "Total",
@@ -7017,7 +7051,8 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
 
       // --- TABLE 2: Previous Year ---
       const headers2023 = [
-        "31 March 2023",
+        `${periodHeaders.previousPeriod}`,
+       // "31 March 2023",
         "In cash",
         "Yet to be paid in cash",
         "Total",
@@ -7137,7 +7172,9 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
              (c)  Amount donated towards promotion of education and eradication of hunger.`,
       };
     };
-    const calculateNote28 = (): FinancialNote => {
+    const calculateNote28 = (
+      periodHeaders: { currentPeriod: string; previousPeriod: string }
+    ): FinancialNote => {
       // --- Hierarchical Item Calculations (YOUR ORIGINAL LOGIC - UNCHANGED) ---
       const note28_1 = getValueForKey(28, "note28-amount-current-service");
       const note28_2 = getValueForKey(28, "note28-amount-interest");
@@ -7228,10 +7265,14 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
       // --- TABLE 1: Sensitivity Analysis ---
       const sensitivityHeaders = [
         "Particulars",
-        "For the Year ended 31 March 2024\nIncrease",
-        "For the Year ended 31 March 2024\nDecrease",
-        "For the Year ended 31 March 2023\nIncrease",
-        "For the Year ended 31 March 2023\nDecrease",
+        `For the Year ended ${periodHeaders.currentPeriod}\nIncrease`,
+        `For the Year ended ${periodHeaders.currentPeriod}\nDecrease`,
+        `For the Year ended ${periodHeaders.previousPeriod}\nIncrease`,
+        `For the Year ended ${periodHeaders.previousPeriod}\nDecrease`,
+        //"For the Year ended 31 March 2024\nIncrease",
+        ///"For the Year ended 31 March 2024\nDecrease",
+        //"For the Year ended 31 March 2023\nIncrease",
+        //"For the Year ended 31 March 2023\nDecrease",
       ];
       const sensitivityColCount = sensitivityHeaders.length;
 
@@ -8350,7 +8391,9 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
         maximumFractionDigits: 2,
       });
 
-    const calculateNote30 = (): FinancialNote => {
+    const calculateNote30 = (
+      periodHeaders: { currentPeriod: string; previousPeriod: string }
+    ): FinancialNote => {
       // --- Editable Table Logic ---
       const parseNum = (val: string): number => {
         if (!val) return 0;
@@ -8368,12 +8411,18 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
 
       const headers = [
         "Geographic segment",
-        "India\n31 March 2024",
-        "\n31 March 2023",
-        "Outside India\n31 March 2024",
-        "\n31 March 2023",
-        "Total\n31 March 2024",
-        "\n31 March 2023",
+        `India\n ${periodHeaders.currentPeriod}`,
+        //"India\n31 March 2024",
+        ` ${periodHeaders.previousPeriod}`,
+       // "\n31 March 2023",
+        `Outside India\n ${periodHeaders.currentPeriod}`,
+        //"Outside India\n31 March 2024",
+        `${periodHeaders.previousPeriod}`,
+        //"\n31 March 2023",
+        `Total\n ${periodHeaders.currentPeriod}`,
+        `\n ${periodHeaders.previousPeriod}`,
+        //"Total\n31 March 2024",
+        //"\n31 March 2023",
       ];
       const colCount = headers.length;
 
@@ -9206,7 +9255,9 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
         totalPrevious: null,
       };
     };
-    const calculateNote35 = (): FinancialNote => {
+    const calculateNote35 = (
+      periodHeaders: { currentPeriod: string; previousPeriod: string }
+    ): FinancialNote => {
       // --- Hierarchical Item Calculations (YOUR ORIGINAL LOGIC - UNCHANGED) ---
       const note35_1 = getValueForKey(35, "note35-capital-table");
       const note35_2 = getValueForKey(35, "note35-capital-table1");
@@ -9287,10 +9338,14 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
       // --- TABLE 1: Categories of Financial Instruments ---
       const categoryHeaders = [
         "Particulars",
-        "Carrying Value As at 31 March 2024",
-        "Carrying Value As at 31 March 2023",
-        "Fair Value As at 31 March 2024",
-        "Fair Value As at 31 March 2023",
+        `Carrying Value As at  ${periodHeaders.currentPeriod}`,
+        `Carrying Value As at  ${periodHeaders.previousPeriod}`,
+        `Fair Value As at  ${periodHeaders.currentPeriod}`,
+        `Fair Value As at  ${periodHeaders.previousPeriod}`,
+        //"Carrying Value As at 31 March 2024",
+        //"Carrying Value As at 31 March 2023",
+        //"Fair Value As at 31 March 2024",
+        //"Fair Value As at 31 March 2023",
       ];
       const categoryColCount = categoryHeaders.length;
 
@@ -9342,14 +9397,16 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
 
       // --- TABLE 2 & 3: Maturity Analysis ---
       const maturityHeaders24 = [
-        "As at 31 March 2024",
+        `As at ${periodHeaders.currentPeriod}`,
+        //"As at 31 March 2024",
         "Less than 1 Year",
         "1 Year to 5 Year",
         "More than 5 Years",
         "Total",
       ];
       const maturityHeaders23 = [
-        "As at 31 March 2023",
+        `As at ${periodHeaders.previousPeriod}`,
+        //"As at 31 March 2023",
         "Less than 1 Year",
         "1 Year to 5 Year",
         "More than 5 Years",
@@ -9427,10 +9484,14 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
 
       // --- TABLE 5: Foreign Currency Exposure ---
       const exposureHeaders = [
-        "As at 31 March 2024\nAmount in foreign currency in Lakhs",
-        "As at 31 March 2024\nAmount in ₹ Lakhs",
-        "As at 31 March 2023\nAmount in foreign currency in Lakhs",
-        "As at 31 March 2023\nAmount in ₹ Lakhs",
+        `As at ${periodHeaders.currentPeriod}\nAmount in foreign currency in Lakhs`,
+        `As at ${periodHeaders.currentPeriod}\nAmount in ₹ Lakhs`,
+        `As at ${periodHeaders.previousPeriod}\nAmount in foreign currency in Lakhs`,
+        `As at ${periodHeaders.previousPeriod}\nAmount in ₹ Lakhs`,
+       // "As at 31 March 2024\nAmount in foreign currency in Lakhs",
+        //"As at 31 March 2024\nAmount in ₹ Lakhs",
+        //"As at 31 March 2023\nAmount in foreign currency in Lakhs",
+        //"As at 31 March 2023\nAmount in ₹ Lakhs",
       ];
       const exposureColCount = exposureHeaders.length + 1;
       const expReceivableUSD = row("Trade receivables-USD", exposureColCount);
@@ -9453,10 +9514,14 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
       // --- TABLE 7: Sensitivity Analysis ---
       const sensitivityHeaders = [
         "Particulars",
-        "Increase 31 March 2024",
-        "Decrease 31 March 2024",
-        "Increase 31 March 2023",
-        "Decrease 31 March 2023",
+        `Increase ${periodHeaders.currentPeriod}`,
+        `Decrease ${periodHeaders.currentPeriod}`,
+        `Increase ${periodHeaders.previousPeriod}`,
+        `Decrease ${periodHeaders.previousPeriod}`,
+        // "Increase 31 March 2024",
+        // "Decrease 31 March 2024",
+        // "Increase 31 March 2023",
+        // "Decrease 31 March 2023",
       ];
       const sensitivityColCount = sensitivityHeaders.length;
       const sensInrUsd = row("INR/USD", sensitivityColCount);
@@ -9935,18 +10000,18 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
         ],
       };
     };
-    const note3 = calculateNote3();
-    const note4 = calculateNote4();
+    const note3 = calculateNote3(periodHeaders);
+    const note4 = calculateNote4(periodHeaders);
     const note5 = calculateNote5();
     const note6 = calculateNote6();
     const note7 = calculateNote7();
     const note8 = calculateNote8();
-    const note9 = calculateNote9();
+    const note9 = calculateNote9(periodHeaders);
     const note10 = calculateNote10();
     const note11 = calculateNote11();
-    const note12 = calculateNote12();
+    const note12 = calculateNote12(periodHeaders);
     const note13 = calculateNote13();
-    const note14 = calculateNote14();
+    const note14 = calculateNote14(periodHeaders);
     const note15 = calculateNote15();
     const note16 = calculateNote16();
     const note17 = calculateNote17();
@@ -9959,14 +10024,14 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
     const note24 = calculateNote24();
     const note25 = calculateNote25();
     const note26 = calculateNote26();
-    const note27 = calculateNote27();
-    const note28 = calculateNote28();
+    const note27 = calculateNote27(periodHeaders);
+    const note28 = calculateNote28(periodHeaders);
     const note29 = calculateNote29();
-    const note30 = calculateNote30();
+    const note30 = calculateNote30(periodHeaders);
     const note32 = calculateNote32();
     const note33 = calculateNote33();
     const note34 = calculateNote34();
-    const note35 = calculateNote35();
+    const note35 = calculateNote35(periodHeaders);
     const allNotes = [
       note3,
       note4,
@@ -11151,7 +11216,8 @@ const DrillDownTable = ({
               textDecoration: "none",
               color: hasManualEntry(row) ? "error.main" : "primary.main", // 🔴 red if any manual entry exists
             }}
-            onClick={() => handleEditNotes(row.note)}
+            onClick={() => handleEditNotes(row.noteLink ?? row.note)}
+            
           >
             {row.note}
           </TableCell>
@@ -12313,7 +12379,8 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
     financialVar2,
     textVar2,
     editedNotes,
-    editedCashFlow
+    editedCashFlow,
+    periodHeaders
   );
 
   const allExpandableKeys = useMemo(() => {

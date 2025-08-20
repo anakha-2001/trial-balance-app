@@ -24,6 +24,7 @@
     "file-saver": "^2.0.5",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
+    "papaparse": "^5.5.3",
     "pg": "^8.16.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -62,6 +63,7 @@
     "@types/cors": "^2.8.19",
     "@types/file-saver": "^2.0.7",
     "@types/lodash": "^4.17.20",
+    "@types/papaparse": "^5.3.16",
     "@types/pg": "^8.15.4",
     "@types/react": "^19.1.9"
   }
