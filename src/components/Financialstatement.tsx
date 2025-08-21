@@ -19,6 +19,8 @@ import {
 import PeriodSelector from "./PeriodSelector";
 import { saveAs } from "file-saver";
 import ExcelJS, { Worksheet, Border, Fill } from "exceljs";
+import { CacheProvider } from '@emotion/react';
+import createCache from '@emotion/cache';
 import {
   PDFViewer,
   Page,
@@ -12119,6 +12121,7 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
   const [editorContainer, setEditorContainer] = useState<HTMLElement | null>(
     null
   );
+  const [emotionCache, setEmotionCache] = useState<any | null>(null);
   const [manualJE, setManualJE] = useState([]);
   const [financialVar, setFinancialVar] = useState<any[]>([]);
   const [textVar, setTextVar] = useState<TextVarRow[]>([]);
@@ -12499,7 +12502,7 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
   //     handleCloseCashFlowEditor();
   // };
 
-  const handleEditNotes = (noteId?: number | string) => {
+    const handleEditNotes = (noteId?: number | string) => {
     const newWindow = window.open(
       "",
       "_blank",
@@ -12508,17 +12511,21 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
 
     if (newWindow) {
       newWindow.document.title = "Edit Financial Notes";
-
+      
+      // Create a root element in the new window for React to mount to
       const container = newWindow.document.createElement("div");
+      container.id = 'notes-editor-root';
       newWindow.document.body.appendChild(container);
       newWindow.document.body.style.margin = "0";
 
-      // Clone styles and links
-      const styles = Array.from(document.getElementsByTagName("style"));
-      styles.forEach((style) => {
-        newWindow.document.head.appendChild(style.cloneNode(true));
+      // ✅ Create a new style cache that will inject styles into the pop-up's <head>
+      const newCache = createCache({
+        key: 'mui-in-popup',
+        container: newWindow.document.head,
       });
 
+      // Clone the main page's stylesheets into the new window.
+      // This is still good for base styles and fonts.
       const links = Array.from(document.getElementsByTagName("link"));
       links.forEach((link) => {
         if (link.rel === "stylesheet") {
@@ -12526,26 +12533,26 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
         }
       });
 
-      // Set container and open editor
+      // Set all the necessary state to trigger the render
       setEditorContainer(container);
+      setEmotionCache(newCache); // <-- Store the new cache
       setNotesEditorOpen(true);
 
-      // Pass selected note to global state or storage
       if (noteId) {
         localStorage.setItem("selectedNoteId", noteId.toString());
       } else {
         localStorage.removeItem("selectedNoteId");
       }
 
-      // Handle cleanup
+      // Cleanup when the window is closed
       newWindow.addEventListener("beforeunload", () => {
         setNotesEditorOpen(false);
         setEditorContainer(null);
+        setEmotionCache(null); // <-- Clean up the cache state
         localStorage.removeItem("selectedNoteId");
       });
     }
   };
-
   const handleCloseEditor = () => {
     if (editorContainer) {
       const editorWindow = editorContainer.ownerDocument.defaultView;
@@ -12966,7 +12973,9 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
 
       {isNotesEditorOpen &&
         editorContainer &&
+        emotionCache && 
         createPortal(
+          <CacheProvider value={emotionCache}> 
           <NotesEditor
             financialVariable={financialVar2}
             amountKeys={currentAmountKeys}
@@ -12974,6 +12983,7 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
             onSave={handleSaveChanges}
             onClose={handleCloseEditor}
           />,
+          </CacheProvider>,
           editorContainer
         )}
 
