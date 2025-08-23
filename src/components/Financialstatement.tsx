@@ -13,6 +13,7 @@ import {
   DialogContent,
   DialogActions,
   DialogTitle,
+  TableContainer,
   DialogContentText,
   Alert,
 } from "@mui/material";
@@ -144,6 +145,29 @@ export const formatCurrency = (amount: number | null) => {
     maximumFractionDigits: 2,
   }).format(value);
 };
+// --- NEW: Type definition for a single calculated ratio ---
+interface CalculatedRatio {
+    sNo: string;
+    ratioMeasure: string;
+    methodology: string;
+    valueCurrent: number | string;
+    valuePrevious: number | string;
+    percentageChange: string;
+}
+
+// --- NEW: Formatting helpers for the Ratios Table ---
+const formatRatioValue = (value: number | string) => {
+    if (typeof value !== 'number' || isNaN(value)) {
+        return value; // Return strings like 'Not Applicable' as is
+    }
+    return value.toFixed(2);
+};
+
+const formatPercentageValue = (value: string) => {
+    if (value === 'N/A') return value;
+    return `${value}%`;
+};
+
 const PDF_STYLES = StyleSheet.create({
   page: { padding: 30, fontSize: 9, fontFamily: "Helvetica" },
   title: {
@@ -10566,54 +10590,77 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
           valueCurrent = benefit.valueCurrent ?? 0;
           valuePrevious = benefit.valuePrevious ?? 0;
         }
-      } else if (node.key === "bs-assets-nc-ppe") {
+      }
+      
+      
+      else if (node.key === "bs-assets-nc-ppe") {
         const table = note3.content.find(
-          (item): item is TableContent =>
-            (item as TableContent).type === "table"
-        );
+          (item) => typeof item === 'object' && item !== null && (item as any).key === 'note3-table1'
+        ) as TableContent | undefined;
         if (table) {
-          const ppeRow = table.rows.find(
-            (row) => row[0] === "As at 31 March 2024"
-          );
+          const ppeRow = table.rows.find((row) => row[0] === `As at ${periodHeaders.currentPeriod}`);
           if (ppeRow) {
-            valueCurrent =
-              parseFloat(ppeRow[ppeRow.length - 1].replace(/,/g, "")) || 0;
+            valueCurrent = parseFloat(ppeRow[ppeRow.length - 1].replace(/,/g, "")) || 0;
           }
-          const prevRow = table.rows.find(
-            (row) => row[0] === "As at 31 March 2023"
-          );
+          const prevRow = table.rows.find((row) => row[0] === `As at ${periodHeaders.previousPeriod}`);
           if (prevRow) {
-            valuePrevious =
-              parseFloat(prevRow[prevRow.length - 1].replace(/,/g, "")) || 0;
+            valuePrevious = parseFloat(prevRow[prevRow.length - 1].replace(/,/g, "")) || 0;
           }
         }
       } else if (node.key === "bs-assets-nc-cwip") {
-        const tables = note3.content.filter(
-          (item): item is TableContent =>
-            (item as TableContent).type === "table"
-        );
-        // Assuming the second table in content is the CWIP table
-        const cwipTable = tables[1]; // index 1 for second table
+        const cwipTable = note3.content.find(
+          (item) => typeof item === 'object' && item !== null && (item as any).key === 'note3-table2'
+        ) as TableContent | undefined;
         if (cwipTable) {
-          const currentRow = cwipTable.rows.find(
-            (row) => row[0] === "Total as on 31 March 2024"
-          );
+          const currentRow = cwipTable.rows.find((row) => row[0] === `Total as on ${periodHeaders.currentPeriod}`);
           if (currentRow) {
-            valueCurrent =
-              Math.abs(
-                parseFloat(currentRow[currentRow.length - 1].replace(/,/g, ""))
-              ) || 0;
+            valueCurrent = parseFloat(currentRow[currentRow.length - 1].replace(/,/g, "")) || 0;
           }
-          const previousRow = cwipTable.rows.find(
-            (row) => row[0] === "Total as on 31 March 2023"
-          );
+          const previousRow = cwipTable.rows.find((row) => row[0] === `Total as on ${periodHeaders.previousPeriod}`);
           if (previousRow) {
-            valuePrevious =
-              Math.abs(
-                parseFloat(
-                  previousRow[previousRow.length - 1].replace(/,/g, "")
-                )
-              ) || 0;
+            valuePrevious = parseFloat(previousRow[previousRow.length - 1].replace(/,/g, "")) || 0;
+          }
+        }
+      } else if (node.key === "bs-assets-nc-rou") {
+        const table = note4.content.find(
+          (item) => typeof item === 'object' && item !== null && (item as any).key === 'note4-table1'
+        ) as TableContent | undefined;
+        if (table) {
+          const rouRow = table.rows.find((row) => row[0] === `As at ${periodHeaders.currentPeriod}`);
+          if (rouRow) {
+            valueCurrent = parseFloat(rouRow[rouRow.length - 1].replace(/,/g, "")) || 0;
+          }
+          const prevRow = table.rows.find((row) => row[0] === `As at ${periodHeaders.previousPeriod}`);
+          if (prevRow) {
+            valuePrevious = parseFloat(prevRow[prevRow.length - 1].replace(/,/g, "")) || 0;
+          }
+        }
+      } else if (node.key === "bs-assets-nc-intangible") {
+        const intangibleTable = note4.content.find(
+          (item) => typeof item === 'object' && item !== null && (item as any).key === 'note4-table2'
+        ) as TableContent | undefined;
+        if (intangibleTable) {
+          const currentRow = intangibleTable.rows.find((row) => row[0] === `As at ${periodHeaders.currentPeriod}`);
+          if (currentRow && currentRow[1]) {
+             valueCurrent = parseFloat(String(currentRow[1]).replace(/,/g, "")) || 0;
+          }
+          const previousRow = intangibleTable.rows.find((row) => row[0] === `As at ${periodHeaders.previousPeriod}`);
+          if (previousRow && previousRow[1]) {
+            valuePrevious = parseFloat(String(previousRow[1]).replace(/,/g, "")) || 0;
+          }
+        }
+      } else if (node.key === "bs-assets-nc-otherintangible") {
+        const devTable = note4.content.find(
+          (item) => typeof item === 'object' && item !== null && (item as any).key === 'note4-table3'
+        ) as TableContent | undefined;
+        if (devTable) {
+          const currentRow = devTable.rows.find((row) => row[0] === `Total as on ${periodHeaders.currentPeriod}`);
+          if (currentRow) {
+            valueCurrent = parseFloat(currentRow[currentRow.length - 1].replace(/,/g, "")) || 0;
+          }
+          const previousRow = devTable.rows.find((row) => row[0] === `Total as on ${periodHeaders.previousPeriod}`);
+          if (previousRow) {
+            valuePrevious = parseFloat(previousRow[previousRow.length - 1].replace(/,/g, "")) || 0;
           }
         }
       } else if (node.key === "bs-assets-nc-rou") {
@@ -11265,6 +11312,67 @@ const DrillDownTable = ({
       </Box>
     </Paper>
   );
+};
+// --- NEW: Component for the Ratios Table ---
+// --- CORRECTED: Component for the Ratios Table ---
+const RatiosTable = ({ ratios, periodHeaders }: { ratios: CalculatedRatio[], periodHeaders: { currentPeriod: string, previousPeriod: string } }) => {
+    
+    // Helper to decide if a ratio should be displayed as a percentage
+    const isPercentageRatio = (measure: string) => {
+        const lowerMeasure = measure.toLowerCase();
+        // Ratios that should be formatted as percentages
+        return lowerMeasure.includes('return') || lowerMeasure.includes('net profit');
+    };
+
+    return (
+        <Paper sx={{ my: 4, overflow: 'hidden' }}>
+            <Box sx={{ p: 2 }}>
+                <Typography variant="h6" mb={2}>
+                    Important Ratios
+                </Typography>
+                <TableContainer>
+                    <Table size="small" sx={{ '& td, & th': { border: '1px solid rgba(224, 224, 224, 1)' } }}>
+                        <TableHead>
+                            <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                                <TableCell sx={{ fontWeight: 'bold' }}>S.No</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Ratio/Measure</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Methodology</TableCell>
+                                <TableCell align="center" sx={{ fontWeight: 'bold' }}>As at {periodHeaders.currentPeriod}</TableCell>
+                                <TableCell align="center" sx={{ fontWeight: 'bold' }}>As at {periodHeaders.previousPeriod}</TableCell>
+                                <TableCell align="center" sx={{ fontWeight: 'bold' }}>% change</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {ratios.map((ratio) => (
+                                <TableRow key={ratio.sNo}>
+                                    <TableCell>{ratio.sNo}</TableCell>
+                                    <TableCell>{ratio.ratioMeasure}</TableCell>
+                                    <TableCell>{ratio.methodology}</TableCell>
+                                    <TableCell align="center">
+                                        {typeof ratio.valueCurrent === 'string' 
+                                            ? ratio.valueCurrent 
+                                            : isPercentageRatio(ratio.ratioMeasure) 
+                                                ? `${(ratio.valueCurrent * 100).toFixed(2)}%` 
+                                                : ratio.valueCurrent.toFixed(2)}
+                                    </TableCell>
+                                    <TableCell align="center">
+                                        {typeof ratio.valuePrevious === 'string' 
+                                            ? ratio.valuePrevious 
+                                            : isPercentageRatio(ratio.ratioMeasure) 
+                                                ? `${(ratio.valuePrevious * 100).toFixed(2)}%` 
+                                                : ratio.valuePrevious.toFixed(2)}
+                                    </TableCell>
+                                    <TableCell align="center" sx={{ color: parseFloat(ratio.percentageChange) < 0 ? 'red' : 'inherit' }}>
+                                        {formatPercentageValue(ratio.percentageChange)}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </Box>
+        </Paper>
+    );
 };
 // --- 6. EXPORT & MODAL COMPONENTS ---
 const handleExportExcel = async (
@@ -12108,6 +12216,25 @@ export interface FinancialStatementsProps {
   amountKeys?: { amountCurrentKey: string; amountPreviousKey: string };
   useDatabase?: boolean;
 }
+// --- NEW: Helper function to find values in the hierarchical data ---
+const findValueByKey = (items: HierarchicalItem[], key: string): { current: number, previous: number } => {
+    if (!items) return { current: 0, previous: 0 };
+    for (const item of items) {
+        if (item.key === key) {
+            return { current: item.valueCurrent ?? 0, previous: item.valuePrevious ?? 0 };
+        }
+        if (item.children) {
+            const found = findValueByKey(item.children, key);
+            // Check if found has non-zero/non-null values before returning
+            if (found.current !== 0 || found.previous !== 0) {
+                return found;
+            }
+        }
+    }
+    // Return 0 if not found, which is safer for calculations
+    return { current: 0, previous: 0 };
+};
+
 const FinancialStatements: React.FC<FinancialStatementsProps> = ({
   data,
   amountKeys,
@@ -12386,6 +12513,81 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
     periodHeaders
   );
 
+    // --- NEW: Ratio calculation logic using useMemo for efficiency ---
+    // --- CORRECTED: Ratio calculation logic using useMemo for efficiency ---
+  const calculatedRatios = useMemo<CalculatedRatio[]>(() => {
+    if (!financialData || financialData.balanceSheet.length === 0 || financialData.incomeStatement.length === 0) {
+        return [];
+    }
+
+    const bs = financialData.balanceSheet;
+    const is = financialData.incomeStatement;
+
+    const calculatePercentageChange = (current: number, previous: number): string => {
+        if (previous === 0 || isNaN(current) || isNaN(previous)) return 'N/A';
+        const change = ((current - previous) / Math.abs(previous)) * 100;
+        return change.toFixed(2);
+    };
+
+    // --- Extracting Values from Financial Statements ---
+    const currentAssets = findValueByKey(bs, 'bs-assets-c');
+    const currentLiabilities = findValueByKey(bs, 'bs-liab-c');
+    const totalEquity = findValueByKey(bs, 'bs-eq');
+    const inventories = findValueByKey(bs, 'bs-assets-c-inv');
+    const tradeReceivables = findValueByKey(bs, 'bs-assets-c-fin-tr');
+    const tradePayables = findValueByKey(bs, 'bs-liab-c-fin-tp');
+    //const profitOfYear=findValueByKey(bs,'is-pat');
+    const totalDebt = { 
+        current: (findValueByKey(bs, 'bs-liab-nc-fin-borrow').current) + (findValueByKey(bs, 'bs-liab-c-fin-liability').current),
+        previous: (findValueByKey(bs, 'bs-liab-nc-fin-borrow').previous) + (findValueByKey(bs, 'bs-liab-c-fin-liability').previous),
+    };
+
+    const revenue = findValueByKey(is, 'is-rev-ops');
+    const pat = findValueByKey(is, 'is-pat'); // Profit After Tax
+    const pbt = findValueByKey(is, 'is-pbt'); // Profit Before Tax
+    const financeCost = findValueByKey(is, 'is-exp-fin');
+    
+    const cogs = { // Cost of Goods Sold = materials + purchases + inventory changes
+        current: (findValueByKey(is, 'is-exp-mat').current) + (findValueByKey(is, 'is-exp-pur').current) + (findValueByKey(is, 'is-exp-inv').current),
+        previous: (findValueByKey(is, 'is-exp-mat').previous) + (findValueByKey(is, 'is-exp-pur').previous) + (findValueByKey(is, 'is-exp-inv').previous),
+    };
+
+    const ebit = { current: (pbt.current) + (financeCost.current), previous: (pbt.previous) + (financeCost.previous) };
+    const workingCapital = { current: (currentAssets.current) - (currentLiabilities.current), previous: (currentAssets.previous) - (currentLiabilities.previous) };
+    const capitalEmployed = { current: (totalEquity.current) + (totalDebt.current), previous: (totalEquity.previous) + (totalDebt.previous) };
+
+    // Helper for safe division to avoid errors
+    const safeDiv = (num: number, den: number) => (den === 0 ? 0 : num / den);
+    
+    // --- Calculating Ratios (as raw decimals, NOT percentages) ---
+    const averageEquity = (totalEquity.current + totalEquity.previous) / 2;
+
+    const currentRatio = { current: safeDiv(currentAssets.current, currentLiabilities.current), previous: safeDiv(currentAssets.previous, currentLiabilities.previous) };
+    const roe = { current: safeDiv(pat.current, averageEquity), previous: safeDiv(pat.previous, averageEquity) };
+    const inventoryTurnover = { current: safeDiv(cogs.current, inventories.current), previous: safeDiv(cogs.previous, inventories.previous) };
+    const receivablesTurnover = { current: safeDiv(revenue.current, tradeReceivables.current), previous: safeDiv(revenue.previous, tradeReceivables.previous) };
+    const payablesTurnover = { current: safeDiv(cogs.current, tradePayables.current), previous: safeDiv(cogs.previous, tradePayables.previous) };
+    const netCapitalTurnover = { current: safeDiv(revenue.current, workingCapital.current), previous: safeDiv(revenue.previous, workingCapital.previous) };
+    const netProfitRatio = { current: safeDiv(pat.current, revenue.current), previous: safeDiv(pat.previous, revenue.previous) };
+    const roce = { current: safeDiv(ebit.current, capitalEmployed.current), previous: safeDiv(ebit.previous, capitalEmployed.previous) };
+    const roi = roce; // In this context, ROI formula is the same as ROCE
+
+    return [
+        { sNo: '(a)', ratioMeasure: 'Current Ratio', methodology: 'Current assets over current liabilities', valueCurrent: currentRatio.current, valuePrevious: currentRatio.previous, percentageChange: calculatePercentageChange(currentRatio.current, currentRatio.previous) },
+        { sNo: '(b)', ratioMeasure: 'Debt - Equity Ratio', methodology: 'Debt over total shareholders equity', valueCurrent: 'Not Applicable', valuePrevious: 'Not Applicable', percentageChange: 'N/A' },
+        { sNo: '(c)', ratioMeasure: 'Debt Service Coverage Ratio', methodology: 'EBITDA over current debt', valueCurrent: 'Not Applicable', valuePrevious: 'Not Applicable', percentageChange: 'N/A' },
+        { sNo: '(d)', ratioMeasure: 'Return on Equity', methodology: 'PAT over total average equity', valueCurrent: roe.current, valuePrevious: roe.previous, percentageChange: calculatePercentageChange(roe.current, roe.previous) },
+        { sNo: '(e)', ratioMeasure: 'Inventory turnover Ratio', methodology: 'Cost of goods sold over inventory', valueCurrent: inventoryTurnover.current, valuePrevious: inventoryTurnover.previous, percentageChange: calculatePercentageChange(inventoryTurnover.current, inventoryTurnover.previous) },
+        { sNo: '(f)', ratioMeasure: 'Trade Receivables Turnover Ratio', methodology: 'Revenue from operations over trade receivables', valueCurrent: receivablesTurnover.current, valuePrevious: receivablesTurnover.previous, percentageChange: calculatePercentageChange(receivablesTurnover.current, receivablesTurnover.previous) },
+        { sNo: '(g)', ratioMeasure: 'Trade Payables Turnover Ratio', methodology: 'Adjusted expenses over trade payables', valueCurrent: payablesTurnover.current, valuePrevious: payablesTurnover.previous, percentageChange: calculatePercentageChange(payablesTurnover.current, payablesTurnover.previous) },
+        { sNo: '(h)', ratioMeasure: 'Net Capital Turnover Ratio', methodology: 'Revenue from operations over working capital', valueCurrent: netCapitalTurnover.current, valuePrevious: netCapitalTurnover.previous, percentageChange: calculatePercentageChange(netCapitalTurnover.current, netCapitalTurnover.previous) },
+        { sNo: '(i)', ratioMeasure: 'Net Profit Ratio', methodology: 'Net profit over revenue', valueCurrent: netProfitRatio.current, valuePrevious: netProfitRatio.previous, percentageChange: calculatePercentageChange(netProfitRatio.current, netProfitRatio.previous) },
+        { sNo: '(j)', ratioMeasure: 'Return on Capital Employed', methodology: 'EBIT over average capital employed', valueCurrent: roce.current, valuePrevious: roce.previous, percentageChange: calculatePercentageChange(roce.current, roce.previous) },
+        { sNo: '(k)', ratioMeasure: 'Return on Investment', methodology: 'EBIT over Total borrowings including lease liabilities and shareholders equity', valueCurrent: roi.current, valuePrevious: roi.previous, percentageChange: calculatePercentageChange(roi.current, roi.previous) },
+    ];
+
+  }, [financialData]);
+
   const allExpandableKeys = useMemo(() => {
     const bsKeys = getAllExpandableKeys(financialData.balanceSheet);
     const isKeys = getAllExpandableKeys(financialData.incomeStatement);
@@ -12436,6 +12638,8 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
       </Box>
     );
   }
+
+  
 
   const handleToggleRow = (key: string) => {
     setExpandedKeys((prev) => {
@@ -13021,6 +13225,7 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
         handleEditNotes={handleEditNotes}
         periodHeaders={periodHeaders}
       />
+      <RatiosTable ratios={calculatedRatios} periodHeaders={periodHeaders} />
 
       <Box sx={{ mt: 3, display: "flex", gap: 2, justifyContent: "center" }}>
         <Button

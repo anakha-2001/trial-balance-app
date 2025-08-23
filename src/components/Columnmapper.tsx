@@ -157,10 +157,10 @@ const ColumnMapper: React.FC<Props> = ({ columns, rawData, onConfirm }) => {
         return parseFloat(cleaned) || 0;
     };
 
-    //const amountCurrentKey = `${amountMeta.amountCurrent.periodType} ${amountMeta.amountCurrent.date}`;
-    //const amountPreviousKey = `${amountMeta.amountPrevious.periodType} ${amountMeta.amountPrevious.date}`;
-    const amountCurrentKey = amountMeta.amountCurrent.date;
-    const amountPreviousKey = amountMeta.amountPrevious.date;
+    const amountCurrentKey = `${amountMeta.amountCurrent.periodType} ${amountMeta.amountCurrent.date}`;
+    const amountPreviousKey = `${amountMeta.amountPrevious.periodType} ${amountMeta.amountPrevious.date}`;
+    //const amountCurrentKey = amountMeta.amountCurrent.date;
+   // const amountPreviousKey = amountMeta.amountPrevious.date;
     const mappedData: any[] = rawData.map((row) => {
       const getValue = (key: keyof MappedRow, defaultValue: any = '') => {
         const mappedColumn = map[key];
