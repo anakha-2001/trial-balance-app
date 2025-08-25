@@ -1506,7 +1506,7 @@ const useFinancialData = (
       return null;
     };
     const totals = new Map<string, { current: number; previous: number }>();
-    const calculateNote3 = (
+     const calculateNote3 = (
       periodHeaders: { currentPeriod: string; previousPeriod: string }
     ): FinancialNote => {
       // Updated calculateRowTotal to sum columns 1 to 7 (exclusive of 'Total' column at index 8)
@@ -1700,13 +1700,6 @@ const useFinancialData = (
       ];
       const cwipColumnCount = cwipHeaders.length;
 
-      // --- Second Table Rows (CWIP Ageing) ---
-      const cwipAgeingRows = [
-        row("Projects in progress", cwipColumnCount),
-        row("Adjustments in progress", cwipColumnCount),
-        // Add more rows here if you need a total of 5 editable rows
-      ];
-      // Corrected slice to calculate row total for CWIP tables
       const calculateCwipRowTotal = (row: string[]): string => {
         const sum = row
           .slice(1, 5) // Summing columns 1-4
@@ -1719,44 +1712,45 @@ const useFinancialData = (
           maximumFractionDigits: 2,
         });
       };
-      cwipAgeingRows.forEach((r) => (r[5] = calculateCwipRowTotal(r)));
-      const cwipAgeingTotal24 = [
-         `Total as on ${periodHeaders.currentPeriod}`,
-        ...calculateBalance(cwipAgeingRows, cwipColumnCount).slice(1, 6),
-      ];
-      const cwipAgeingTotal23 = [
-        `Total as on ${periodHeaders.previousPeriod}`,
-        ...calculateBalance(cwipAgeingRows, cwipColumnCount).slice(1, 6),
-      ];
+
+      // --- CWIP Ageing Table ---
+      const cwipAgeingProjectsRow = row("Projects in progress", cwipColumnCount);
+      const cwipAgeingAdjustmentsRow = row("Adjustments in progress", cwipColumnCount);
+      
+      // Calculate horizontal totals for the editable data rows
+      cwipAgeingProjectsRow[5] = calculateCwipRowTotal(cwipAgeingProjectsRow);
+      cwipAgeingAdjustmentsRow[5] = calculateCwipRowTotal(cwipAgeingAdjustmentsRow);
+      
+      // Directly assign the row data to the total rows
+      const cwipAgeingTotal24 = [`Total as on ${periodHeaders.currentPeriod}`, ...cwipAgeingProjectsRow.slice(1)];
+      const cwipAgeingTotal23 = [`Total as on ${periodHeaders.previousPeriod}`, ...cwipAgeingAdjustmentsRow.slice(1)];
 
       const cwipAgeingTableRows = [
-        ...cwipAgeingRows,
+        cwipAgeingProjectsRow,
+        cwipAgeingAdjustmentsRow,
         cwipAgeingTotal24,
         cwipAgeingTotal23,
       ];
 
-      // --- Third Table Rows (CWIP Completion) ---
-      const cwipCompletionRows = [
-        row("Projects to be completed", cwipColumnCount),
-        row("Adjustments to be completed", cwipColumnCount),
-        // Add more rows here if you need a total of 5 editable rows
-      ];
-      cwipCompletionRows.forEach((r) => (r[5] = calculateCwipRowTotal(r)));
-      const cwipCompletionTotal24 = [
-        `Total as on ${periodHeaders.currentPeriod}`,
-        ...calculateBalance(cwipCompletionRows, cwipColumnCount).slice(1, 6),
-      ];
-      const cwipCompletionTotal23 = [
-         `Total as on ${periodHeaders.previousPeriod}`,
-        ...calculateBalance(cwipCompletionRows, cwipColumnCount).slice(1, 6),
-      ];
+      // --- CWIP Completion Table ---
+      const cwipCompletionProjectsRow = row("Projects to be completed", cwipColumnCount);
+      const cwipCompletionAdjustmentsRow = row("Adjustments to be completed", cwipColumnCount);
+
+      // Calculate horizontal totals for the editable data rows
+      cwipCompletionProjectsRow[5] = calculateCwipRowTotal(cwipCompletionProjectsRow);
+      cwipCompletionAdjustmentsRow[5] = calculateCwipRowTotal(cwipCompletionAdjustmentsRow);
+      
+      // Directly assign the row data to the total rows
+      const cwipCompletionTotal24 = [`Total as on ${periodHeaders.currentPeriod}`, ...cwipCompletionProjectsRow.slice(1)];
+      const cwipCompletionTotal23 = [`Total as on ${periodHeaders.previousPeriod}`, ...cwipCompletionAdjustmentsRow.slice(1)];
 
       const cwipCompletionTableRows = [
-        ...cwipCompletionRows,
+        cwipCompletionProjectsRow,
+        cwipCompletionAdjustmentsRow,
         cwipCompletionTotal24,
         cwipCompletionTotal23,
       ];
-
+// --- END: Replace with this corrected block ---
       return {
         noteNumber: 3,
         title: "Property, plant and equipment (PPE)",
@@ -2045,7 +2039,7 @@ const useFinancialData = (
       ];
 
       // --- TABLE 3 & 4: Intangibles under Development ---
-      const devHeaders = [
+       const devHeaders = [
         "Intangibles under development",
         "Amount in Intangibles under\nDevelopment for a period of Less\nthan 1 year",
         "Amount in Intangibles under\nDevelopment for a period of 1-2\nyears",
@@ -2064,31 +2058,31 @@ const useFinancialData = (
         });
       };
 
-      // Ageing Table
+      // --- Ageing Table (Table 3) ---
       const devAgeingRow1 = row(
-        "TAS Software Application Development (Intangible under development) ",
-        devColCount
-      );
+        "TAS Software Application Development (Intangible under development)(Ageing)",
+         devColCount
+        );
       const devAgeingRow2 = row("", devColCount);
+    
       devAgeingRow1[5] = calculateDevRowTotal(devAgeingRow1);
       devAgeingRow2[5] = calculateDevRowTotal(devAgeingRow2);
-      const totalAgeing24 = [
-        `Total as on ${periodHeaders.currentPeriod}`,
-        "0.00",
-        "0.00",
-        "0.00",
-        "0.00",
-        "0.00",
-      ];
-      for (let i = 1; i < 6; i++) {
-        const sum = parseNum(devAgeingRow1[i]) + parseNum(devAgeingRow2[i]);
-        totalAgeing24[i] = sum.toLocaleString("en-IN", {
-          minimumFractionDigits: 2,
-        });
-      }
-      const totalAgeing23 = row( `Total as on ${periodHeaders.previousPeriod}`, devColCount);
+      
+      // The 2024 total is a copy of the FIRST data row
+      const totalAgeing24 = [`Total as on ${periodHeaders.currentPeriod}`, ...devAgeingRow1.slice(1)];
+      
+      // FIX: The 2023 total is now a copy of the SECOND data row
+      const totalAgeing23 = [`Total as on ${periodHeaders.previousPeriod}`, ...devAgeingRow2.slice(1)];
 
-      // Completion Table
+      const cwipAgeingTableRows = [
+        devAgeingRow1,
+        devAgeingRow2,
+        totalAgeing24,
+        totalAgeing23,
+      ];
+
+
+      // --- Completion Table (Table 4) ---
       const completionHeaders = [
         "Intangibles under development",
         "To be completed in Less than 1\nyear",
@@ -2098,33 +2092,31 @@ const useFinancialData = (
         "Total",
       ];
       const completionColCount = completionHeaders.length;
-
+      
       const devCompletionRow1 = row(
-        "TAS Software Application Development (Intangible under development) ",
-        completionColCount
-      );
+        "TAS Software Application Development (Intangible under development)(Completion)",
+         completionColCount
+        );
       const devCompletionRow2 = row("", completionColCount);
+      
       devCompletionRow1[5] = calculateDevRowTotal(devCompletionRow1);
       devCompletionRow2[5] = calculateDevRowTotal(devCompletionRow2);
-      const totalCompletion24 = [
-         `Total as on ${periodHeaders.currentPeriod}`,
-        "0.00",
-        "0.00",
-        "0.00",
-        "0.00",
-        "0.00",
+
+      // The 2024 total is a copy of the FIRST data row
+      const totalCompletion24 = [`Total as on ${periodHeaders.currentPeriod}`, ...devCompletionRow1.slice(1)];
+      
+      // FIX: The 2023 total is now a copy of the SECOND data row
+      const totalCompletion23 = [`Total as on ${periodHeaders.previousPeriod}`, ...devCompletionRow2.slice(1)];
+
+      const cwipCompletionTableRows = [ // Note: This variable name seems like a typo in your original code but keeping for consistency
+        devCompletionRow1, // Should be devCompletionRow1
+        devCompletionRow2, // Should be devCompletionRow2
+        totalCompletion24,
+        totalCompletion23,
       ];
-      for (let i = 1; i < 6; i++) {
-        const sum =
-          parseNum(devCompletionRow1[i]) + parseNum(devCompletionRow2[i]);
-        totalCompletion24[i] = sum.toLocaleString("en-IN", {
-          minimumFractionDigits: 2,
-        });
-      }
-      const totalCompletion23 = row(
-        `Total as on ${periodHeaders.previousPeriod}`,
-        completionColCount
-      );
+
+// --- END: The code to replace ---
+      
 
       return {
         noteNumber: 4,
@@ -2241,6 +2233,7 @@ const useFinancialData = (
         ],
       };
     };
+
     const calculateNote5 = (): FinancialNote => {
       const note5_1 = getValueForKey(5, "note5-nc-emp");
       const note5_2 = getValueForKey(5, "note5-c-emp");
@@ -4093,12 +4086,12 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
       };
 
       // Define editable rows for the current year (2024) data points
-      const msme2024 = row("(i) MSME ", ageingColCount);
-      const others2024 = row("(ii) Others ", ageingColCount);
+      const msme2024 = row("(i) MSME(Current) ", ageingColCount);
+      const others2024 = row("(ii) Others(Current)", ageingColCount);
 
       // Define editable rows for the previous year (2023) data points
-      const msme2023 = row("(i) MSME ", ageingColCount);
-      const others2023 = row("(ii) Others ", ageingColCount);
+      const msme2023 = row("(i) MSME(Previous) ", ageingColCount);
+      const others2023 = row("(ii) Others(Previous) ", ageingColCount);
 
       // Calculate row totals for each editable row
       msme2024[5] = calculateAgeingRowTotal(msme2024);
@@ -4214,6 +4207,7 @@ The National Company Law Tribunal vide its order dated  9th May, 2019 confirmed 
         ],
       };
     };
+
     const calculateNote15 = (): FinancialNote => {
       const leaseLiabilitiesNonCurrent = {
         current: getAmount(
@@ -12513,7 +12507,8 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
 
     // --- NEW: Ratio calculation logic using useMemo for efficiency ---
     // --- CORRECTED: Ratio calculation logic using useMemo for efficiency ---
-  const calculatedRatios = useMemo<CalculatedRatio[]>(() => {
+   // In this context, ROI formula is the same as ROCE
+    const calculatedRatios = useMemo<CalculatedRatio[]>(() => {
     if (!financialData || financialData.balanceSheet.length === 0 || financialData.incomeStatement.length === 0) {
         return [];
     }
@@ -12534,6 +12529,7 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
     const inventories = findValueByKey(bs, 'bs-assets-c-inv');
     const tradeReceivables = findValueByKey(bs, 'bs-assets-c-fin-tr');
     const tradePayables = findValueByKey(bs, 'bs-liab-c-fin-tp');
+    
     //const profitOfYear=findValueByKey(bs,'is-pat');
     const totalDebt = { 
         current: (findValueByKey(bs, 'bs-liab-nc-fin-borrow').current) + (findValueByKey(bs, 'bs-liab-c-fin-liability').current),
@@ -12544,6 +12540,8 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
     const pat = findValueByKey(is, 'is-pat'); // Profit After Tax
     const pbt = findValueByKey(is, 'is-pbt'); // Profit Before Tax
     const financeCost = findValueByKey(is, 'is-exp-fin');
+    const totalExpenses=findValueByKey(is,'is-expenses');
+    const income=findValueByKey(is,'is-income');
     
     const cogs = { // Cost of Goods Sold = materials + purchases + inventory changes
         current: (findValueByKey(is, 'is-exp-mat').current) + (findValueByKey(is, 'is-exp-pur').current) + (findValueByKey(is, 'is-exp-inv').current),
@@ -12559,16 +12557,20 @@ const FinancialStatements: React.FC<FinancialStatementsProps> = ({
     
     // --- Calculating Ratios (as raw decimals, NOT percentages) ---
     const averageEquity = (totalEquity.current + totalEquity.previous) / 2;
+    const averageInventory=(inventories.current+inventories.previous)/2;
+    const averageTradereceivables=(tradeReceivables.current+tradeReceivables.previous)/2;
+    const averageExpenses=(totalExpenses.current+totalExpenses.previous)/2;
+    const averageCapitalEmployed=(capitalEmployed.current+capitalEmployed.previous)/2;
 
     const currentRatio = { current: safeDiv(currentAssets.current, currentLiabilities.current), previous: safeDiv(currentAssets.previous, currentLiabilities.previous) };
-    const roe = { current: safeDiv(pat.current, averageEquity), previous: safeDiv(pat.previous, averageEquity) };
-    const inventoryTurnover = { current: safeDiv(cogs.current, inventories.current), previous: safeDiv(cogs.previous, inventories.previous) };
-    const receivablesTurnover = { current: safeDiv(revenue.current, tradeReceivables.current), previous: safeDiv(revenue.previous, tradeReceivables.previous) };
-    const payablesTurnover = { current: safeDiv(cogs.current, tradePayables.current), previous: safeDiv(cogs.previous, tradePayables.previous) };
+    const roe = { current: safeDiv(pat.current, averageEquity), previous: safeDiv(pat.previous, totalEquity.previous) };
+    const inventoryTurnover = { current: safeDiv(cogs.current,averageInventory), previous: safeDiv(cogs.previous, inventories.previous) };
+    const receivablesTurnover = { current: safeDiv(revenue.current, averageTradereceivables), previous: safeDiv(revenue.previous, tradeReceivables.previous) };
+    const payablesTurnover = { current: safeDiv(totalExpenses.current, averageExpenses), previous: safeDiv(totalExpenses.previous, tradePayables.previous) };
     const netCapitalTurnover = { current: safeDiv(revenue.current, workingCapital.current), previous: safeDiv(revenue.previous, workingCapital.previous) };
-    const netProfitRatio = { current: safeDiv(pat.current, revenue.current), previous: safeDiv(pat.previous, revenue.previous) };
-    const roce = { current: safeDiv(ebit.current, capitalEmployed.current), previous: safeDiv(ebit.previous, capitalEmployed.previous) };
-    const roi = roce; // In this context, ROI formula is the same as ROCE
+    const netProfitRatio = { current: safeDiv(pat.current, income.current), previous: safeDiv(pat.previous, income.previous) };
+    const roce = { current: safeDiv(ebit.current, averageCapitalEmployed), previous: safeDiv(ebit.previous, capitalEmployed.previous) };
+    const roi = { current: safeDiv(ebit.current, capitalEmployed.current), previous: safeDiv(ebit.previous, capitalEmployed.previous) };
 
     return [
         { sNo: '(a)', ratioMeasure: 'Current Ratio', methodology: 'Current assets over current liabilities', valueCurrent: currentRatio.current, valuePrevious: currentRatio.previous, percentageChange: calculatePercentageChange(currentRatio.current, currentRatio.previous) },
