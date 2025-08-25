@@ -69,12 +69,12 @@ export interface TableContent {
   isTextTable?: boolean;
 }
 // Represents a single accounting policy, which can contain text and tables.
-interface AccountingPolicy {
+export interface AccountingPolicy {
   title: string;
   text: (string | TableContent)[];
 }
 // Represents the raw structure of an item in the templates.
-interface TemplateItem {
+export interface TemplateItem {
   key: string;
   label: string;
   note?: string | number;
@@ -99,7 +99,7 @@ export interface HierarchicalItem extends TemplateItem {
   isEditableText?: boolean;
 }
 
-type CashFlowItem = {
+export type CashFlowItem = {
   key?: string;
   id?: string;
   valueCurrent?: number | null;
@@ -121,7 +121,7 @@ export interface FinancialNote {
   otherBankBalancesTotal?: { current: number; previous: number };
 }
 // The final, consolidated data object.
-interface FinancialData {
+export interface FinancialData {
   balanceSheet: HierarchicalItem[];
   incomeStatement: HierarchicalItem[];
   cashFlow: HierarchicalItem[];
@@ -11540,9 +11540,7 @@ const handleExportExcel = async (
 
           // ✅ Add narrative text right here
           if (item.narrativeText) {
-            const narrativeRow = worksheet.addRow([
-              `Narrative: ${item.narrativeText}`,
-            ]);
+            const narrativeRow = worksheet.addRow([`Narrative: ${item.narrativeText}`]);
             narrativeRow.getCell(1).alignment = { wrapText: true };
             narrativeRow.font = { italic: true, color: { argb: "FF555555" } };
           }
@@ -11550,7 +11548,8 @@ const handleExportExcel = async (
             // Pass only hierarchical children
             addNoteContent(item.children, depth + 1);
           }
-        } else {
+        } 
+        if ("type" in item && item.type === "table") {
           // It's a TableContent
           worksheet.addRow([]); // Spacer before table
           const numCols = item.headers.length;
@@ -11748,7 +11747,7 @@ const ExcelConfirmDialog = ({
     </DialogActions>
   </Dialog>
 );
-const RenderPdfNoteRow = ({
+export const RenderPdfNoteRow = ({
   item,
   depth,
 }: {
@@ -11806,7 +11805,7 @@ const RenderPdfNoteRow = ({
   );
 };
 // --- FIX: New component to render a table within a PDF note ---
-const RenderPdfNoteTable = ({ data }: { data: TableContent }) => (
+export const RenderPdfNoteTable = ({ data }: { data: TableContent }) => (
   <View style={[PDF_STYLES.policyTable, { width: "100%", marginTop: 10 }]}>
     <View style={PDF_STYLES.policyTableRow}>
       {data.headers.map((header, hIndex) => (
@@ -11835,8 +11834,7 @@ const RenderPdfNoteTable = ({ data }: { data: TableContent }) => (
     ))}
   </View>
 );
-const RenderPdfNote = ({ note }: { note: FinancialNote }) => {
-  // --- FIX: Check if the note content is primarily a table for layout purposes ---
+export const RenderPdfNote = ({ note,periodHeaders }: { note: FinancialNote , periodHeaders: { currentPeriod: string, previousPeriod: string }}) => {
   const isTableNote =
     note.content.length > 0 &&
     typeof note.content[0] === "object" &&
@@ -11852,6 +11850,7 @@ const RenderPdfNote = ({ note }: { note: FinancialNote }) => {
       <Text style={PDF_STYLES.title}>
         (All amounts in ₹ lakhs, unless otherwise stated)
       </Text>
+
       <View style={{ marginTop: 15 }}>
         <Text style={PDF_STYLES.noteTitle}>
           Note {note.noteNumber}: {note.title}
@@ -11860,19 +11859,18 @@ const RenderPdfNote = ({ note }: { note: FinancialNote }) => {
           <Text style={PDF_STYLES.noteSubtitle}>{note.subtitle}</Text>
         )}
 
-        {/* --- FIX: Conditionally render headers based on content type --- */}
+        {/* Column headers: only show if not pure table note */}
         {!isTableNote && (
           <View style={PDF_STYLES.tableHeader}>
-            <Text style={PDF_STYLES.noteColParticulars}> </Text>
-            <Text style={PDF_STYLES.noteColAmount}></Text>
-            <Text style={PDF_STYLES.noteColAmount}>As at 31 March 2023</Text>
+            <Text style={PDF_STYLES.noteColParticulars}>Particulars</Text>
+            <Text style={PDF_STYLES.noteColAmount}>{periodHeaders.currentPeriod}</Text>
+            <Text style={PDF_STYLES.noteColAmount}>{periodHeaders.previousPeriod}</Text>
           </View>
         )}
 
-        {/* --- FIX: Map with type guard to render either row or table --- */}
+        {/* Render each content item with proper type guard */}
         {note.content.map((item, index) => {
           if (typeof item === "string") {
-            // Render plain text paragraphs
             return (
               <Text key={index} style={PDF_STYLES.noteParagraph}>
                 {item}
@@ -11881,24 +11879,24 @@ const RenderPdfNote = ({ note }: { note: FinancialNote }) => {
           }
 
           if (typeof item === "object" && item !== null) {
+            if ("type" in item && item.type === "table") {
+              return (
+                <RenderPdfNoteTable key={`table-${index}`} data={item as TableContent} />
+              );
+            }
             if ("key" in item) {
               return (
                 <RenderPdfNoteRow
-                  key={item.key}
+                  key={(item as HierarchicalItem).key}
                   item={item as HierarchicalItem}
+                  
                   depth={0}
                 />
               );
             }
-
-            if ("type" in item && item.type === "table") {
-              return (
-                <RenderPdfNoteTable key={index} data={item as TableContent} />
-              );
-            }
           }
 
-          return null; // Fallback in case of unexpected content
+          return null;
         })}
 
         {note.footer && (
@@ -11908,7 +11906,7 @@ const RenderPdfNote = ({ note }: { note: FinancialNote }) => {
     </View>
   );
 };
-const RenderPdfRow = ({
+export const RenderPdfRow = ({
   item,
   depth,
 }: {
@@ -11980,7 +11978,7 @@ const RenderPdfRow = ({
     </Fragment>
   );
 };
-const PDFDocumentComponent = ({
+export const PDFDocumentComponent = ({
   data,
   periodHeaders,
 }: {
@@ -12043,7 +12041,7 @@ const PDFDocumentComponent = ({
         ))}
       </View>
       {data.notes.map((note) => (
-        <RenderPdfNote key={note.noteNumber} note={note} />
+        <RenderPdfNote  note={note} periodHeaders={periodHeaders}/>
       ))}
     </Page>
     <Page size="A4" style={PDF_STYLES.page}>
@@ -12099,7 +12097,7 @@ const PDFDocumentComponent = ({
     </Page>
   </Document>
 );
-const PdfModal = ({
+export const PdfModal = ({
   open,
   onClose,
   data,
@@ -12166,7 +12164,7 @@ const getAllExpandableKeys = (items: HierarchicalItem[]): string[] => {
   return keys;
 };
 
-interface ManualJE {
+export interface ManualJE {
   glAccount: string;
   [key: string]: string | number;
 }
